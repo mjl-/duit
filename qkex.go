@@ -21,7 +21,9 @@ const (
 
 type UI interface {
 	Size(r image.Rectangle) image.Point
+	Layout(r image.Rectangle)
 	Draw(img *draw.Image, orig image.Point)
+	Mouse(m draw.Mouse)
 }
 
 type Label struct {
@@ -30,90 +32,115 @@ type Label struct {
 func (ui *Label) Size(r image.Rectangle) image.Point {
 	return display.DefaultFont.StringSize(ui.Text).Add(image.Point{2*Space, 2*Space})
 }
+func (ui *Label) Layout(r image.Rectangle) {
+}
 func (ui *Label) Draw(img *draw.Image, orig image.Point) {
 	img.String(orig.Add(image.Point{Space, Space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
+}
+func (ui *Label) Mouse(m draw.Mouse) {
 }
 
 type Button struct {
 	Text string
+	Click func()
+
+	m draw.Mouse
 }
 func (ui *Button) Size(r image.Rectangle) image.Point {
 	return display.DefaultFont.StringSize(ui.Text).Add(image.Point{2*Space, 2*Space})
+}
+func (ui *Button) Layout(r image.Rectangle) {
 }
 func (ui *Button) Draw(img *draw.Image, orig image.Point) {
 	size := display.DefaultFont.StringSize(ui.Text)
 	img.Border(image.Rectangle{orig.Add(image.Point{Margin, Margin}), orig.Add(size).Add(image.Point{Margin+2*Padding+2*Border,Margin+2*Padding+2*Border})}, 1, display.Black, image.ZP)
 	img.String(orig.Add(image.Point{Space, Space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
 }
+func (ui *Button) Mouse(m draw.Mouse) {
+	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 && ui.Click != nil {
+		ui.Click()
+	}
+	ui.m = m
+}
 
+type Kid struct {
+	UI UI
+	R image.Rectangle
+}
+
+// box keeps elements on a line as long as they fit
 type Box struct {
-	Kids []UI
+	Kids []*Kid
 }
-func (b *Box) Size(r image.Rectangle) image.Point {
-	// lay elements out one next to the other
-	xmax := r.Dx()
-	dx := 0
-	dy := 0
+func (ui *Box) Size(r image.Rectangle) image.Point {
+	p := ui.layout(r, true)
+	return p
+}
+func (ui *Box) layout(r image.Rectangle, set bool) image.Point {
+	xmax := 0
+	cur := image.Point{0,0}
 	nx := 0 // number on current line
 	liney := 0 // max y of current line
-	for _, k := range b.Kids {
-		p := k.Size(r)
-		if nx == 0 || dx + p.X <= xmax {
-			dx += p.X
+	for _, k := range ui.Kids {
+		p := k.UI.Size(r)
+		var kr image.Rectangle
+		if nx == 0 || cur.X + p.X <= r.Dx() {
+			kr = image.Rectangle{cur, cur.Add(p)}
+			cur.X += p.X
 			if p.Y > liney {
 				liney = p.Y
 			}
 			nx += 1
 		} else {
+			cur.X = 0
+			cur.Y += liney
+			kr = image.Rectangle{cur, cur.Add(p)}
 			nx = 1
-			dx = p.X
+			cur.X = p.X
 			liney = p.Y
 		}
+		if set {
+			k.R = kr
+		}
+		if xmax < cur.X {
+			xmax = cur.X
+		}
 	}
-	return image.Point{dx, dy}
+	if len(ui.Kids) > 0 {
+		cur.Y += liney
+	}
+	return image.Point{xmax, cur.Y}
 }
-func (b *Box) Draw(img *draw.Image, orig image.Point) {
-	// lay elements out one next to the other
-	xmax := img.R.Dx()
-	dx := 0
-	dy := 0
-	nx := 0 // number on current line
-	liney := 0 // max y of current line
-	for _, k := range b.Kids {
-		p := k.Size(img.R)
-		if nx == 0 || dx + p.X <= xmax {
-			k.Draw(img, orig.Add(image.Point{dx, dy}))
-
-			dx += p.X
-			if p.Y > liney {
-				liney = p.Y
-			}
-			nx += 1
-		} else {
-			dx = 0
-			dy += liney
-			k.Draw(img, orig.Add(image.Point{dx, dy}))
-
-			nx = 1
-			dx = p.X
-			liney = p.Y
+func (ui *Box) Layout(r image.Rectangle) {
+	ui.layout(r, true)
+}
+func (ui *Box) Draw(img *draw.Image, orig image.Point) {
+	for _, k := range ui.Kids {
+		k.UI.Draw(img, orig.Add(k.R.Min))
+	}
+}
+func (ui *Box) Mouse(m draw.Mouse) {
+	for _, k := range ui.Kids {
+		if m.Point.In(k.R) {
+			m.Point = m.Point.Sub(k.R.Min)
+			k.UI.Mouse(m)
+			return
 		}
 	}
+}
+
+func NewBox(uis ...UI) *Box {
+	kids := make([]*Kid, len(uis))
+	for i, ui := range uis {
+		kids[i] = &Kid{UI: ui}
+	}
+	return &Box{Kids: kids}
 }
 
 func check(err error, msg string) {
 	if err != nil {
 		log.Fatalf("%s: %s\n", msg, err)
 	}
-}
-
-func redraw(ui UI) {
-	red, err := display.AllocImage(image.Rect(0, 0, 1, 1), draw.ARGB32, true, draw.Red)
-	check(err, "allocimage red")
-
-	screen.Draw(image.Rectangle{image.Point{10, 10}, image.Point{120, 50}}, red, nil, image.ZP)
-	screen.String(image.Point{10, 10}, display.White, image.ZP, display.DefaultFont, "hi")
-	display.Flush()
 }
 
 func main() {
@@ -131,14 +158,17 @@ func main() {
 	log.Printf("display.ScreenImage, R %v, Clipr %v\n", screen.R, screen.Clipr)
 	log.Printf("display.Windows, R %v, Clipr %v\n", display.Windows.R, display.Windows.Clipr)
 
-	var top UI = &Box{
-		Kids: []UI{
-			&Button{Text: "button1"},
-			&Button{Text: "button2"},
-			&Button{Text: "button3"},
-			&Label{Text: "this is a label"},
-		},
-	}
+	var top UI = NewBox(
+		&Button{Text: "button1", Click: func() { log.Printf("button clicked")} },
+		&Button{Text: "button2"},
+		NewBox(
+			&Label{Text: "another label, this one is somewhat longer"},
+			&Button{Text: "some other button"},
+			&Label{Text: "more labels"},
+			&Label{Text: "another"}),
+		&Button{Text: "button3"},
+		&Label{Text: "this is a label"})
+	top.Layout(screen.R)
 	top.Draw(screen, image.ZP)
 	display.Flush()
 
@@ -152,10 +182,12 @@ func main() {
 			log.Printf("mouse %v, %b\n", mouse, mouse.Buttons)
 			// mouse.X mouse.Y mouse.Buttons
 			// om = mouse
+			top.Mouse(mouse)
 
 		case <-mousectl.Resize:
 			log.Printf("resize");
 			check(display.Attach(draw.Refmesg), "attach after resize")
+			top.Layout(screen.R)
 			top.Draw(screen, image.ZP)
 			display.Flush()
 
