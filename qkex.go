@@ -20,8 +20,7 @@ const (
 )
 
 type UI interface {
-	Size(r image.Rectangle) image.Point
-	Layout(r image.Rectangle)
+	Layout(r image.Rectangle) image.Point
 	Draw(img *draw.Image, orig image.Point)
 	Mouse(m draw.Mouse)
 }
@@ -29,10 +28,8 @@ type UI interface {
 type Label struct {
 	Text string
 }
-func (ui *Label) Size(r image.Rectangle) image.Point {
+func (ui *Label) Layout(r image.Rectangle) image.Point {
 	return display.DefaultFont.StringSize(ui.Text).Add(image.Point{2*Space, 2*Space})
-}
-func (ui *Label) Layout(r image.Rectangle) {
 }
 func (ui *Label) Draw(img *draw.Image, orig image.Point) {
 	img.String(orig.Add(image.Point{Space, Space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
@@ -46,10 +43,8 @@ type Button struct {
 
 	m draw.Mouse
 }
-func (ui *Button) Size(r image.Rectangle) image.Point {
+func (ui *Button) Layout(r image.Rectangle) image.Point {
 	return display.DefaultFont.StringSize(ui.Text).Add(image.Point{2*Space, 2*Space})
-}
-func (ui *Button) Layout(r image.Rectangle) {
 }
 func (ui *Button) Draw(img *draw.Image, orig image.Point) {
 	size := display.DefaultFont.StringSize(ui.Text)
@@ -72,17 +67,13 @@ type Kid struct {
 type Box struct {
 	Kids []*Kid
 }
-func (ui *Box) Size(r image.Rectangle) image.Point {
-	p := ui.layout(r, true)
-	return p
-}
-func (ui *Box) layout(r image.Rectangle, set bool) image.Point {
+func (ui *Box) Layout(r image.Rectangle) image.Point {
 	xmax := 0
 	cur := image.Point{0,0}
 	nx := 0 // number on current line
 	liney := 0 // max y of current line
 	for _, k := range ui.Kids {
-		p := k.UI.Size(r)
+		p := k.UI.Layout(r)
 		var kr image.Rectangle
 		if nx == 0 || cur.X + p.X <= r.Dx() {
 			kr = image.Rectangle{cur, cur.Add(p)}
@@ -99,9 +90,7 @@ func (ui *Box) layout(r image.Rectangle, set bool) image.Point {
 			cur.X = p.X
 			liney = p.Y
 		}
-		if set {
-			k.R = kr
-		}
+		k.R = kr
 		if xmax < cur.X {
 			xmax = cur.X
 		}
@@ -110,9 +99,6 @@ func (ui *Box) layout(r image.Rectangle, set bool) image.Point {
 		cur.Y += liney
 	}
 	return image.Point{xmax, cur.Y}
-}
-func (ui *Box) Layout(r image.Rectangle) {
-	ui.layout(r, true)
 }
 func (ui *Box) Draw(img *draw.Image, orig image.Point) {
 	for _, k := range ui.Kids {
