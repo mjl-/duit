@@ -21,8 +21,8 @@ const (
 
 type UI interface {
 	Layout(r image.Rectangle) image.Point
-	Draw(img *draw.Image, orig image.Point)
-	Mouse(m draw.Mouse)
+	Draw(img *draw.Image, orig image.Point, m draw.Mouse)
+	Mouse(m draw.Mouse) UI
 	Key(m draw.Mouse, k rune)
 }
 
@@ -33,10 +33,11 @@ type Label struct {
 func (ui *Label) Layout(r image.Rectangle) image.Point {
 	return display.DefaultFont.StringSize(ui.Text).Add(image.Point{2*Margin + 2*Border, 2 * Space})
 }
-func (ui *Label) Draw(img *draw.Image, orig image.Point) {
+func (ui *Label) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
 	img.String(orig.Add(image.Point{Margin + Border, Space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
 }
-func (ui *Label) Mouse(m draw.Mouse) {
+func (ui *Label) Mouse(m draw.Mouse) UI {
+	return ui
 }
 func (ui *Label) Key(m draw.Mouse, c rune) {
 }
@@ -52,17 +53,27 @@ func (ui *Field) Layout(r image.Rectangle) image.Point {
 	ui.size = image.Point{r.Dx(), 2*Space + display.DefaultFont.Height}
 	return ui.size
 }
-func (ui *Field) Draw(img *draw.Image, orig image.Point) {
-	img.Draw(image.Rectangle{orig, orig.Add(ui.size)}, display.White, nil, image.ZP)
+func (ui *Field) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
+	hover := m.In(image.Rectangle{image.ZP, ui.size})
+	r := image.Rectangle{orig, orig.Add(ui.size)}
+	img.Draw(r, display.White, nil, image.ZP)
+
+	color := display.Black
+	if hover {
+		var err error
+		color, err = display.AllocImage(image.Rect(0, 0, 1, 1), draw.ARGB32, true, draw.Blue)
+		check(err, "allocimage")
+	}
 	img.Border(
 		image.Rectangle{
 			orig.Add(image.Point{Margin, Margin}),
 			orig.Add(ui.size).Sub(image.Point{Margin, Margin}),
 		},
-		1, display.Black, image.ZP)
+		1, color, image.ZP)
 	img.String(orig.Add(image.Point{Space, Space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
 }
-func (ui *Field) Mouse(m draw.Mouse) {
+func (ui *Field) Mouse(m draw.Mouse) UI {
+	return ui
 }
 func (ui *Field) Key(m draw.Mouse, c rune) {
 	if c == 8 {
@@ -85,26 +96,31 @@ type Button struct {
 func (ui *Button) Layout(r image.Rectangle) image.Point {
 	return display.DefaultFont.StringSize(ui.Text).Add(image.Point{2 * Space, 2 * Space})
 }
-func (ui *Button) Draw(img *draw.Image, orig image.Point) {
+func (ui *Button) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
 	size := display.DefaultFont.StringSize(ui.Text)
 
 	grey, err := display.AllocImage(image.Rect(0, 0, 1, 1), draw.ARGB32, true, draw.Palegreygreen)
 	check(err, "allocimage grey")
 
-	img.Draw(
-		image.Rectangle{
-			orig.Add(image.Point{Margin + Border, Margin + Border}),
-			orig.Add(size).Add(image.Point{2*Padding + Margin + Border, 2*Padding + Margin + Border}),
-		},
-		grey, nil, image.ZP)
-	img.Border(image.Rectangle{orig.Add(image.Point{Margin, Margin}), orig.Add(size).Add(image.Point{Margin + 2*Padding + 2*Border, Margin + 2*Padding + 2*Border})}, 1, display.Black, image.ZP)
+	r := image.Rectangle{
+		orig.Add(image.Point{Margin + Border, Margin + Border}),
+		orig.Add(size).Add(image.Point{2*Padding + Margin + Border, 2*Padding + Margin + Border}),
+	}
+	hover := m.In(image.Rectangle{image.ZP, size.Add(image.Pt(2*Space, 2*Space))})
+	borderColor := grey
+	if hover {
+		borderColor = display.Black
+	}
+	img.Draw(r, grey, nil, image.ZP)
+	img.Border(image.Rectangle{orig.Add(image.Point{Margin, Margin}), orig.Add(size).Add(image.Point{Margin + 2*Padding + 2*Border, Margin + 2*Padding + 2*Border})}, 1, borderColor, image.ZP)
 	img.String(orig.Add(image.Point{Space, Space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
 }
-func (ui *Button) Mouse(m draw.Mouse) {
+func (ui *Button) Mouse(m draw.Mouse) UI {
 	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 && ui.Click != nil {
 		ui.Click()
 	}
 	ui.m = m
+	return ui
 }
 func (ui *Button) Key(m draw.Mouse, c rune) {
 }
@@ -117,6 +133,8 @@ type Kid struct {
 // box keeps elements on a line as long as they fit
 type Box struct {
 	Kids []*Kid
+
+	size image.Point
 }
 
 func (ui *Box) Layout(r image.Rectangle) image.Point {
@@ -150,21 +168,25 @@ func (ui *Box) Layout(r image.Rectangle) image.Point {
 	if len(ui.Kids) > 0 {
 		cur.Y += liney
 	}
-	return image.Point{xmax, cur.Y}
+	ui.size = image.Point{xmax, cur.Y}
+	return ui.size
 }
-func (ui *Box) Draw(img *draw.Image, orig image.Point) {
+func (ui *Box) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
+	img.Draw(image.Rectangle{orig, orig.Add(ui.size)}, display.White, nil, image.ZP)
 	for _, k := range ui.Kids {
-		k.UI.Draw(img, orig.Add(k.R.Min))
+		mm := m
+		mm.Point = mm.Point.Sub(k.R.Min)
+		k.UI.Draw(img, orig.Add(k.R.Min), mm)
 	}
 }
-func (ui *Box) Mouse(m draw.Mouse) {
+func (ui *Box) Mouse(m draw.Mouse) UI {
 	for _, k := range ui.Kids {
 		if m.Point.In(k.R) {
 			m.Point = m.Point.Sub(k.R.Min)
-			k.UI.Mouse(m)
-			return
+			return k.UI.Mouse(m)
 		}
 	}
+	return nil
 }
 func (ui *Box) Key(m draw.Mouse, c rune) {
 	for _, k := range ui.Kids {
@@ -214,18 +236,24 @@ func main() {
 		&Button{Text: "button3"},
 		&Label{Text: "this is a label"})
 	top.Layout(screen.R)
-	top.Draw(screen, image.ZP)
+	top.Draw(screen, image.ZP, draw.Mouse{})
 	display.Flush()
 
 	var mouse draw.Mouse
 	logEvents := false
+	var lastMouseUI UI
 	for {
 		select {
 		case mouse = <-mousectl.C:
 			if logEvents {
 				log.Printf("mouse %v, %b\n", mouse, mouse.Buttons)
 			}
-			top.Mouse(mouse)
+			ui := top.Mouse(mouse)
+			if ui != lastMouseUI {
+				top.Draw(screen, image.ZP, mouse)
+				display.Flush()
+			}
+			lastMouseUI = ui
 
 		case <-mousectl.Resize:
 			if logEvents {
@@ -233,7 +261,7 @@ func main() {
 			}
 			check(display.Attach(draw.Refmesg), "attach after resize")
 			top.Layout(screen.R)
-			top.Draw(screen, image.ZP)
+			top.Draw(screen, image.ZP, mouse)
 			display.Flush()
 
 		case r := <-kbdctl.C:
@@ -246,7 +274,7 @@ func main() {
 			top.Key(mouse, r)
 
 		case <-redraw:
-			top.Draw(screen, image.ZP)
+			top.Draw(screen, image.ZP, mouse)
 			display.Flush()
 		}
 	}
