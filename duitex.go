@@ -14,11 +14,6 @@ import (
 	"9fans.net/go/draw"
 )
 
-var (
-	display *draw.Display
-	screen  *draw.Image
-)
-
 const (
 	Margin  = 10
 	Padding = 10
@@ -46,8 +41,8 @@ type Result struct {
 }
 
 type UI interface {
-	Layout(r image.Rectangle, cur image.Point) image.Point
-	Draw(img *draw.Image, orig image.Point, m draw.Mouse)
+	Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point
+	Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse)
 	Mouse(m draw.Mouse) (result Result)
 	Key(orig image.Point, m draw.Mouse, k rune) (result Result)
 
@@ -59,10 +54,10 @@ type Label struct {
 	Text string
 }
 
-func (ui *Label) Layout(r image.Rectangle, cur image.Point) image.Point {
+func (ui *Label) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
 	return display.DefaultFont.StringSize(ui.Text).Add(image.Point{2*Margin + 2*Border, 2 * Space})
 }
-func (ui *Label) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Label) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
 	img.String(orig.Add(image.Point{Margin + Border, Space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
 }
 func (ui *Label) Mouse(m draw.Mouse) Result {
@@ -81,11 +76,11 @@ type Field struct {
 	size image.Point // including space
 }
 
-func (ui *Field) Layout(r image.Rectangle, cur image.Point) image.Point {
+func (ui *Field) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
 	ui.size = image.Point{r.Dx(), 2*Space + display.DefaultFont.Height}
 	return ui.size
 }
-func (ui *Field) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Field) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
 	hover := m.In(image.Rectangle{image.ZP, ui.size})
 	r := image.Rectangle{orig, orig.Add(ui.size)}
 	img.Draw(r, display.White, nil, image.ZP)
@@ -134,10 +129,10 @@ type Button struct {
 	m draw.Mouse
 }
 
-func (ui *Button) Layout(r image.Rectangle, cur image.Point) image.Point {
+func (ui *Button) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
 	return display.DefaultFont.StringSize(ui.Text).Add(image.Point{2 * Space, 2 * Space})
 }
-func (ui *Button) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Button) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
 	size := display.DefaultFont.StringSize(ui.Text)
 
 	grey, err := display.AllocImage(image.Rect(0, 0, 1, 1), draw.ARGB32, true, draw.Palegreygreen)
@@ -175,10 +170,10 @@ type Image struct {
 	Image *draw.Image
 }
 
-func (ui *Image) Layout(r image.Rectangle, cur image.Point) image.Point {
+func (ui *Image) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
 	return ui.Image.R.Size()
 }
-func (ui *Image) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Image) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
 	img.Draw(image.Rectangle{orig, orig.Add(ui.Image.R.Size())}, ui.Image, nil, image.ZP)
 }
 func (ui *Image) Mouse(m draw.Mouse) Result {
@@ -204,13 +199,13 @@ type Box struct {
 	size image.Point
 }
 
-func (ui *Box) Layout(r image.Rectangle, ocur image.Point) image.Point {
+func (ui *Box) Layout(display *draw.Display, r image.Rectangle, ocur image.Point) image.Point {
 	xmax := 0
 	cur := image.Point{0, 0}
 	nx := 0    // number on current line
 	liney := 0 // max y of current line
 	for _, k := range ui.Kids {
-		p := k.UI.Layout(r, cur)
+		p := k.UI.Layout(display, r, cur)
 		var kr image.Rectangle
 		if nx == 0 || cur.X+p.X <= r.Dx() {
 			kr = image.Rectangle{cur, cur.Add(p)}
@@ -238,8 +233,8 @@ func (ui *Box) Layout(r image.Rectangle, ocur image.Point) image.Point {
 	ui.size = image.Point{xmax, cur.Y}
 	return ui.size
 }
-func (ui *Box) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
-	kidsDraw(ui.Kids, ui.size, img, orig, m)
+func (ui *Box) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
+	kidsDraw(display, ui.Kids, ui.size, img, orig, m)
 }
 func (ui *Box) Mouse(m draw.Mouse) Result {
 	return kidsMouse(ui.Kids, m)
@@ -251,12 +246,12 @@ func (ui *Box) FirstFocus() *image.Point {
 	return kidsFirstFocus(ui.Kids)
 }
 
-func kidsDraw(kids []*Kid, uiSize image.Point, img *draw.Image, orig image.Point, m draw.Mouse) {
+func kidsDraw(display *draw.Display, kids []*Kid, uiSize image.Point, img *draw.Image, orig image.Point, m draw.Mouse) {
 	img.Draw(image.Rectangle{orig, orig.Add(uiSize)}, display.White, nil, image.ZP)
 	for _, k := range kids {
 		mm := m
 		mm.Point = mm.Point.Sub(k.r.Min)
-		k.UI.Draw(img, orig.Add(k.r.Min), mm)
+		k.UI.Draw(display, img, orig.Add(k.r.Min), mm)
 	}
 }
 
@@ -318,10 +313,10 @@ type Scroll struct {
 	img       *draw.Image // for child to draw on
 }
 
-func (ui *Scroll) Layout(r image.Rectangle, cur image.Point) image.Point {
+func (ui *Scroll) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
 	ui.r = image.Rect(r.Min.X, cur.Y, r.Max.X, r.Max.Y)
 	ui.barR = image.Rectangle{ui.r.Min, image.Pt(ui.r.Min.X+ScrollbarWidth, ui.r.Max.Y)}
-	ui.childSize = ui.Child.Layout(image.Rectangle{image.ZP, image.Pt(ui.r.Dx()-ui.barR.Dx(), ui.r.Dy())}, image.ZP)
+	ui.childSize = ui.Child.Layout(display, image.Rectangle{image.ZP, image.Pt(ui.r.Dx()-ui.barR.Dx(), ui.r.Dy())}, image.ZP)
 	if ui.r.Dy() > ui.childSize.Y {
 		ui.barR.Max.Y = ui.childSize.Y
 		ui.r.Max.Y = ui.childSize.Y
@@ -331,7 +326,7 @@ func (ui *Scroll) Layout(r image.Rectangle, cur image.Point) image.Point {
 	check(err, "allocimage")
 	return ui.r.Size()
 }
-func (ui *Scroll) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Scroll) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
 	// draw scrollbar
 	lightGrey, err := display.AllocImage(image.Rect(0, 0, 1, 1), draw.ARGB32, true, 0xEEEEEEFF)
 	check(err, "allowimage lightgrey")
@@ -353,7 +348,7 @@ func (ui *Scroll) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
 	// draw child ui
 	ui.img.Draw(ui.img.R, display.White, nil, image.ZP)
 	m.Point = m.Point.Add(image.Pt(-ScrollbarWidth, ui.offset))
-	ui.Child.Draw(ui.img, image.Pt(0, -ui.offset), m)
+	ui.Child.Draw(display, ui.img, image.Pt(0, -ui.offset), m)
 	img.Draw(ui.img.R.Add(orig).Add(image.Pt(ScrollbarWidth, 0)), ui.img, nil, image.ZP)
 }
 func (ui *Scroll) scroll(delta int) bool {
@@ -443,15 +438,17 @@ type List struct {
 	Values   []*ListValue
 	Multiple bool
 
-	size image.Point
+	lineHeight int
+	size       image.Point
 }
 
-func (ui *List) Layout(r image.Rectangle, cur image.Point) image.Point {
+func (ui *List) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
 	font := display.DefaultFont
-	ui.size = image.Pt(r.Dx(), len(ui.Values)*font.Height)
+	ui.lineHeight = font.Height
+	ui.size = image.Pt(r.Dx(), len(ui.Values)*ui.lineHeight)
 	return ui.size
 }
-func (ui *List) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *List) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
 	font := display.DefaultFont
 	r := image.Rectangle{orig, orig.Add(ui.size)}
 	img.Draw(r, display.White, nil, image.ZP)
@@ -463,14 +460,13 @@ func (ui *List) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
 			color = display.White
 		}
 		img.String(cur, color, image.ZP, font, v.Label)
-		cur.Y += font.Height
+		cur.Y += ui.lineHeight
 	}
 }
 func (ui *List) Mouse(m draw.Mouse) (result Result) {
 	result.Hit = ui
-	font := display.DefaultFont
 	if m.In(image.Rectangle{image.ZP, ui.size}) {
-		index := m.Y / font.Height
+		index := m.Y / ui.lineHeight
 		if m.Buttons == 1 {
 			v := ui.Values[index]
 			v.Selected = !v.Selected
@@ -503,7 +499,7 @@ type Horizontal struct {
 	widths []int
 }
 
-func (ui *Horizontal) Layout(r image.Rectangle, cur image.Point) image.Point {
+func (ui *Horizontal) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
 	r.Min = image.Pt(0, cur.Y)
 	widths := ui.Split(r)
 	if len(widths) != len(ui.Kids) {
@@ -513,7 +509,7 @@ func (ui *Horizontal) Layout(r image.Rectangle, cur image.Point) image.Point {
 	ui.size = image.ZP
 	for i, k := range ui.Kids {
 		p := image.Pt(ui.size.X, 0)
-		size := k.UI.Layout(image.Rectangle{p, image.Pt(widths[i], r.Dy())}, image.ZP)
+		size := k.UI.Layout(display, image.Rectangle{p, image.Pt(widths[i], r.Dy())}, image.ZP)
 		k.r = image.Rectangle{p, p.Add(size)}
 		ui.size.X += widths[i]
 		if k.r.Dy() > ui.size.Y {
@@ -522,8 +518,8 @@ func (ui *Horizontal) Layout(r image.Rectangle, cur image.Point) image.Point {
 	}
 	return ui.size
 }
-func (ui *Horizontal) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
-	kidsDraw(ui.Kids, ui.size, img, orig, m)
+func (ui *Horizontal) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
+	kidsDraw(display, ui.Kids, ui.size, img, orig, m)
 }
 func (ui *Horizontal) Mouse(m draw.Mouse) (result Result) {
 	return kidsMouse(ui.Kids, m)
@@ -543,7 +539,7 @@ type Vertical struct {
 	heights []int
 }
 
-func (ui *Vertical) Layout(r image.Rectangle, cur image.Point) image.Point {
+func (ui *Vertical) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
 	r.Min = image.Pt(0, cur.Y)
 	heights := ui.Split(r)
 	if len(heights) != len(ui.Kids) {
@@ -553,15 +549,15 @@ func (ui *Vertical) Layout(r image.Rectangle, cur image.Point) image.Point {
 	ui.size = image.ZP
 	for i, k := range ui.Kids {
 		p := image.Pt(0, ui.size.Y)
-		size := k.UI.Layout(image.Rectangle{p, image.Pt(r.Dx(), heights[i])}, image.ZP)
+		size := k.UI.Layout(display, image.Rectangle{p, image.Pt(r.Dx(), heights[i])}, image.ZP)
 		k.r = image.Rectangle{p, p.Add(size)}
 		ui.size.Y += heights[i]
 	}
 	ui.size.X = r.Dx()
 	return ui.size
 }
-func (ui *Vertical) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
-	kidsDraw(ui.Kids, ui.size, img, orig, m)
+func (ui *Vertical) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
+	kidsDraw(display, ui.Kids, ui.size, img, orig, m)
 }
 func (ui *Vertical) Mouse(m draw.Mouse) (result Result) {
 	return kidsMouse(ui.Kids, m)
@@ -582,7 +578,7 @@ type Grid struct {
 	size    image.Point
 }
 
-func (ui *Grid) Layout(r image.Rectangle, cur image.Point) image.Point {
+func (ui *Grid) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
 	r.Min = image.Pt(0, cur.Y)
 
 	ui.widths = make([]int, ui.Columns)
@@ -592,7 +588,7 @@ func (ui *Grid) Layout(r image.Rectangle, cur image.Point) image.Point {
 		for i := col; i < len(ui.Kids); i += ui.Columns {
 			k := ui.Kids[i]
 			kr := image.Rectangle{image.ZP, image.Pt(r.Dx()-width, r.Dy())}
-			size := k.UI.Layout(kr, image.ZP)
+			size := k.UI.Layout(display, kr, image.ZP)
 			if size.X > ui.widths[col] {
 				ui.widths[col] = size.X
 			}
@@ -608,7 +604,7 @@ func (ui *Grid) Layout(r image.Rectangle, cur image.Point) image.Point {
 		for col := 0; col < ui.Columns; col++ {
 			k := ui.Kids[i+col]
 			kr := image.Rectangle{image.ZP, image.Pt(ui.widths[col], r.Dy())}
-			size := k.UI.Layout(kr, image.ZP)
+			size := k.UI.Layout(display, kr, image.ZP)
 			if size.Y > ui.heights[row] {
 				ui.heights[row] = size.Y
 			}
@@ -639,8 +635,8 @@ func (ui *Grid) Layout(r image.Rectangle, cur image.Point) image.Point {
 	ui.size = image.Pt(width, height)
 	return ui.size
 }
-func (ui *Grid) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
-	kidsDraw(ui.Kids, ui.size, img, orig, m)
+func (ui *Grid) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
+	kidsDraw(display, ui.Kids, ui.size, img, orig, m)
 }
 func (ui *Grid) Mouse(m draw.Mouse) (result Result) {
 	return kidsMouse(ui.Kids, m)
@@ -667,10 +663,9 @@ func check(err error, msg string) {
 }
 
 func main() {
-	var err error
-	display, err = draw.Init(nil, "", "duitex", "600x400")
+	display, err := draw.Init(nil, "", "duitex", "600x400")
 	check(err, "draw init")
-	screen = display.ScreenImage
+	screen := display.ScreenImage
 
 	mousectl := display.InitMouse()
 	kbdctl := display.InitKeyboard()
@@ -792,8 +787,8 @@ func main() {
 				}},
 			},
 		})
-	top.Layout(screen.R, image.ZP)
-	top.Draw(screen, image.ZP, draw.Mouse{})
+	top.Layout(display, screen.R, image.ZP)
+	top.Draw(display, screen, image.ZP, draw.Mouse{})
 	display.Flush()
 
 	tick := make(chan struct{}, 0)
@@ -815,7 +810,7 @@ func main() {
 			}
 			r := top.Mouse(mouse)
 			if r.Hit != lastMouseUI || r.Redraw {
-				top.Draw(screen, image.ZP, mouse)
+				top.Draw(display, screen, image.ZP, mouse)
 				display.Flush()
 			}
 			lastMouseUI = r.Hit
@@ -825,8 +820,8 @@ func main() {
 				log.Printf("resize")
 			}
 			check(display.Attach(draw.Refmesg), "attach after resize")
-			top.Layout(screen.R, image.ZP)
-			top.Draw(screen, image.ZP, mouse)
+			top.Layout(display, screen.R, image.ZP)
+			top.Draw(display, screen, image.ZP, mouse)
 			display.Flush()
 
 		case r := <-kbdctl.C:
@@ -857,19 +852,19 @@ func main() {
 				lastMouseUI = result2.Hit
 			}
 			if result.Redraw {
-				top.Draw(screen, image.ZP, mouse)
+				top.Draw(display, screen, image.ZP, mouse)
 				display.Flush()
 			}
 
 		case <-redraw:
-			top.Draw(screen, image.ZP, mouse)
+			top.Draw(display, screen, image.ZP, mouse)
 			display.Flush()
 
 		case <-tick:
 			count++
 			counter.Text = fmt.Sprintf("%d", count)
-			top.Layout(screen.R, image.ZP)
-			top.Draw(screen, image.ZP, mouse)
+			top.Layout(display, screen.R, image.ZP)
+			top.Draw(display, screen, image.ZP, mouse)
 			display.Flush()
 		}
 	}
