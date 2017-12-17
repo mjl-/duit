@@ -39,16 +39,20 @@ const (
 )
 
 type Result struct {
-	Hit      UI
-	Consumed bool
-	Redraw   bool
+	Hit      UI           // the UI where the event ended up
+	Consumed bool         // whether event was consumed, and should not be further handled by upper UI's
+	Redraw   bool         // whether event needs a redraw after
+	Warp     *image.Point // if set, mouse will warp to location
 }
 
 type UI interface {
 	Layout(r image.Rectangle, cur image.Point) image.Point
 	Draw(img *draw.Image, orig image.Point, m draw.Mouse)
 	Mouse(m draw.Mouse) (result Result)
-	Key(m draw.Mouse, k rune) (result Result)
+	Key(orig image.Point, m draw.Mouse, k rune) (result Result)
+
+	// FirstFocus returns the top-left corner where the focus should go next when "tab" is hit, if anything.
+	FirstFocus() *image.Point
 }
 
 type Label struct {
@@ -62,10 +66,13 @@ func (ui *Label) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
 	img.String(orig.Add(image.Point{Margin + Border, Space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
 }
 func (ui *Label) Mouse(m draw.Mouse) Result {
-	return Result{ui, false, false}
+	return Result{ui, false, false, nil}
 }
-func (ui *Label) Key(m draw.Mouse, c rune) Result {
-	return Result{ui, false, false}
+func (ui *Label) Key(orig image.Point, m draw.Mouse, c rune) Result {
+	return Result{ui, false, false, nil}
+}
+func (ui *Label) FirstFocus() *image.Point {
+	return nil
 }
 
 type Field struct {
@@ -98,12 +105,14 @@ func (ui *Field) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
 	img.String(orig.Add(image.Point{Space, Space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
 }
 func (ui *Field) Mouse(m draw.Mouse) Result {
-	return Result{ui, false, false}
+	return Result{ui, false, false, nil}
 }
-func (ui *Field) Key(m draw.Mouse, c rune) Result {
+func (ui *Field) Key(orig image.Point, m draw.Mouse, c rune) Result {
 	switch c {
 	case PageUp, PageDown, ArrowUp, ArrowDown:
-		return Result{ui, false, false}
+		return Result{ui, false, false, nil}
+	case '\t':
+		return Result{ui, false, false, nil}
 	case 8:
 		if ui.Text != "" {
 			ui.Text = ui.Text[:len(ui.Text)-1]
@@ -111,7 +120,11 @@ func (ui *Field) Key(m draw.Mouse, c rune) Result {
 	default:
 		ui.Text += string(c)
 	}
-	return Result{ui, true, true}
+	return Result{ui, true, true, nil}
+}
+func (ui *Field) FirstFocus() *image.Point {
+	p := image.Pt(Space, Space)
+	return &p
 }
 
 type Button struct {
@@ -148,10 +161,14 @@ func (ui *Button) Mouse(m draw.Mouse) Result {
 		ui.Click()
 	}
 	ui.m = m
-	return Result{ui, false, false}
+	return Result{ui, false, false, nil}
 }
-func (ui *Button) Key(m draw.Mouse, c rune) Result {
-	return Result{ui, false, false}
+func (ui *Button) Key(orig image.Point, m draw.Mouse, c rune) Result {
+	return Result{ui, false, false, nil}
+}
+func (ui *Button) FirstFocus() *image.Point {
+	p := image.Pt(Space, Space)
+	return &p
 }
 
 type Image struct {
@@ -165,10 +182,13 @@ func (ui *Image) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
 	img.Draw(image.Rectangle{orig, orig.Add(ui.Image.R.Size())}, ui.Image, nil, image.ZP)
 }
 func (ui *Image) Mouse(m draw.Mouse) Result {
-	return Result{ui, false, false}
+	return Result{ui, false, false, nil}
 }
-func (ui *Image) Key(m draw.Mouse, c rune) Result {
-	return Result{ui, false, false}
+func (ui *Image) Key(orig image.Point, m draw.Mouse, c rune) Result {
+	return Result{ui, false, false, nil}
+}
+func (ui *Image) FirstFocus() *image.Point {
+	return nil
 }
 
 type Kid struct {
@@ -232,16 +252,42 @@ func (ui *Box) Mouse(m draw.Mouse) Result {
 			return k.UI.Mouse(m)
 		}
 	}
-	return Result{nil, false, false}
+	return Result{nil, false, false, nil}
 }
-func (ui *Box) Key(m draw.Mouse, c rune) Result {
-	for _, k := range ui.Kids {
+func (ui *Box) Key(orig image.Point, m draw.Mouse, c rune) Result {
+	for i, k := range ui.Kids {
 		if m.Point.In(k.R) {
 			m.Point = m.Point.Sub(k.R.Min)
-			return k.UI.Key(m, c)
+			r := k.UI.Key(orig.Add(k.R.Min), m, c)
+			if !r.Consumed && c == '\t' {
+				for next := i + 1; next < len(ui.Kids); next++ {
+					first := ui.Kids[next].UI.FirstFocus()
+					if first != nil {
+						kR := ui.Kids[next].R
+						p := first.Add(orig).Add(kR.Min)
+						r.Warp = &p
+						r.Consumed = true
+						break
+					}
+				}
+			}
+			return r
 		}
 	}
-	return Result{ui, false, false}
+	return Result{ui, false, false, nil}
+}
+func (ui *Box) FirstFocus() *image.Point {
+	if len(ui.Kids) == 0 {
+		return nil
+	}
+	for _, k := range ui.Kids {
+		first := k.UI.FirstFocus()
+		if first != nil {
+			p := first.Add(k.R.Min)
+			return &p
+		}
+	}
+	return nil
 }
 
 // Scroll shows a part of its single child, typically a box, and lets you scroll the content.
@@ -331,7 +377,7 @@ func (ui *Scroll) Mouse(m draw.Mouse) Result {
 	if m.Point.In(ui.barR) {
 		consumed := ui.scrollMouse(m)
 		redraw := consumed
-		return Result{ui, consumed, redraw}
+		return Result{ui, consumed, redraw, nil}
 	}
 	if m.Point.In(ui.r) {
 		m.Point = m.Point.Add(image.Pt(-ScrollbarWidth, ui.offset))
@@ -342,24 +388,32 @@ func (ui *Scroll) Mouse(m draw.Mouse) Result {
 		}
 		return r
 	}
-	return Result{nil, false, false}
+	return Result{nil, false, false, nil}
 }
-func (ui *Scroll) Key(m draw.Mouse, c rune) Result {
+func (ui *Scroll) Key(orig image.Point, m draw.Mouse, c rune) Result {
 	if m.Point.In(ui.barR) {
 		consumed := ui.scrollKey(c)
 		redraw := consumed
-		return Result{ui, consumed, redraw}
+		return Result{ui, consumed, redraw, nil}
 	}
 	if m.Point.In(ui.r) {
 		m.Point = m.Point.Add(image.Pt(-ScrollbarWidth, ui.offset))
-		r := ui.Child.Key(m, c)
+		r := ui.Child.Key(orig.Add(image.Pt(ScrollbarWidth, -ui.offset)), m, c)
 		if !r.Consumed {
 			r.Consumed = ui.scrollKey(c)
 			r.Redraw = r.Redraw || r.Consumed
 		}
 		return r
 	}
-	return Result{nil, false, false}
+	return Result{nil, false, false, nil}
+}
+func (ui *Scroll) FirstFocus() *image.Point {
+	first := ui.Child.FirstFocus()
+	if first == nil {
+		return nil
+	}
+	p := first.Add(image.Pt(ScrollbarWidth, -ui.offset))
+	return &p
 }
 
 func NewBox(uis ...UI) *Box {
@@ -490,7 +544,26 @@ func main() {
 			if r == 0xf001 {
 				logEvents = !logEvents
 			}
-			result := top.Key(mouse, r)
+			result := top.Key(image.ZP, mouse, r)
+			if !result.Consumed && r == '\t' {
+				first := top.FirstFocus()
+				if first != nil {
+					result.Warp = first
+					result.Consumed = true
+				}
+			}
+			if result.Warp != nil {
+				err = display.MoveTo(*result.Warp)
+				if err != nil {
+					log.Printf("move mouse to %v: %v\n", result.Warp, err)
+				}
+				m := mouse
+				m.Point = *result.Warp
+				result2 := top.Mouse(m)
+				result.Redraw = result.Redraw || result2.Redraw || true
+				mouse = m
+				lastMouseUI = result2.Hit
+			}
 			if result.Redraw {
 				top.Draw(screen, image.ZP, mouse)
 				display.Flush()
