@@ -239,15 +239,29 @@ func (ui *Box) Layout(r image.Rectangle, ocur image.Point) image.Point {
 	return ui.size
 }
 func (ui *Box) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
-	img.Draw(image.Rectangle{orig, orig.Add(ui.size)}, display.White, nil, image.ZP)
-	for _, k := range ui.Kids {
+	kidsDraw(ui.Kids, ui.size, img, orig, m)
+}
+func (ui *Box) Mouse(m draw.Mouse) Result {
+	return kidsMouse(ui.Kids, m)
+}
+func (ui *Box) Key(orig image.Point, m draw.Mouse, c rune) Result {
+	return kidsKey(ui, ui.Kids, orig, m, c)
+}
+func (ui *Box) FirstFocus() *image.Point {
+	return kidsFirstFocus(ui.Kids)
+}
+
+func kidsDraw(kids []*Kid, uiSize image.Point, img *draw.Image, orig image.Point, m draw.Mouse) {
+	img.Draw(image.Rectangle{orig, orig.Add(uiSize)}, display.White, nil, image.ZP)
+	for _, k := range kids {
 		mm := m
 		mm.Point = mm.Point.Sub(k.r.Min)
 		k.UI.Draw(img, orig.Add(k.r.Min), mm)
 	}
 }
-func (ui *Box) Mouse(m draw.Mouse) Result {
-	for _, k := range ui.Kids {
+
+func kidsMouse(kids []*Kid, m draw.Mouse) Result {
+	for _, k := range kids {
 		if m.Point.In(k.r) {
 			m.Point = m.Point.Sub(k.r.Min)
 			return k.UI.Mouse(m)
@@ -255,16 +269,17 @@ func (ui *Box) Mouse(m draw.Mouse) Result {
 	}
 	return Result{nil, false, false, nil}
 }
-func (ui *Box) Key(orig image.Point, m draw.Mouse, c rune) Result {
-	for i, k := range ui.Kids {
+
+func kidsKey(ui UI, kids []*Kid, orig image.Point, m draw.Mouse, c rune) Result {
+	for i, k := range kids {
 		if m.Point.In(k.r) {
 			m.Point = m.Point.Sub(k.r.Min)
 			r := k.UI.Key(orig.Add(k.r.Min), m, c)
 			if !r.Consumed && c == '\t' {
-				for next := i + 1; next < len(ui.Kids); next++ {
-					first := ui.Kids[next].UI.FirstFocus()
+				for next := i + 1; next < len(kids); next++ {
+					first := kids[next].UI.FirstFocus()
 					if first != nil {
-						kR := ui.Kids[next].r
+						kR := kids[next].r
 						p := first.Add(orig).Add(kR.Min)
 						r.Warp = &p
 						r.Consumed = true
@@ -277,11 +292,12 @@ func (ui *Box) Key(orig image.Point, m draw.Mouse, c rune) Result {
 	}
 	return Result{ui, false, false, nil}
 }
-func (ui *Box) FirstFocus() *image.Point {
-	if len(ui.Kids) == 0 {
+
+func kidsFirstFocus(kids []*Kid) *image.Point {
+	if len(kids) == 0 {
 		return nil
 	}
-	for _, k := range ui.Kids {
+	for _, k := range kids {
 		first := k.UI.FirstFocus()
 		if first != nil {
 			p := first.Add(k.r.Min)
@@ -435,7 +451,6 @@ func (ui *List) Layout(r image.Rectangle, cur image.Point) image.Point {
 	ui.size = image.Pt(r.Dx(), len(ui.Values)*font.Height)
 	return ui.size
 }
-
 func (ui *List) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
 	font := display.DefaultFont
 	r := image.Rectangle{orig, orig.Add(ui.size)}
@@ -451,7 +466,6 @@ func (ui *List) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
 		cur.Y += font.Height
 	}
 }
-
 func (ui *List) Mouse(m draw.Mouse) (result Result) {
 	result.Hit = ui
 	font := display.DefaultFont
@@ -473,14 +487,90 @@ func (ui *List) Mouse(m draw.Mouse) (result Result) {
 	}
 	return
 }
-
 func (ui *List) Key(orig image.Point, m draw.Mouse, k rune) (result Result) {
 	result.Hit = ui
 	return
 }
-
 func (ui *List) FirstFocus() *image.Point {
 	return &image.Point{Space, Space}
+}
+
+type Horizontal struct {
+	Kids  []*Kid
+	Split func(r image.Rectangle) (widths []int)
+
+	size   image.Point
+	widths []int
+}
+
+func (ui *Horizontal) Layout(r image.Rectangle, cur image.Point) image.Point {
+	r.Min = image.Pt(0, cur.Y)
+	widths := ui.Split(r)
+	if len(widths) != len(ui.Kids) {
+		panic("bad number of widths from split")
+	}
+	ui.widths = widths
+	ui.size = image.ZP
+	for i, k := range ui.Kids {
+		p := image.Pt(ui.size.X, 0)
+		size := k.UI.Layout(image.Rectangle{p, image.Pt(widths[i], r.Dy())}, image.ZP)
+		k.r = image.Rectangle{p, p.Add(size)}
+		ui.size.X += widths[i]
+		if k.r.Dy() > ui.size.Y {
+			ui.size.Y = k.r.Dy()
+		}
+	}
+	return ui.size
+}
+func (ui *Horizontal) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
+	kidsDraw(ui.Kids, ui.size, img, orig, m)
+}
+func (ui *Horizontal) Mouse(m draw.Mouse) (result Result) {
+	return kidsMouse(ui.Kids, m)
+}
+func (ui *Horizontal) Key(orig image.Point, m draw.Mouse, k rune) (result Result) {
+	return kidsKey(ui, ui.Kids, orig, m, k)
+}
+func (ui *Horizontal) FirstFocus() *image.Point {
+	return kidsFirstFocus(ui.Kids)
+}
+
+type Vertical struct {
+	Kids  []*Kid
+	Split func(r image.Rectangle) (heights []int)
+
+	size    image.Point
+	heights []int
+}
+
+func (ui *Vertical) Layout(r image.Rectangle, cur image.Point) image.Point {
+	r.Min = image.Pt(0, cur.Y)
+	heights := ui.Split(r)
+	if len(heights) != len(ui.Kids) {
+		panic("bad number of heights from split")
+	}
+	ui.heights = heights
+	ui.size = image.ZP
+	for i, k := range ui.Kids {
+		p := image.Pt(0, ui.size.Y)
+		size := k.UI.Layout(image.Rectangle{p, image.Pt(r.Dx(), heights[i])}, image.ZP)
+		k.r = image.Rectangle{p, p.Add(size)}
+		ui.size.Y += heights[i]
+	}
+	ui.size.X = r.Dx()
+	return ui.size
+}
+func (ui *Vertical) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
+	kidsDraw(ui.Kids, ui.size, img, orig, m)
+}
+func (ui *Vertical) Mouse(m draw.Mouse) (result Result) {
+	return kidsMouse(ui.Kids, m)
+}
+func (ui *Vertical) Key(orig image.Point, m draw.Mouse, k rune) (result Result) {
+	return kidsKey(ui, ui.Kids, orig, m, k)
+}
+func (ui *Vertical) FirstFocus() *image.Point {
+	return kidsFirstFocus(ui.Kids)
 }
 
 func NewBox(uis ...UI) *Box {
@@ -541,38 +631,72 @@ func main() {
 	count := 0
 	counter := &Label{Text: fmt.Sprintf("%d", count)}
 
-	var top UI = &Scroll{Child: NewBox(
-		&Label{Text: "counter:"},
-		counter,
-		&Button{Text: "button1", Click: func() { log.Printf("button clicked") }},
-		&Button{Text: "button2"},
-		&List{Multiple: true, Values: []*ListValue{
-			{Label: "Elem 1", Value: 1},
-			{Label: "Elem 2", Value: 2},
-			{Label: "Elem 3", Value: 3},
-		},
-		},
-		&Scroll{Child: NewBox(
-			&Label{Text: "another label, this one is somewhat longer"},
-			&Button{Text: "some other button"},
-			&Label{Text: "more labels"},
-			&Label{Text: "another"},
-			&Field{Text: "A field!!"},
-			NewBox(&Image{Image: readImagePath("test.jpg")}),
-			&Field{Text: "A field!!"},
-			NewBox(&Image{Image: readImagePath("test.jpg")}),
-			&Field{Text: "A field!!"},
-			NewBox(&Image{Image: readImagePath("test.jpg")}),
-		)},
-		&Button{Text: "button3"},
-		&Field{Text: "field 2"},
-		&Field{Text: "field 3"},
-		&Field{Text: "field 4"},
-		&Field{Text: "field 5"},
-		&Field{Text: "field 6"},
-		&Field{Text: "field 7"},
-		&Label{Text: "this is a label"}),
-	}
+	var top UI = NewBox(
+		&Vertical{
+			Split: func(r image.Rectangle) []int {
+				height := r.Dy()
+				row1 := height / 4
+				row2 := height / 4
+				row3 := height - row1 - row2
+				return []int{row1, row2, row3}
+			},
+			Kids: []*Kid{
+				{UI: &Label{Text: "in row 1"}},
+				{UI: &Label{Text: "in row 2"}},
+				{UI: &Scroll{
+					Child: NewBox(
+						&Label{Text: "counter:"},
+						counter,
+						&Button{Text: "button1", Click: func() { log.Printf("button clicked") }},
+						&Button{Text: "button2"},
+						&List{
+							Multiple: true,
+							Values: []*ListValue{
+								{Label: "Elem 1", Value: 1},
+								{Label: "Elem 2", Value: 2},
+								{Label: "Elem 3", Value: 3},
+							},
+						},
+						&Label{Text: "Horizontal split"},
+						&Horizontal{
+							Kids: []*Kid{
+								{UI: &Label{Text: "in column 1"}},
+								{UI: &Label{Text: "in column 2"}},
+								{UI: &Label{Text: "in column 3"}},
+							},
+							Split: func(r image.Rectangle) []int {
+								width := r.Dx()
+								col1 := width / 4
+								col2 := width / 4
+								col3 := width - col1 - col2
+								return []int{col1, col2, col3}
+							},
+						},
+						&Label{Text: "Another box with a scrollbar:"},
+						&Scroll{Child: NewBox(
+							&Label{Text: "another label, this one is somewhat longer"},
+							&Button{Text: "some other button"},
+							&Label{Text: "more labels"},
+							&Label{Text: "another"},
+							&Field{Text: "A field!!"},
+							NewBox(&Image{Image: readImagePath("test.jpg")}),
+							&Field{Text: "A field!!"},
+							NewBox(&Image{Image: readImagePath("test.jpg")}),
+							&Field{Text: "A field!!"},
+							NewBox(&Image{Image: readImagePath("test.jpg")}),
+						)},
+						&Button{Text: "button3"},
+						&Field{Text: "field 2"},
+						&Field{Text: "field 3"},
+						&Field{Text: "field 4"},
+						&Field{Text: "field 5"},
+						&Field{Text: "field 6"},
+						&Field{Text: "field 7"},
+						&Label{Text: "this is a label"},
+					),
+				}},
+			},
+		})
 	top.Layout(screen.R, image.ZP)
 	top.Draw(screen, image.ZP, draw.Mouse{})
 	display.Flush()
