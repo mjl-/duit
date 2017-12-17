@@ -1,15 +1,10 @@
-package main
+package duitex
 
 import (
-	"fmt"
 	"image"
-	imagedraw "image/draw"
 	_ "image/jpeg"
 	_ "image/png"
-	"io"
 	"log"
-	"os"
-	"time"
 
 	"9fans.net/go/draw"
 )
@@ -662,210 +657,93 @@ func check(err error, msg string) {
 	}
 }
 
-func main() {
-	display, err := draw.Init(nil, "", "duitex", "600x400")
-	check(err, "draw init")
-	screen := display.ScreenImage
+type Dui struct {
+	Display  *draw.Display
+	Mousectl *draw.Mousectl
+	Kbdctl   *draw.Keyboardctl
+	Top      UI
 
-	mousectl := display.InitMouse()
-	kbdctl := display.InitKeyboard()
-	//whitemask, _ := display.AllocImage(image.Rect(0, 0, 1, 1), draw.ARGB32, true, 0x7F7F7F7F)
+	mouse       draw.Mouse
+	lastMouseUI UI
+	logEvents   bool
+}
 
-	redraw := make(chan struct{}, 1)
-
-	readImage := func(f io.Reader) *draw.Image {
-		img, _, err := image.Decode(f)
-		check(err, "decoding image")
-		var rgba *image.RGBA
-		switch i := img.(type) {
-		case *image.RGBA:
-			rgba = i
-		default:
-			b := img.Bounds()
-			rgba = image.NewRGBA(image.Rectangle{image.ZP, b.Size()})
-			imagedraw.Draw(rgba, rgba.Bounds(), img, b.Min, imagedraw.Src)
-		}
-
-		// todo: colors are wrong. it should be RGBA32, but that looks even worse.
-
-		ni, err := display.AllocImage(rgba.Bounds(), draw.ARGB32, false, draw.White)
-		check(err, "allocimage")
-		_, err = ni.Load(rgba.Bounds(), rgba.Pix)
-		check(err, "load image")
-		return ni
+func New(name, dim string) (*Dui, error) {
+	dui := &Dui{}
+	display, err := draw.Init(nil, "", name, dim)
+	if err != nil {
+		return nil, err
 	}
+	dui.Display = display
 
-	readImagePath := func(path string) *draw.Image {
-		f, err := os.Open(path)
-		check(err, "open image")
-		defer f.Close()
-		return readImage(f)
+	dui.Mousectl = display.InitMouse()
+	dui.Kbdctl = display.InitKeyboard()
+
+	return dui, nil
+}
+
+func (d *Dui) Render() {
+	d.Top.Layout(d.Display, d.Display.ScreenImage.R, image.ZP)
+	d.Redraw()
+}
+
+func (d *Dui) Redraw() {
+	d.Top.Draw(d.Display, d.Display.ScreenImage, image.ZP, d.mouse)
+	d.Display.Flush()
+}
+
+func (d *Dui) Mouse(m draw.Mouse) {
+	d.mouse = m
+	if d.logEvents {
+		log.Printf("mouse %v, %b\n", m, m.Buttons)
 	}
+	r := d.Top.Mouse(m)
+	if r.Hit != d.lastMouseUI || r.Redraw {
+		d.Top.Draw(d.Display, d.Display.ScreenImage, image.ZP, m)
+		d.Display.Flush()
+	}
+	d.lastMouseUI = r.Hit
+}
 
-	count := 0
-	counter := &Label{Text: fmt.Sprintf("%d", count)}
+func (d *Dui) Resize() {
+	if d.logEvents {
+		log.Printf("resize")
+	}
+	check(d.Display.Attach(draw.Refmesg), "attach after resize")
+	d.Top.Layout(d.Display, d.Display.ScreenImage.R, image.ZP)
+	d.Top.Draw(d.Display, d.Display.ScreenImage, image.ZP, d.mouse)
+	d.Display.Flush()
+}
 
-	var top UI = NewBox(
-		&Vertical{
-			Split: func(r image.Rectangle) []int {
-				height := r.Dy()
-				row1 := height / 4
-				row2 := height / 4
-				row3 := height - row1 - row2
-				return []int{row1, row2, row3}
-			},
-			Kids: []*Kid{
-				{UI: &Label{Text: "in row 1"}},
-				{UI: &Scroll{
-					Child: &Grid{
-						Columns: 2,
-						Kids: []*Kid{
-							{UI: &Label{Text: "From"}},
-							{UI: &Field{Text: "...from..."}},
-							{UI: &Label{Text: "To"}},
-							{UI: &Field{Text: "...to..."}},
-							{UI: &Label{Text: "Cc"}},
-							{UI: &Field{Text: "...cc..."}},
-							{UI: &Label{Text: "Bcc"}},
-							{UI: &Field{Text: "...bcc..."}},
-							{UI: &Label{Text: "Subject"}},
-							{UI: &Field{Text: "...subject..."}},
-						},
-					},
-				}},
-				{UI: &Scroll{
-					Child: NewBox(
-						&Label{Text: "counter:"},
-						counter,
-						&Button{Text: "button1", Click: func() { log.Printf("button clicked") }},
-						&Button{Text: "button2"},
-						&List{
-							Multiple: true,
-							Values: []*ListValue{
-								{Label: "Elem 1", Value: 1},
-								{Label: "Elem 2", Value: 2},
-								{Label: "Elem 3", Value: 3},
-							},
-						},
-						&Label{Text: "Horizontal split"},
-						&Horizontal{
-							Kids: []*Kid{
-								{UI: &Label{Text: "in column 1"}},
-								{UI: &Label{Text: "in column 2"}},
-								{UI: &Label{Text: "in column 3"}},
-							},
-							Split: func(r image.Rectangle) []int {
-								width := r.Dx()
-								col1 := width / 4
-								col2 := width / 4
-								col3 := width - col1 - col2
-								return []int{col1, col2, col3}
-							},
-						},
-						&Label{Text: "Another box with a scrollbar:"},
-						&Scroll{Child: NewBox(
-							&Label{Text: "another label, this one is somewhat longer"},
-							&Button{Text: "some other button"},
-							&Label{Text: "more labels"},
-							&Label{Text: "another"},
-							&Field{Text: "A field!!"},
-							NewBox(&Image{Image: readImagePath("test.jpg")}),
-							&Field{Text: "A field!!"},
-							NewBox(&Image{Image: readImagePath("test.jpg")}),
-							&Field{Text: "A field!!"},
-							NewBox(&Image{Image: readImagePath("test.jpg")}),
-						)},
-						&Button{Text: "button3"},
-						&Field{Text: "field 2"},
-						&Field{Text: "field 3"},
-						&Field{Text: "field 4"},
-						&Field{Text: "field 5"},
-						&Field{Text: "field 6"},
-						&Field{Text: "field 7"},
-						&Label{Text: "this is a label"},
-					),
-				}},
-			},
-		})
-	top.Layout(display, screen.R, image.ZP)
-	top.Draw(display, screen, image.ZP, draw.Mouse{})
-	display.Flush()
-
-	tick := make(chan struct{}, 0)
-	go func() {
-		for {
-			time.Sleep(1 * time.Second)
-			tick <- struct{}{}
+func (d *Dui) Key(r rune) {
+	if d.logEvents {
+		log.Printf("kdb %c, %x\n", r, r)
+	}
+	if r == 0xf001 {
+		d.logEvents = !d.logEvents
+	}
+	result := d.Top.Key(image.ZP, d.mouse, r)
+	if !result.Consumed && r == '\t' {
+		first := d.Top.FirstFocus()
+		if first != nil {
+			result.Warp = first
+			result.Consumed = true
 		}
-	}()
-
-	var mouse draw.Mouse
-	logEvents := false
-	var lastMouseUI UI
-	for {
-		select {
-		case mouse = <-mousectl.C:
-			if logEvents {
-				log.Printf("mouse %v, %b\n", mouse, mouse.Buttons)
-			}
-			r := top.Mouse(mouse)
-			if r.Hit != lastMouseUI || r.Redraw {
-				top.Draw(display, screen, image.ZP, mouse)
-				display.Flush()
-			}
-			lastMouseUI = r.Hit
-
-		case <-mousectl.Resize:
-			if logEvents {
-				log.Printf("resize")
-			}
-			check(display.Attach(draw.Refmesg), "attach after resize")
-			top.Layout(display, screen.R, image.ZP)
-			top.Draw(display, screen, image.ZP, mouse)
-			display.Flush()
-
-		case r := <-kbdctl.C:
-			if logEvents {
-				log.Printf("kdb %c, %x\n", r, r)
-			}
-			if r == 0xf001 {
-				logEvents = !logEvents
-			}
-			result := top.Key(image.ZP, mouse, r)
-			if !result.Consumed && r == '\t' {
-				first := top.FirstFocus()
-				if first != nil {
-					result.Warp = first
-					result.Consumed = true
-				}
-			}
-			if result.Warp != nil {
-				err = display.MoveTo(*result.Warp)
-				if err != nil {
-					log.Printf("move mouse to %v: %v\n", result.Warp, err)
-				}
-				m := mouse
-				m.Point = *result.Warp
-				result2 := top.Mouse(m)
-				result.Redraw = result.Redraw || result2.Redraw || true
-				mouse = m
-				lastMouseUI = result2.Hit
-			}
-			if result.Redraw {
-				top.Draw(display, screen, image.ZP, mouse)
-				display.Flush()
-			}
-
-		case <-redraw:
-			top.Draw(display, screen, image.ZP, mouse)
-			display.Flush()
-
-		case <-tick:
-			count++
-			counter.Text = fmt.Sprintf("%d", count)
-			top.Layout(display, screen.R, image.ZP)
-			top.Draw(display, screen, image.ZP, mouse)
-			display.Flush()
+	}
+	if result.Warp != nil {
+		err := d.Display.MoveTo(*result.Warp)
+		if err != nil {
+			log.Printf("move mouse to %v: %v\n", result.Warp, err)
 		}
+		m := d.mouse
+		m.Point = *result.Warp
+		result2 := d.Top.Mouse(m)
+		result.Redraw = result.Redraw || result2.Redraw || true
+		d.mouse = m
+		d.lastMouseUI = result2.Hit
+	}
+	if result.Redraw {
+		d.Top.Draw(d.Display, d.Display.ScreenImage, image.ZP, d.mouse)
+		d.Display.Flush()
 	}
 }
