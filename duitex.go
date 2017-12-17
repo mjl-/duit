@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	imagedraw "image/draw"
 	_ "image/jpeg"
@@ -8,6 +9,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"time"
 
 	"9fans.net/go/draw"
 )
@@ -22,39 +24,44 @@ const (
 	Padding = 10
 	Border  = 1
 	Space   = Margin + Border + Padding
+
+	ScrollbarWidth = 15
+
+	WheelUp   = 0xA
+	WheelDown = 0xFFFFFFFE
 )
 
 type UI interface {
-	Layout(r image.Rectangle) image.Point
+	Layout(r image.Rectangle, cur image.Point) image.Point
 	Draw(img *draw.Image, orig image.Point, m draw.Mouse)
-	Mouse(m draw.Mouse) UI
-	Key(m draw.Mouse, k rune)
+	Mouse(m draw.Mouse) (ui UI, consumed, redraw bool)
+	Key(m draw.Mouse, k rune) (consumed, redraw bool)
 }
 
 type Label struct {
 	Text string
 }
 
-func (ui *Label) Layout(r image.Rectangle) image.Point {
+func (ui *Label) Layout(r image.Rectangle, cur image.Point) image.Point {
 	return display.DefaultFont.StringSize(ui.Text).Add(image.Point{2*Margin + 2*Border, 2 * Space})
 }
 func (ui *Label) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
 	img.String(orig.Add(image.Point{Margin + Border, Space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
 }
-func (ui *Label) Mouse(m draw.Mouse) UI {
-	return ui
+func (ui *Label) Mouse(m draw.Mouse) (hit UI, consumed bool, redraw bool) {
+	return ui, false, false
 }
-func (ui *Label) Key(m draw.Mouse, c rune) {
+func (ui *Label) Key(m draw.Mouse, c rune) (consumed, redraw bool) {
+	return false, false
 }
 
 type Field struct {
 	Text string
 
-	redraw chan struct{}
-	size   image.Point // including space
+	size image.Point // including space
 }
 
-func (ui *Field) Layout(r image.Rectangle) image.Point {
+func (ui *Field) Layout(r image.Rectangle, cur image.Point) image.Point {
 	ui.size = image.Point{r.Dx(), 2*Space + display.DefaultFont.Height}
 	return ui.size
 }
@@ -77,10 +84,10 @@ func (ui *Field) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
 		1, color, image.ZP)
 	img.String(orig.Add(image.Point{Space, Space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
 }
-func (ui *Field) Mouse(m draw.Mouse) UI {
-	return ui
+func (ui *Field) Mouse(m draw.Mouse) (hit UI, consumed, redraw bool) {
+	return ui, false, false
 }
-func (ui *Field) Key(m draw.Mouse, c rune) {
+func (ui *Field) Key(m draw.Mouse, c rune) (consumed, redraw bool) {
 	if c == 8 {
 		if ui.Text != "" {
 			ui.Text = ui.Text[:len(ui.Text)-1]
@@ -88,7 +95,7 @@ func (ui *Field) Key(m draw.Mouse, c rune) {
 	} else {
 		ui.Text += string(c)
 	}
-	ui.redraw <- struct{}{}
+	return true, true
 }
 
 type Button struct {
@@ -98,7 +105,7 @@ type Button struct {
 	m draw.Mouse
 }
 
-func (ui *Button) Layout(r image.Rectangle) image.Point {
+func (ui *Button) Layout(r image.Rectangle, cur image.Point) image.Point {
 	return display.DefaultFont.StringSize(ui.Text).Add(image.Point{2 * Space, 2 * Space})
 }
 func (ui *Button) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
@@ -120,30 +127,32 @@ func (ui *Button) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
 	img.Border(image.Rectangle{orig.Add(image.Point{Margin, Margin}), orig.Add(size).Add(image.Point{Margin + 2*Padding + 2*Border, Margin + 2*Padding + 2*Border})}, 1, borderColor, image.ZP)
 	img.String(orig.Add(image.Point{Space, Space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
 }
-func (ui *Button) Mouse(m draw.Mouse) UI {
+func (ui *Button) Mouse(m draw.Mouse) (hit UI, consumed, redraw bool) {
 	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 && ui.Click != nil {
 		ui.Click()
 	}
 	ui.m = m
-	return ui
+	return ui, false, false
 }
-func (ui *Button) Key(m draw.Mouse, c rune) {
+func (ui *Button) Key(m draw.Mouse, c rune) (consumed, redraw bool) {
+	return false, false
 }
 
 type Image struct {
 	Image *draw.Image
 }
 
-func (ui *Image) Layout(r image.Rectangle) image.Point {
+func (ui *Image) Layout(r image.Rectangle, cur image.Point) image.Point {
 	return ui.Image.R.Size()
 }
 func (ui *Image) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
 	img.Draw(image.Rectangle{orig, orig.Add(ui.Image.R.Size())}, ui.Image, nil, image.ZP)
 }
-func (ui *Image) Mouse(m draw.Mouse) UI {
-	return ui
+func (ui *Image) Mouse(m draw.Mouse) (hit UI, consumed, redraw bool) {
+	return ui, false, false
 }
-func (ui *Image) Key(m draw.Mouse, c rune) {
+func (ui *Image) Key(m draw.Mouse, c rune) (consumed, redraw bool) {
+	return false, false
 }
 
 type Kid struct {
@@ -158,13 +167,13 @@ type Box struct {
 	size image.Point
 }
 
-func (ui *Box) Layout(r image.Rectangle) image.Point {
+func (ui *Box) Layout(r image.Rectangle, ocur image.Point) image.Point {
 	xmax := 0
 	cur := image.Point{0, 0}
 	nx := 0    // number on current line
 	liney := 0 // max y of current line
 	for _, k := range ui.Kids {
-		p := k.UI.Layout(r)
+		p := k.UI.Layout(r, cur)
 		var kr image.Rectangle
 		if nx == 0 || cur.X+p.X <= r.Dx() {
 			kr = image.Rectangle{cur, cur.Add(p)}
@@ -200,23 +209,137 @@ func (ui *Box) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
 		k.UI.Draw(img, orig.Add(k.R.Min), mm)
 	}
 }
-func (ui *Box) Mouse(m draw.Mouse) UI {
+func (ui *Box) Mouse(m draw.Mouse) (hit UI, consumed, redraw bool) {
 	for _, k := range ui.Kids {
 		if m.Point.In(k.R) {
 			m.Point = m.Point.Sub(k.R.Min)
 			return k.UI.Mouse(m)
 		}
 	}
-	return nil
+	return nil, false, false
 }
-func (ui *Box) Key(m draw.Mouse, c rune) {
+func (ui *Box) Key(m draw.Mouse, c rune) (consumed, redraw bool) {
 	for _, k := range ui.Kids {
 		if m.Point.In(k.R) {
 			m.Point = m.Point.Sub(k.R.Min)
-			k.UI.Key(m, c)
-			return
+			return k.UI.Key(m, c)
 		}
 	}
+	return false, false
+}
+
+// Scroll shows a part of its single child, typically a box, and lets you scroll the content.
+type Scroll struct {
+	Child UI
+
+	r         image.Rectangle // entire ui
+	barR      image.Rectangle
+	childSize image.Point
+	offset    int         // current scroll offset in pixels
+	img       *draw.Image // for child to draw on
+}
+
+func (ui *Scroll) Layout(r image.Rectangle, cur image.Point) image.Point {
+	ui.r = image.Rect(r.Min.X, cur.Y, r.Max.X, r.Max.Y)
+	ui.barR = image.Rectangle{ui.r.Min, image.Pt(ui.r.Min.X+ScrollbarWidth, ui.r.Max.Y)}
+	ui.childSize = ui.Child.Layout(image.Rectangle{image.ZP, image.Pt(ui.r.Dx()-ui.barR.Dx(), ui.r.Dy())}, image.ZP)
+	if ui.r.Dy() > ui.childSize.Y {
+		ui.barR.Max.Y = ui.childSize.Y
+		ui.r.Max.Y = ui.childSize.Y
+	}
+	var err error
+	ui.img, err = display.AllocImage(image.Rectangle{image.ZP, ui.childSize}, draw.ARGB32, false, draw.White)
+	check(err, "allocimage")
+	return ui.r.Size()
+}
+func (ui *Scroll) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
+	// draw scrollbar
+	lightGrey, err := display.AllocImage(image.Rect(0, 0, 1, 1), draw.ARGB32, true, 0xEEEEEEFF)
+	check(err, "allowimage lightgrey")
+	darkerGrey, err := display.AllocImage(image.Rect(0, 0, 1, 1), draw.ARGB32, true, 0xAAAAAAFF)
+	check(err, "allowimage darkergrey")
+	barR := ui.barR.Add(orig)
+	img.Draw(barR, lightGrey, nil, image.ZP)
+	barRActive := barR
+	h := ui.r.Dy()
+	uih := ui.childSize.Y
+	if uih > h {
+		barH := int((float32(h) / float32(uih)) * float32(h))
+		barY := int((float32(ui.offset) / float32(uih)) * float32(h))
+		barRActive.Min.Y += barY
+		barRActive.Max.Y = barRActive.Min.Y + barH
+	}
+	img.Draw(barRActive, darkerGrey, nil, image.ZP)
+
+	// draw child ui
+	ui.img.Draw(ui.img.R, display.White, nil, image.ZP)
+	m.Point = m.Point.Add(image.Pt(-ScrollbarWidth, ui.offset))
+	ui.Child.Draw(ui.img, image.Pt(0, -ui.offset), m)
+	img.Draw(ui.img.R.Add(orig).Add(image.Pt(ScrollbarWidth, 0)), ui.img, nil, image.ZP)
+}
+func (ui *Scroll) scroll(delta int) bool {
+	o := ui.offset
+	ui.offset += delta
+	if ui.offset < 0 {
+		ui.offset = 0
+	}
+	offsetMax := ui.childSize.Y - ui.r.Dy()
+	if ui.offset > offsetMax {
+		ui.offset = offsetMax
+	}
+	return o != ui.offset
+}
+func (ui *Scroll) scrollKey(c rune) (consumed bool) {
+	switch c {
+	case 0xf00e: // arrow up
+		return ui.scroll(-50)
+	case 0x80: // arrow down
+		return ui.scroll(50)
+	case 0xf00f: // page up
+		return ui.scroll(-200)
+	case 0xf013: // page down
+		return ui.scroll(200)
+	}
+	return false
+}
+func (ui *Scroll) scrollMouse(m draw.Mouse) (consumed bool) {
+	switch m.Buttons {
+	case WheelUp:
+		return ui.scroll(-50)
+	case WheelDown:
+		return ui.scroll(50)
+	}
+	return false
+}
+func (ui *Scroll) Mouse(m draw.Mouse) (hit UI, consumed, redraw bool) {
+	if m.Point.In(ui.barR) {
+		consumed = ui.scrollMouse(m)
+		redraw = consumed
+		return ui, consumed, redraw
+	}
+	if m.Point.In(ui.r) {
+		m.Point = m.Point.Add(image.Pt(-ScrollbarWidth, ui.offset))
+		var rui UI
+		rui, consumed, redraw = ui.Child.Mouse(m)
+		if !consumed {
+			consumed = ui.scrollMouse(m)
+		}
+		redraw = consumed
+		return rui, consumed, redraw
+	}
+	return nil, false, false
+}
+func (ui *Scroll) Key(m draw.Mouse, c rune) (consumed, redraw bool) {
+	if m.Point.In(ui.barR) {
+		consumed = ui.scrollKey(c)
+		redraw = consumed
+		return
+	}
+	if m.Point.In(ui.r) {
+		m.Point = m.Point.Add(image.Pt(-ScrollbarWidth, ui.offset))
+		return ui.Child.Key(m, c)
+	}
+	return false, false
 }
 
 func NewBox(uis ...UI) *Box {
@@ -235,7 +358,7 @@ func check(err error, msg string) {
 
 func main() {
 	var err error
-	display, err = draw.Init(nil, "", "duit-example", "600x400")
+	display, err = draw.Init(nil, "", "duitex", "600x400")
 	check(err, "draw init")
 	screen = display.ScreenImage
 
@@ -274,21 +397,46 @@ func main() {
 		return readImage(f)
 	}
 
-	var top UI = NewBox(
+	count := 0
+	counter := &Label{Text: fmt.Sprintf("%d", count)}
+
+	var top UI = &Scroll{Child: NewBox(
+		&Label{Text: "counter:"},
+		counter,
 		&Button{Text: "button1", Click: func() { log.Printf("button clicked") }},
 		&Button{Text: "button2"},
-		NewBox(
+		&Scroll{Child: NewBox(
 			&Label{Text: "another label, this one is somewhat longer"},
 			&Button{Text: "some other button"},
 			&Label{Text: "more labels"},
 			&Label{Text: "another"},
-			&Field{Text: "A field!!", redraw: redraw},
-			&Image{Image: readImagePath("test.jpg")}),
+			&Field{Text: "A field!!"},
+			NewBox(&Image{Image: readImagePath("test.jpg")}),
+			&Field{Text: "A field!!"},
+			NewBox(&Image{Image: readImagePath("test.jpg")}),
+			&Field{Text: "A field!!"},
+			NewBox(&Image{Image: readImagePath("test.jpg")}),
+		)},
 		&Button{Text: "button3"},
-		&Label{Text: "this is a label"})
-	top.Layout(screen.R)
+		&Field{Text: "field 2"},
+		&Field{Text: "field 3"},
+		&Field{Text: "field 4"},
+		&Field{Text: "field 5"},
+		&Field{Text: "field 6"},
+		&Field{Text: "field 7"},
+		&Label{Text: "this is a label"}),
+	}
+	top.Layout(screen.R, image.ZP)
 	top.Draw(screen, image.ZP, draw.Mouse{})
 	display.Flush()
+
+	tick := make(chan struct{}, 0)
+	go func() {
+		for {
+			time.Sleep(1 * time.Second)
+			tick <- struct{}{}
+		}
+	}()
 
 	var mouse draw.Mouse
 	logEvents := false
@@ -299,8 +447,8 @@ func main() {
 			if logEvents {
 				log.Printf("mouse %v, %b\n", mouse, mouse.Buttons)
 			}
-			ui := top.Mouse(mouse)
-			if ui != lastMouseUI {
+			ui, _, redraw := top.Mouse(mouse)
+			if ui != lastMouseUI || redraw {
 				top.Draw(screen, image.ZP, mouse)
 				display.Flush()
 			}
@@ -311,7 +459,7 @@ func main() {
 				log.Printf("resize")
 			}
 			check(display.Attach(draw.Refmesg), "attach after resize")
-			top.Layout(screen.R)
+			top.Layout(screen.R, image.ZP)
 			top.Draw(screen, image.ZP, mouse)
 			display.Flush()
 
@@ -322,9 +470,20 @@ func main() {
 			if r == 0xf001 {
 				logEvents = !logEvents
 			}
-			top.Key(mouse, r)
+			_, redraw := top.Key(mouse, r)
+			if redraw {
+				top.Draw(screen, image.ZP, mouse)
+				display.Flush()
+			}
 
 		case <-redraw:
+			top.Draw(screen, image.ZP, mouse)
+			display.Flush()
+
+		case <-tick:
+			count++
+			counter.Text = fmt.Sprintf("%d", count)
+			top.Layout(screen.R, image.ZP)
 			top.Draw(screen, image.ZP, mouse)
 			display.Flush()
 		}
