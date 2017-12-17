@@ -2,7 +2,11 @@ package main
 
 import (
 	"image"
+	"image/color"
+	_ "image/jpeg"
+	_ "image/png"
 	"log"
+	"os"
 
 	"9fans.net/go/draw"
 )
@@ -125,6 +129,22 @@ func (ui *Button) Mouse(m draw.Mouse) UI {
 func (ui *Button) Key(m draw.Mouse, c rune) {
 }
 
+type Image struct {
+	Image *draw.Image
+}
+
+func (ui *Image) Layout(r image.Rectangle) image.Point {
+	return ui.Image.R.Size()
+}
+func (ui *Image) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
+	img.Draw(image.Rectangle{orig, orig.Add(ui.Image.R.Size())}, ui.Image, nil, image.ZP)
+}
+func (ui *Image) Mouse(m draw.Mouse) UI {
+	return ui
+}
+func (ui *Image) Key(m draw.Mouse, c rune) {
+}
+
 type Kid struct {
 	UI UI
 	R  image.Rectangle
@@ -224,6 +244,49 @@ func main() {
 
 	redraw := make(chan struct{}, 1)
 
+	readImage := func(path string) *draw.Image {
+		f, err := os.Open(path)
+		check(err, "open image")
+		defer f.Close()
+		img, _, err := image.Decode(f)
+		check(err, "decoding image")
+		switch i := img.(type) {
+		case *image.RGBA:
+			// todo: colors are messed up. it should be RGBA, but that looks even worse.
+			ni, err := display.AllocImage(i.Bounds(), draw.ARGB32, false, draw.White)
+			check(err, "allocimage")
+			_, err = ni.Load(i.Bounds(), i.Pix)
+			check(err, "load image")
+			return ni
+		case *image.NRGBA:
+			// todo: colors are messed up. it should be RGBA, but that looks even worse.
+			ni, err := display.AllocImage(i.Bounds(), draw.ARGB32, false, draw.White)
+			check(err, "allocimage")
+			_, err = ni.Load(i.Bounds(), i.Pix)
+			check(err, "load image")
+			return ni
+		case *image.YCbCr:
+
+			b := i.Bounds()
+			rgba := image.NewRGBA(b)
+			for y := b.Min.Y; y < b.Max.Y; y++ {
+				for x := b.Min.X; x < b.Max.X; x++ {
+					r32, g32, b32, a32 := img.At(x, y).RGBA()
+					c := color.RGBA{uint8(r32), uint8(g32), uint8(b32), uint8(a32)}
+					rgba.SetRGBA(x, y, c)
+				}
+			}
+
+			ni, err := display.AllocImage(i.Bounds(), draw.ARGB32, false, draw.White)
+			check(err, "allocimage")
+			_, err = ni.Load(i.Bounds(), rgba.Pix)
+			check(err, "load image")
+			return ni
+		}
+		log.Fatalf("cannot yet read image type %T\n", img)
+		return nil
+	}
+
 	var top UI = NewBox(
 		&Button{Text: "button1", Click: func() { log.Printf("button clicked") }},
 		&Button{Text: "button2"},
@@ -232,7 +295,8 @@ func main() {
 			&Button{Text: "some other button"},
 			&Label{Text: "more labels"},
 			&Label{Text: "another"},
-			&Field{Text: "A field!!", redraw: redraw}),
+			&Field{Text: "A field!!", redraw: redraw},
+			&Image{Image: readImage("test.png")}),
 		&Button{Text: "button3"},
 		&Label{Text: "this is a label"})
 	top.Layout(screen.R)
