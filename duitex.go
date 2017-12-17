@@ -194,7 +194,7 @@ func (ui *Image) FirstFocus() *image.Point {
 type Kid struct {
 	UI UI
 
-	r  image.Rectangle
+	r image.Rectangle
 }
 
 // box keeps elements on a line as long as they fit
@@ -417,6 +417,72 @@ func (ui *Scroll) FirstFocus() *image.Point {
 	return &p
 }
 
+type ListValue struct {
+	Label    string
+	Value    interface{}
+	Selected bool
+}
+
+type List struct {
+	Values   []*ListValue
+	Multiple bool
+
+	size image.Point
+}
+
+func (ui *List) Layout(r image.Rectangle, cur image.Point) image.Point {
+	font := display.DefaultFont
+	ui.size = image.Pt(r.Dx(), len(ui.Values)*font.Height)
+	return ui.size
+}
+
+func (ui *List) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
+	font := display.DefaultFont
+	r := image.Rectangle{orig, orig.Add(ui.size)}
+	img.Draw(r, display.White, nil, image.ZP)
+	cur := orig
+	for _, v := range ui.Values {
+		color := display.Black
+		if v.Selected {
+			img.Draw(image.Rectangle{cur, cur.Add(image.Pt(ui.size.X, font.Height))}, display.Black, nil, image.ZP)
+			color = display.White
+		}
+		img.String(cur, color, image.ZP, font, v.Label)
+		cur.Y += font.Height
+	}
+}
+
+func (ui *List) Mouse(m draw.Mouse) (result Result) {
+	result.Hit = ui
+	font := display.DefaultFont
+	if m.In(image.Rectangle{image.ZP, ui.size}) {
+		index := m.Y / font.Height
+		if m.Buttons == 1 {
+			v := ui.Values[index]
+			v.Selected = !v.Selected
+			if v.Selected && !ui.Multiple {
+				for _, vv := range ui.Values {
+					if vv != v {
+						vv.Selected = false
+					}
+				}
+			}
+			result.Redraw = true
+			result.Consumed = true
+		}
+	}
+	return
+}
+
+func (ui *List) Key(orig image.Point, m draw.Mouse, k rune) (result Result) {
+	result.Hit = ui
+	return
+}
+
+func (ui *List) FirstFocus() *image.Point {
+	return &image.Point{Space, Space}
+}
+
 func NewBox(uis ...UI) *Box {
 	kids := make([]*Kid, len(uis))
 	for i, ui := range uis {
@@ -480,6 +546,12 @@ func main() {
 		counter,
 		&Button{Text: "button1", Click: func() { log.Printf("button clicked") }},
 		&Button{Text: "button2"},
+		&List{Multiple: true, Values: []*ListValue{
+			{Label: "Elem 1", Value: 1},
+			{Label: "Elem 2", Value: 2},
+			{Label: "Elem 3", Value: 3},
+		},
+		},
 		&Scroll{Child: NewBox(
 			&Label{Text: "another label, this one is somewhat longer"},
 			&Button{Text: "some other button"},
