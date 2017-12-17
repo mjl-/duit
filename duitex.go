@@ -2,9 +2,10 @@ package main
 
 import (
 	"image"
-	"image/color"
+	imagedraw "image/draw"
 	_ "image/jpeg"
 	_ "image/png"
+	"io"
 	"log"
 	"os"
 
@@ -244,47 +245,33 @@ func main() {
 
 	redraw := make(chan struct{}, 1)
 
-	readImage := func(path string) *draw.Image {
+	readImage := func(f io.Reader) *draw.Image {
+		img, _, err := image.Decode(f)
+		check(err, "decoding image")
+		var rgba *image.RGBA
+		switch i := img.(type) {
+		case *image.RGBA:
+			rgba = i
+		default:
+			b := img.Bounds()
+			rgba = image.NewRGBA(image.Rectangle{image.ZP, b.Size()})
+			imagedraw.Draw(rgba, rgba.Bounds(), img, b.Min, imagedraw.Src)
+		}
+
+		// todo: colors are wrong. it should be RGBA32, but that looks even worse.
+
+		ni, err := display.AllocImage(rgba.Bounds(), draw.ARGB32, false, draw.White)
+		check(err, "allocimage")
+		_, err = ni.Load(rgba.Bounds(), rgba.Pix)
+		check(err, "load image")
+		return ni
+	}
+
+	readImagePath := func(path string) *draw.Image {
 		f, err := os.Open(path)
 		check(err, "open image")
 		defer f.Close()
-		img, _, err := image.Decode(f)
-		check(err, "decoding image")
-		switch i := img.(type) {
-		case *image.RGBA:
-			// todo: colors are messed up. it should be RGBA, but that looks even worse.
-			ni, err := display.AllocImage(i.Bounds(), draw.ARGB32, false, draw.White)
-			check(err, "allocimage")
-			_, err = ni.Load(i.Bounds(), i.Pix)
-			check(err, "load image")
-			return ni
-		case *image.NRGBA:
-			// todo: colors are messed up. it should be RGBA, but that looks even worse.
-			ni, err := display.AllocImage(i.Bounds(), draw.ARGB32, false, draw.White)
-			check(err, "allocimage")
-			_, err = ni.Load(i.Bounds(), i.Pix)
-			check(err, "load image")
-			return ni
-		case *image.YCbCr:
-
-			b := i.Bounds()
-			rgba := image.NewRGBA(b)
-			for y := b.Min.Y; y < b.Max.Y; y++ {
-				for x := b.Min.X; x < b.Max.X; x++ {
-					r32, g32, b32, a32 := img.At(x, y).RGBA()
-					c := color.RGBA{uint8(r32), uint8(g32), uint8(b32), uint8(a32)}
-					rgba.SetRGBA(x, y, c)
-				}
-			}
-
-			ni, err := display.AllocImage(i.Bounds(), draw.ARGB32, false, draw.White)
-			check(err, "allocimage")
-			_, err = ni.Load(i.Bounds(), rgba.Pix)
-			check(err, "load image")
-			return ni
-		}
-		log.Fatalf("cannot yet read image type %T\n", img)
-		return nil
+		return readImage(f)
 	}
 
 	var top UI = NewBox(
@@ -296,7 +283,7 @@ func main() {
 			&Label{Text: "more labels"},
 			&Label{Text: "another"},
 			&Field{Text: "A field!!", redraw: redraw},
-			&Image{Image: readImage("test.png")}),
+			&Image{Image: readImagePath("test.jpg")}),
 		&Button{Text: "button3"},
 		&Label{Text: "this is a label"})
 	top.Layout(screen.R)
