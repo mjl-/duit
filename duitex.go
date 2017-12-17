@@ -193,7 +193,8 @@ func (ui *Image) FirstFocus() *image.Point {
 
 type Kid struct {
 	UI UI
-	R  image.Rectangle
+
+	r  image.Rectangle
 }
 
 // box keeps elements on a line as long as they fit
@@ -226,7 +227,7 @@ func (ui *Box) Layout(r image.Rectangle, ocur image.Point) image.Point {
 			cur.X = p.X
 			liney = p.Y
 		}
-		k.R = kr
+		k.r = kr
 		if xmax < cur.X {
 			xmax = cur.X
 		}
@@ -241,14 +242,14 @@ func (ui *Box) Draw(img *draw.Image, orig image.Point, m draw.Mouse) {
 	img.Draw(image.Rectangle{orig, orig.Add(ui.size)}, display.White, nil, image.ZP)
 	for _, k := range ui.Kids {
 		mm := m
-		mm.Point = mm.Point.Sub(k.R.Min)
-		k.UI.Draw(img, orig.Add(k.R.Min), mm)
+		mm.Point = mm.Point.Sub(k.r.Min)
+		k.UI.Draw(img, orig.Add(k.r.Min), mm)
 	}
 }
 func (ui *Box) Mouse(m draw.Mouse) Result {
 	for _, k := range ui.Kids {
-		if m.Point.In(k.R) {
-			m.Point = m.Point.Sub(k.R.Min)
+		if m.Point.In(k.r) {
+			m.Point = m.Point.Sub(k.r.Min)
 			return k.UI.Mouse(m)
 		}
 	}
@@ -256,14 +257,14 @@ func (ui *Box) Mouse(m draw.Mouse) Result {
 }
 func (ui *Box) Key(orig image.Point, m draw.Mouse, c rune) Result {
 	for i, k := range ui.Kids {
-		if m.Point.In(k.R) {
-			m.Point = m.Point.Sub(k.R.Min)
-			r := k.UI.Key(orig.Add(k.R.Min), m, c)
+		if m.Point.In(k.r) {
+			m.Point = m.Point.Sub(k.r.Min)
+			r := k.UI.Key(orig.Add(k.r.Min), m, c)
 			if !r.Consumed && c == '\t' {
 				for next := i + 1; next < len(ui.Kids); next++ {
 					first := ui.Kids[next].UI.FirstFocus()
 					if first != nil {
-						kR := ui.Kids[next].R
+						kR := ui.Kids[next].r
 						p := first.Add(orig).Add(kR.Min)
 						r.Warp = &p
 						r.Consumed = true
@@ -283,7 +284,7 @@ func (ui *Box) FirstFocus() *image.Point {
 	for _, k := range ui.Kids {
 		first := k.UI.FirstFocus()
 		if first != nil {
-			p := first.Add(k.R.Min)
+			p := first.Add(k.r.Min)
 			return &p
 		}
 	}
