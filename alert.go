@@ -1,7 +1,6 @@
 package duit
 
-import (
-)
+import ()
 
 func Alert(s string) {
 	stop := make(chan struct{}, 1)
