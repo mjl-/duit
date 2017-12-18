@@ -1,4 +1,4 @@
-package duitex
+package duit
 
 import (
 	"image"

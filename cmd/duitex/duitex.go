@@ -13,7 +13,7 @@ import (
 
 	"9fans.net/go/draw"
 
-	duit "mjl/duitex"
+	"mjl/duit"
 )
 
 func check(err error, msg string) {
