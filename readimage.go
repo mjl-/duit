@@ -1,0 +1,50 @@
+package duit
+
+import (
+	"fmt"
+	"image"
+	imagedraw "image/draw"
+	_ "image/jpeg"
+	_ "image/png"
+	"io"
+	"os"
+
+	"9fans.net/go/draw"
+)
+
+func ReadImage(display *draw.Display, f io.Reader) (*draw.Image, error) {
+	img, _, err := image.Decode(f)
+	if err != nil {
+		return nil, fmt.Errorf("decoding image: %s", err)
+	}
+	var rgba *image.RGBA
+	switch i := img.(type) {
+	case *image.RGBA:
+		rgba = i
+	default:
+		b := img.Bounds()
+		rgba = image.NewRGBA(image.Rectangle{image.ZP, b.Size()})
+		imagedraw.Draw(rgba, rgba.Bounds(), img, b.Min, imagedraw.Src)
+	}
+
+	// todo: colors are wrong. it should be RGBA32, but that looks even worse.
+
+	ni, err := display.AllocImage(rgba.Bounds(), draw.ARGB32, false, draw.White)
+	if err != nil {
+		return nil, fmt.Errorf("allocimage: %s", err)
+	}
+	_, err = ni.Load(rgba.Bounds(), rgba.Pix)
+	if err != nil {
+		return nil, fmt.Errorf("load image: %s", err)
+	}
+	return ni, nil
+}
+
+func ReadImagePath(display *draw.Display, path string) (*draw.Image, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("open %s: %s", path, err)
+	}
+	defer f.Close()
+	return ReadImage(display, f)
+}

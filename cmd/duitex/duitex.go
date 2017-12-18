@@ -3,12 +3,9 @@ package main
 import (
 	"fmt"
 	"image"
-	imagedraw "image/draw"
 	_ "image/jpeg"
 	_ "image/png"
-	"io"
 	"log"
-	"os"
 	"time"
 
 	"9fans.net/go/draw"
@@ -28,33 +25,10 @@ func main() {
 
 	redraw := make(chan struct{}, 1)
 
-	readImage := func(f io.Reader) *draw.Image {
-		img, _, err := image.Decode(f)
-		check(err, "decoding image")
-		var rgba *image.RGBA
-		switch i := img.(type) {
-		case *image.RGBA:
-			rgba = i
-		default:
-			b := img.Bounds()
-			rgba = image.NewRGBA(image.Rectangle{image.ZP, b.Size()})
-			imagedraw.Draw(rgba, rgba.Bounds(), img, b.Min, imagedraw.Src)
-		}
-
-		// todo: colors are wrong. it should be RGBA32, but that looks even worse.
-
-		ni, err := dui.Display.AllocImage(rgba.Bounds(), draw.ARGB32, false, draw.White)
-		check(err, "allocimage")
-		_, err = ni.Load(rgba.Bounds(), rgba.Pix)
-		check(err, "load image")
-		return ni
-	}
-
 	readImagePath := func(path string) *draw.Image {
-		f, err := os.Open(path)
-		check(err, "open image")
-		defer f.Close()
-		return readImage(f)
+		img, err := duit.ReadImagePath(dui.Display, path)
+		check(err, "read image")
+		return img
 	}
 
 	count := 0

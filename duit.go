@@ -20,7 +20,7 @@ const (
 	WheelUp   = 0xA
 	WheelDown = 0xFFFFFFFE
 
-	Fn1 = 0xf001
+	Fn = 0xf000 // use like Fn + <number>
 
 	ArrowUp   = 0xf00e
 	ArrowDown = 0x80
@@ -719,7 +719,7 @@ func (d *Dui) Key(r rune) {
 	if d.logEvents {
 		log.Printf("kdb %c, %x\n", r, r)
 	}
-	if r == 0xf001 {
+	if r == Fn+1 {
 		d.logEvents = !d.logEvents
 	}
 	result := d.Top.Key(image.ZP, d.mouse, r)
