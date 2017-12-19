@@ -44,8 +44,16 @@ func (ui *Button) Mouse(m draw.Mouse) Result {
 }
 func (ui *Button) Key(orig image.Point, m draw.Mouse, c rune) Result {
 	return Result{Hit: ui}
+
 }
 func (ui *Button) FirstFocus() *image.Point {
+	p := image.Pt(Space, Space)
+	return &p
+}
+func (ui *Button) Focus(o UI) *image.Point {
+	if o != ui {
+		return nil
+	}
 	p := image.Pt(Space, Space)
 	return &p
 }

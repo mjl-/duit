@@ -22,4 +22,7 @@ type UI interface {
 
 	// FirstFocus returns the top-left corner where the focus should go next when "tab" is hit, if anything.
 	FirstFocus() *image.Point
+
+	// Focus returns the focus-point for `ui`.
+	Focus(o UI) *image.Point
 }

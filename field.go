@@ -62,3 +62,10 @@ func (ui *Field) FirstFocus() *image.Point {
 	p := image.Pt(Space, Space)
 	return &p
 }
+func (ui *Field) Focus(o UI) *image.Point {
+	if o != ui {
+		return nil
+	}
+	p := image.Pt(Space, Space)
+	return &p
+}

@@ -125,3 +125,21 @@ func (d *DUI) Key(r rune) {
 		d.Redraw()
 	}
 }
+
+func (d *DUI) Focus(ui UI) {
+	p := d.Top.Focus(ui)
+	if p == nil {
+		return
+	}
+	err := d.Display.MoveTo(*p)
+	if err != nil {
+		log.Printf("move mouse to %v: %v\n", *p, err)
+		return
+	}
+	m := d.mouse
+	m.Point = *p
+	r := d.Top.Mouse(m)
+	if r.Redraw {
+		d.Redraw()
+	}
+}

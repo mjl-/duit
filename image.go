@@ -25,3 +25,9 @@ func (ui *Image) Key(orig image.Point, m draw.Mouse, c rune) Result {
 func (ui *Image) FirstFocus() *image.Point {
 	return nil
 }
+func (ui *Image) Focus(o UI) *image.Point {
+	if ui != o {
+		return nil
+	}
+	return &image.ZP
+}

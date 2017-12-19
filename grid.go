@@ -84,3 +84,6 @@ func (ui *Grid) Key(orig image.Point, m draw.Mouse, k rune) (result Result) {
 func (ui *Grid) FirstFocus() *image.Point {
 	return kidsFirstFocus(ui.Kids)
 }
+func (ui *Grid) Focus(o UI) *image.Point {
+	return kidsFocus(ui.Kids, o)
+}

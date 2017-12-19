@@ -75,3 +75,17 @@ func kidsFirstFocus(kids []*Kid) *image.Point {
 	}
 	return nil
 }
+
+func kidsFocus(kids []*Kid, ui UI) *image.Point {
+	if len(kids) == 0 {
+		return nil
+	}
+	for _, k := range kids {
+		p := k.UI.Focus(ui)
+		if p != nil {
+			pp := p.Add(k.r.Min)
+			return &pp
+		}
+	}
+	return nil
+}

@@ -43,3 +43,6 @@ func (ui *Vertical) Key(orig image.Point, m draw.Mouse, k rune) (result Result) 
 func (ui *Vertical) FirstFocus() *image.Point {
 	return kidsFirstFocus(ui.Kids)
 }
+func (ui *Vertical) Focus(o UI) *image.Point {
+	return kidsFocus(ui.Kids, o)
+}

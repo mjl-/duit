@@ -131,6 +131,14 @@ func (ui *Scroll) FirstFocus() *image.Point {
 	p := first.Add(image.Pt(ScrollbarWidth, -ui.offset))
 	return &p
 }
+func (ui *Scroll) Focus(o UI) *image.Point {
+	p := ui.Child.Focus(o)
+	if p == nil {
+		return nil
+	}
+	pp := p.Add(image.Pt(ScrollbarWidth, -ui.offset))
+	return &pp
+}
 
 func NewScroll(ui UI) *Scroll {
 	return &Scroll{Child: ui}

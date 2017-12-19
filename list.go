@@ -72,3 +72,10 @@ func (ui *List) Key(orig image.Point, m draw.Mouse, k rune) (result Result) {
 func (ui *List) FirstFocus() *image.Point {
 	return &image.Point{Space, Space}
 }
+func (ui *List) Focus(o UI) *image.Point {
+	if o != ui {
+		return nil
+	}
+	p := image.Pt(Space, Space)
+	return &p
+}
