@@ -20,7 +20,7 @@ func check(err error, msg string) {
 }
 
 func main() {
-	dui, err := duit.New("duitex", "600x400")
+	dui, err := duit.NewDUI("duitex", "600x400")
 	check(err, "new ui")
 
 	redraw := make(chan struct{}, 1)

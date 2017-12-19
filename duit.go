@@ -26,7 +26,7 @@ const (
 	PageDown  = 0xf013
 )
 
-type Dui struct {
+type DUI struct {
 	Display  *draw.Display
 	Mousectl *draw.Mousectl
 	Kbdctl   *draw.Keyboardctl
@@ -45,8 +45,8 @@ func check(err error, msg string) {
 	}
 }
 
-func New(name, dim string) (*Dui, error) {
-	dui := &Dui{}
+func NewDUI(name, dim string) (*DUI, error) {
+	dui := &DUI{}
 	display, err := draw.Init(nil, "", name, dim)
 	if err != nil {
 		return nil, err
@@ -59,18 +59,18 @@ func New(name, dim string) (*Dui, error) {
 	return dui, nil
 }
 
-func (d *Dui) Render() {
+func (d *DUI) Render() {
 	d.Top.Layout(d.Display, d.Display.ScreenImage.R, image.ZP)
 	d.Display.ScreenImage.Draw(d.Display.ScreenImage.R, d.Display.White, nil, image.ZP)
 	d.Redraw()
 }
 
-func (d *Dui) Redraw() {
+func (d *DUI) Redraw() {
 	d.Top.Draw(d.Display, d.Display.ScreenImage, image.ZP, d.mouse)
 	d.Display.Flush()
 }
 
-func (d *Dui) Mouse(m draw.Mouse) {
+func (d *DUI) Mouse(m draw.Mouse) {
 	d.mouse = m
 	if d.logEvents {
 		log.Printf("mouse %v, %b\n", m, m.Buttons)
@@ -84,7 +84,7 @@ func (d *Dui) Mouse(m draw.Mouse) {
 	d.lastMouseUI = r.Hit
 }
 
-func (d *Dui) Resize() {
+func (d *DUI) Resize() {
 	if d.logEvents {
 		log.Printf("resize")
 	}
@@ -92,7 +92,7 @@ func (d *Dui) Resize() {
 	d.Render()
 }
 
-func (d *Dui) Key(r rune) {
+func (d *DUI) Key(r rune) {
 	if d.logEvents {
 		log.Printf("kdb %c, %x\n", r, r)
 	}

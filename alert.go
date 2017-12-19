@@ -5,7 +5,7 @@ import ()
 func Alert(s string) {
 	stop := make(chan struct{}, 1)
 
-	dui, err := New("alert", "300x200")
+	dui, err := NewDUI("alert", "300x200")
 	check(err, "alert")
 
 	dui.Top = &Box{
