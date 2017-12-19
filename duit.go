@@ -8,12 +8,12 @@ import (
 )
 
 const (
-	Margin  = 10
-	Padding = 10
+	Margin  = 8
+	Padding = 5
 	Border  = 1
 	Space   = Margin + Border + Padding
 
-	ScrollbarWidth = 15
+	ScrollbarWidth = 8
 
 	WheelUp   = 0xA
 	WheelDown = 0xFFFFFFFE
@@ -36,7 +36,6 @@ type DUI struct {
 	lastMouseUI UI
 	logEvents   bool
 }
-
 
 func check(err error, msg string) {
 	if err != nil {

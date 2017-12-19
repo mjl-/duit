@@ -27,7 +27,7 @@ func (ui *Box) Layout(display *draw.Display, r image.Rectangle, ocur image.Point
 	nx := 0    // number on current line
 	liney := 0 // max y of current line
 	for _, k := range ui.Kids {
-		p := k.UI.Layout(display, r, cur)
+		p := k.UI.Layout(display, r, cur.Add(image.Pt(0, liney)))
 		var kr image.Rectangle
 		if nx == 0 || cur.X+p.X <= r.Dx() {
 			kr = image.Rectangle{cur, cur.Add(p)}

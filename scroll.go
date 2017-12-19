@@ -22,20 +22,13 @@ func NewScroll(ui UI) *Scroll {
 }
 
 func (ui *Scroll) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
-	ui.r = image.Rect(r.Min.X, cur.Y, r.Max.X, r.Max.Y)
-	ui.barR = image.Rectangle{ui.r.Min, image.Pt(ui.r.Min.X+ScrollbarWidth, ui.r.Max.Y)}
+	ui.r = image.Rectangle{image.ZP, image.Pt(r.Dx(), r.Max.Y-cur.Y)}
+	ui.barR = ui.r
+	ui.barR.Max.X = ui.barR.Min.X + ScrollbarWidth
 	ui.childSize = ui.Child.Layout(display, image.Rectangle{image.ZP, image.Pt(ui.r.Dx()-ui.barR.Dx(), ui.r.Dy())}, image.ZP)
 	if ui.r.Dy() > ui.childSize.Y {
 		ui.barR.Max.Y = ui.childSize.Y
 		ui.r.Max.Y = ui.childSize.Y
-	}
-
-	if ui.childSize.X > 0 && ui.childSize.Y > 0 {
-		if ui.img == nil || ui.childSize != ui.img.R.Size() {
-			var err error
-			ui.img, err = display.AllocImage(image.Rectangle{image.ZP, ui.childSize}, draw.ARGB32, false, draw.White)
-			check(err, "allocimage")
-		}
 	}
 	return ui.r.Size()
 }
@@ -64,6 +57,15 @@ func (ui *Scroll) Draw(display *draw.Display, img *draw.Image, orig image.Point,
 	img.Draw(barRActive, darkerGrey, nil, image.ZP)
 
 	// draw child ui
+	if ui.childSize.X == 0 || ui.childSize.Y == 0 {
+		return
+	}
+	if ui.img == nil || ui.childSize != ui.img.R.Size() {
+		var err error
+		ui.img, err = display.AllocImage(image.Rectangle{image.ZP, ui.childSize}, draw.ARGB32, false, draw.White)
+		check(err, "allocimage")
+	}
+
 	ui.img.Draw(ui.img.R, display.White, nil, image.ZP)
 	m.Point = m.Point.Add(image.Pt(-ScrollbarWidth, ui.offset))
 	ui.Child.Draw(display, ui.img, image.Pt(0, -ui.offset), m)
