@@ -8,12 +8,11 @@ import (
 )
 
 const (
-	Margin  = 8
-	Padding = 5
+	Margin  = 4
+	Padding = 2
 	Border  = 1
-	Space   = Margin + Border + Padding
 
-	ScrollbarWidth = 8
+	ScrollbarSize = 8
 
 	WheelUp   = 0xA
 	WheelDown = 0xFFFFFFFE
@@ -35,6 +34,13 @@ type DUI struct {
 	mouse       draw.Mouse
 	lastMouseUI UI
 	logEvents   bool
+}
+
+type sizes struct {
+	margin  int
+	padding int
+	border  int
+	space   int
 }
 
 func check(err error, msg string) {
@@ -143,4 +149,19 @@ func (d *DUI) Focus(ui UI) {
 	} else {
 		d.Redraw()
 	}
+}
+
+func scale(d *draw.Display, n int) int {
+	return (d.DPI / 100) * n
+}
+
+func (d *DUI) Scale(n int) int {
+	return (d.Display.DPI / 100) * n
+}
+
+func setSizes(d *draw.Display, sizes *sizes) {
+	sizes.padding = d.Scale(Padding)
+	sizes.margin = d.Scale(Margin)
+	sizes.border = Border // slim border is nicer
+	sizes.space = sizes.margin + sizes.border + sizes.padding
 }

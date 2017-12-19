@@ -10,11 +10,13 @@ type Field struct {
 	Text    string
 	Changed func(string, *Result)
 
-	size image.Point // including space
+	size  image.Point // including space
+	sizes sizes
 }
 
 func (ui *Field) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
-	ui.size = image.Point{r.Dx(), 2*Space + display.DefaultFont.Height}
+	setSizes(display, &ui.sizes)
+	ui.size = image.Point{r.Dx(), 2*ui.sizes.space + display.DefaultFont.Height}
 	return ui.size
 }
 func (ui *Field) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
@@ -30,11 +32,11 @@ func (ui *Field) Draw(display *draw.Display, img *draw.Image, orig image.Point, 
 	}
 	img.Border(
 		image.Rectangle{
-			orig.Add(image.Point{Margin, Margin}),
-			orig.Add(ui.size).Sub(image.Point{Margin, Margin}),
+			orig.Add(image.Point{ui.sizes.margin, ui.sizes.margin}),
+			orig.Add(ui.size).Sub(image.Point{ui.sizes.margin, ui.sizes.margin}),
 		},
 		1, color, image.ZP)
-	img.String(orig.Add(image.Point{Space, Space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
+	img.String(orig.Add(image.Point{ui.sizes.space, ui.sizes.space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
 }
 func (ui *Field) Mouse(m draw.Mouse) Result {
 	return Result{Hit: ui}
@@ -59,13 +61,13 @@ func (ui *Field) Key(orig image.Point, m draw.Mouse, c rune) Result {
 	return result
 }
 func (ui *Field) FirstFocus() *image.Point {
-	p := image.Pt(Space, Space)
+	p := image.Pt(ui.sizes.space, ui.sizes.space)
 	return &p
 }
 func (ui *Field) Focus(o UI) *image.Point {
 	if o != ui {
 		return nil
 	}
-	p := image.Pt(Space, Space)
+	p := image.Pt(ui.sizes.space, ui.sizes.space)
 	return &p
 }
