@@ -17,6 +17,10 @@ type Scroll struct {
 	img       *draw.Image // for child to draw on
 }
 
+func NewScroll(ui UI) *Scroll {
+	return &Scroll{Child: ui}
+}
+
 func (ui *Scroll) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
 	ui.r = image.Rect(r.Min.X, cur.Y, r.Max.X, r.Max.Y)
 	ui.barR = image.Rectangle{ui.r.Min, image.Pt(ui.r.Min.X+ScrollbarWidth, ui.r.Max.Y)}
@@ -25,12 +29,20 @@ func (ui *Scroll) Layout(display *draw.Display, r image.Rectangle, cur image.Poi
 		ui.barR.Max.Y = ui.childSize.Y
 		ui.r.Max.Y = ui.childSize.Y
 	}
-	var err error
-	ui.img, err = display.AllocImage(image.Rectangle{image.ZP, ui.childSize}, draw.ARGB32, false, draw.White)
-	check(err, "allocimage")
+
+	if ui.childSize.X > 0 && ui.childSize.Y > 0 {
+		var err error
+		ui.img, err = display.AllocImage(image.Rectangle{image.ZP, ui.childSize}, draw.ARGB32, false, draw.White)
+		check(err, "allocimage")
+	}
 	return ui.r.Size()
 }
+
 func (ui *Scroll) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
+	if ui.childSize.X == 0 || ui.childSize.Y == 0 {
+		return
+	}
+
 	// draw scrollbar
 	lightGrey, err := display.AllocImage(image.Rect(0, 0, 1, 1), draw.ARGB32, true, 0xEEEEEEFF)
 	check(err, "allowimage lightgrey")
@@ -55,6 +67,7 @@ func (ui *Scroll) Draw(display *draw.Display, img *draw.Image, orig image.Point,
 	ui.Child.Draw(display, ui.img, image.Pt(0, -ui.offset), m)
 	img.Draw(ui.img.R.Add(orig).Add(image.Pt(ScrollbarWidth, 0)), ui.img, nil, image.ZP)
 }
+
 func (ui *Scroll) scroll(delta int) bool {
 	o := ui.offset
 	ui.offset += delta
@@ -67,6 +80,7 @@ func (ui *Scroll) scroll(delta int) bool {
 	}
 	return o != ui.offset
 }
+
 func (ui *Scroll) scrollKey(c rune) (consumed bool) {
 	switch c {
 	case ArrowUp:
@@ -80,6 +94,7 @@ func (ui *Scroll) scrollKey(c rune) (consumed bool) {
 	}
 	return false
 }
+
 func (ui *Scroll) scrollMouse(m draw.Mouse) (consumed bool) {
 	switch m.Buttons {
 	case WheelUp:
@@ -89,6 +104,7 @@ func (ui *Scroll) scrollMouse(m draw.Mouse) (consumed bool) {
 	}
 	return false
 }
+
 func (ui *Scroll) Mouse(m draw.Mouse) Result {
 	if m.Point.In(ui.barR) {
 		consumed := ui.scrollMouse(m)
@@ -106,6 +122,7 @@ func (ui *Scroll) Mouse(m draw.Mouse) Result {
 	}
 	return Result{}
 }
+
 func (ui *Scroll) Key(orig image.Point, m draw.Mouse, c rune) Result {
 	if m.Point.In(ui.barR) {
 		consumed := ui.scrollKey(c)
@@ -123,6 +140,7 @@ func (ui *Scroll) Key(orig image.Point, m draw.Mouse, c rune) Result {
 	}
 	return Result{}
 }
+
 func (ui *Scroll) FirstFocus() *image.Point {
 	first := ui.Child.FirstFocus()
 	if first == nil {
@@ -131,6 +149,7 @@ func (ui *Scroll) FirstFocus() *image.Point {
 	p := first.Add(image.Pt(ScrollbarWidth, -ui.offset))
 	return &p
 }
+
 func (ui *Scroll) Focus(o UI) *image.Point {
 	p := ui.Child.Focus(o)
 	if p == nil {
@@ -138,8 +157,4 @@ func (ui *Scroll) Focus(o UI) *image.Point {
 	}
 	pp := p.Add(image.Pt(ScrollbarWidth, -ui.offset))
 	return &pp
-}
-
-func NewScroll(ui UI) *Scroll {
-	return &Scroll{Child: ui}
 }
