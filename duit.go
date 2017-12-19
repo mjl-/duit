@@ -19,10 +19,12 @@ const (
 
 	Fn = 0xf000 // use like Fn + <number>
 
-	ArrowUp   = 0xf00e
-	ArrowDown = 0x80
-	PageUp    = 0xf00f
-	PageDown  = 0xf013
+	ArrowUp    = 0xf00e
+	ArrowDown  = 0x80
+	ArrowLeft  = 0xf011
+	ArrowRight = 0xf012
+	PageUp     = 0xf00f
+	PageDown   = 0xf013
 )
 
 type DUI struct {

@@ -8,7 +8,7 @@ import (
 
 type Button struct {
 	Text  string
-	Click func()
+	Click func(r *Result)
 
 	m     draw.Mouse
 	sizes sizes
@@ -38,11 +38,12 @@ func (ui *Button) Draw(display *draw.Display, img *draw.Image, orig image.Point,
 	img.String(orig.Add(image.Point{ui.sizes.space, ui.sizes.space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
 }
 func (ui *Button) Mouse(m draw.Mouse) Result {
+	r := Result{Hit: ui}
 	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 && ui.Click != nil {
-		ui.Click()
+		ui.Click(&r)
 	}
 	ui.m = m
-	return Result{Hit: ui}
+	return r
 }
 func (ui *Button) Key(orig image.Point, m draw.Mouse, c rune) Result {
 	return Result{Hit: ui}

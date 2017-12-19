@@ -13,7 +13,7 @@ func Alert(s string) {
 			{UI: &Label{Text: s}},
 			{UI: &Button{
 				Text: "OK",
-				Click: func() {
+				Click: func(nil *Result) {
 					stop <- struct{}{}
 				},
 			}},
