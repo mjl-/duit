@@ -31,9 +31,11 @@ func (ui *Scroll) Layout(display *draw.Display, r image.Rectangle, cur image.Poi
 	}
 
 	if ui.childSize.X > 0 && ui.childSize.Y > 0 {
-		var err error
-		ui.img, err = display.AllocImage(image.Rectangle{image.ZP, ui.childSize}, draw.ARGB32, false, draw.White)
-		check(err, "allocimage")
+		if ui.img == nil || ui.childSize != ui.img.R.Size() {
+			var err error
+			ui.img, err = display.AllocImage(image.Rectangle{image.ZP, ui.childSize}, draw.ARGB32, false, draw.White)
+			check(err, "allocimage")
+		}
 	}
 	return ui.r.Size()
 }
