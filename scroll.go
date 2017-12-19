@@ -40,6 +40,8 @@ func (ui *Scroll) Draw(d *draw.Display, img *draw.Image, orig image.Point, m dra
 		return
 	}
 
+	ui.scroll(0)
+
 	// draw scrollbar
 	lightGrey, err := d.AllocImage(image.Rect(0, 0, 1, 1), draw.ARGB32, true, 0xEEEEEEFF)
 	check(err, "allowimage lightgrey")
