@@ -104,11 +104,11 @@ func (ui *Scroll) scrollKey(c rune) (consumed bool) {
 }
 
 func (ui *Scroll) scrollMouse(m draw.Mouse) (consumed bool) {
-	switch m.Buttons {
-	case WheelUp:
-		return ui.scroll(-50)
-	case WheelDown:
-		return ui.scroll(50)
+	if m.Buttons == Button4 {
+		return ui.scroll(-80)
+	}
+	if m.Buttons == Button5 {
+		return ui.scroll(80)
 	}
 	return false
 }

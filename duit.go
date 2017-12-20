@@ -13,10 +13,15 @@ const (
 	Border  = 1
 
 	ScrollbarSize = 8
-
-	WheelUp   = 0xA
-	WheelDown = 0xFFFFFFFE
-
+)
+const (
+	Button1 = 1<<iota
+	Button2
+	Button3
+	Button4
+	Button5
+)
+const (
 	Fn = 0xf000 // use like Fn + <number>
 
 	ArrowUp    = 0xf00e
