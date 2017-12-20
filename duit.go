@@ -3,6 +3,7 @@ package duit
 import (
 	"image"
 	"log"
+	"time"
 
 	"9fans.net/go/draw"
 )
@@ -15,7 +16,7 @@ const (
 	ScrollbarSize = 8
 )
 const (
-	Button1 = 1<<iota
+	Button1 = 1 << iota
 	Button2
 	Button3
 	Button4
@@ -41,6 +42,7 @@ type DUI struct {
 	mouse       draw.Mouse
 	lastMouseUI UI
 	logEvents   bool
+	logTiming   bool
 }
 
 type sizes struct {
@@ -72,14 +74,28 @@ func NewDUI(name, dim string) (*DUI, error) {
 }
 
 func (d *DUI) Render() {
+	var t0 time.Time
+	if d.logTiming {
+		t0 = time.Now()
+	}
 	d.Top.Layout(d.Display, d.Display.ScreenImage.R, image.ZP)
+	if d.logTiming {
+		log.Printf("time layout: %d µs\n", time.Now().Sub(t0)/time.Microsecond)
+	}
 	d.Display.ScreenImage.Draw(d.Display.ScreenImage.R, d.Display.White, nil, image.ZP)
 	d.Redraw()
 }
 
 func (d *DUI) Redraw() {
+	var t0 time.Time
+	if d.logTiming {
+		t0 = time.Now()
+	}
 	d.Top.Draw(d.Display, d.Display.ScreenImage, image.ZP, d.mouse)
 	d.Display.Flush()
+	if d.logTiming {
+		log.Printf("time draw: %d µs\n", time.Now().Sub(t0)/time.Microsecond)
+	}
 }
 
 func (d *DUI) Mouse(m draw.Mouse) {
@@ -110,6 +126,9 @@ func (d *DUI) Key(r rune) {
 	}
 	if r == Fn+1 {
 		d.logEvents = !d.logEvents
+	}
+	if r == Fn+2 {
+		d.logTiming = !d.logTiming
 	}
 	result := d.Top.Key(image.ZP, d.mouse, r)
 	if !result.Consumed && r == '\t' {
