@@ -87,14 +87,18 @@ func (d *DUI) Render() {
 }
 
 func (d *DUI) Redraw() {
-	var t0 time.Time
+	var t0, t1 time.Time
 	if d.logTiming {
 		t0 = time.Now()
 	}
 	d.Top.Draw(d.Display, d.Display.ScreenImage, image.ZP, d.mouse)
+	if d.logTiming {
+		t1 = time.Now()
+	}
 	d.Display.Flush()
 	if d.logTiming {
-		log.Printf("time draw: %d µs\n", time.Now().Sub(t0)/time.Microsecond)
+		t2 := time.Now()
+		log.Printf("time redraw: draw %d µs flush %d µs\n", t1.Sub(t0)/time.Microsecond, t2.Sub(t1)/time.Microsecond)
 	}
 }
 
