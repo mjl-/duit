@@ -149,14 +149,12 @@ func (d *DUI) Key(r rune) {
 	if result.Warp != nil {
 		err := d.Display.MoveTo(*result.Warp)
 		if err != nil {
-			log.Printf("move mouse to %v: %v\n", result.Warp, err)
+			log.Printf("move mouse to %v: %s\n", result.Warp, err)
 		}
-		m := d.mouse
-		m.Point = *result.Warp
-		result2 := d.Top.Mouse(m)
+		d.mouse.Point = *result.Warp
+		result2 := d.Top.Mouse(d.mouse)
 		result.Redraw = result.Redraw || result2.Redraw || true
 		result.Layout = result.Layout || result2.Layout
-		d.mouse = m
 		d.lastMouseUI = result2.Hit
 	}
 	if result.Layout {
@@ -178,6 +176,7 @@ func (d *DUI) Focus(ui UI) {
 	}
 	d.mouse.Point = *p
 	r := d.Top.Mouse(d.mouse)
+	d.lastMouseUI = r.Hit
 	if r.Layout {
 		d.Render()
 	} else {
