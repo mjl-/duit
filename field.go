@@ -19,6 +19,7 @@ func (ui *Field) Layout(display *draw.Display, r image.Rectangle, cur image.Poin
 	ui.size = image.Point{r.Dx(), 2*ui.sizes.space + display.DefaultFont.Height}
 	return ui.size
 }
+
 func (ui *Field) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
 	hover := m.In(image.Rectangle{image.ZP, ui.size})
 	r := image.Rectangle{orig, orig.Add(ui.size)}
@@ -38,9 +39,11 @@ func (ui *Field) Draw(display *draw.Display, img *draw.Image, orig image.Point, 
 		1, color, image.ZP)
 	img.String(orig.Add(image.Point{ui.sizes.space, ui.sizes.space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
 }
+
 func (ui *Field) Mouse(m draw.Mouse) Result {
 	return Result{Hit: ui}
 }
+
 func (ui *Field) Key(orig image.Point, m draw.Mouse, c rune) Result {
 	switch c {
 	case PageUp, PageDown, ArrowUp, ArrowDown:
@@ -60,10 +63,12 @@ func (ui *Field) Key(orig image.Point, m draw.Mouse, c rune) Result {
 	}
 	return result
 }
+
 func (ui *Field) FirstFocus() *image.Point {
 	p := image.Pt(ui.sizes.space, ui.sizes.space)
 	return &p
 }
+
 func (ui *Field) Focus(o UI) *image.Point {
 	if o != ui {
 		return nil
@@ -71,6 +76,7 @@ func (ui *Field) Focus(o UI) *image.Point {
 	p := image.Pt(ui.sizes.space, ui.sizes.space)
 	return &p
 }
+
 func (ui *Field) Print(indent int, r image.Rectangle) {
 	uiPrint("Field", indent, r)
 }

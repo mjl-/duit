@@ -32,21 +32,27 @@ func (ui *Horizontal) Layout(display *draw.Display, r image.Rectangle, cur image
 	}
 	return ui.size
 }
+
 func (ui *Horizontal) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
 	kidsDraw(display, ui.Kids, ui.size, img, orig, m)
 }
+
 func (ui *Horizontal) Mouse(m draw.Mouse) (result Result) {
 	return kidsMouse(ui.Kids, m)
 }
+
 func (ui *Horizontal) Key(orig image.Point, m draw.Mouse, k rune) (result Result) {
 	return kidsKey(ui, ui.Kids, orig, m, k)
 }
+
 func (ui *Horizontal) FirstFocus() *image.Point {
 	return kidsFirstFocus(ui.Kids)
 }
+
 func (ui *Horizontal) Focus(o UI) *image.Point {
 	return kidsFocus(ui.Kids, o)
 }
+
 func (ui *Horizontal) Print(indent int, r image.Rectangle) {
 	uiPrint("Horizontal", indent, r)
 	kidsPrint(ui.Kids, indent+1)

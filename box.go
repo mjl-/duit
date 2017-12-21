@@ -55,21 +55,27 @@ func (ui *Box) Layout(display *draw.Display, r image.Rectangle, ocur image.Point
 	ui.size = image.Point{xmax, cur.Y}
 	return ui.size
 }
+
 func (ui *Box) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
 	kidsDraw(display, ui.Kids, ui.size, img, orig, m)
 }
+
 func (ui *Box) Mouse(m draw.Mouse) Result {
 	return kidsMouse(ui.Kids, m)
 }
+
 func (ui *Box) Key(orig image.Point, m draw.Mouse, c rune) Result {
 	return kidsKey(ui, ui.Kids, orig, m, c)
 }
+
 func (ui *Box) FirstFocus() *image.Point {
 	return kidsFirstFocus(ui.Kids)
 }
+
 func (ui *Box) Focus(o UI) *image.Point {
 	return kidsFocus(ui.Kids, o)
 }
+
 func (ui *Box) Print(indent int, r image.Rectangle) {
 	uiPrint("Box", indent, r)
 	kidsPrint(ui.Kids, indent+1)

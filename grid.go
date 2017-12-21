@@ -73,21 +73,27 @@ func (ui *Grid) Layout(display *draw.Display, r image.Rectangle, cur image.Point
 	ui.size = image.Pt(width, height)
 	return ui.size
 }
+
 func (ui *Grid) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
 	kidsDraw(display, ui.Kids, ui.size, img, orig, m)
 }
+
 func (ui *Grid) Mouse(m draw.Mouse) (result Result) {
 	return kidsMouse(ui.Kids, m)
 }
+
 func (ui *Grid) Key(orig image.Point, m draw.Mouse, k rune) (result Result) {
 	return kidsKey(ui, ui.Kids, orig, m, k)
 }
+
 func (ui *Grid) FirstFocus() *image.Point {
 	return kidsFirstFocus(ui.Kids)
 }
+
 func (ui *Grid) Focus(o UI) *image.Point {
 	return kidsFocus(ui.Kids, o)
 }
+
 func (ui *Grid) Print(indent int, r image.Rectangle) {
 	uiPrint(fmt.Sprintf("Grid columns=%d", ui.Columns), indent, r)
 	kidsPrint(ui.Kids, indent+1)
