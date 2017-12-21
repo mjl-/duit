@@ -47,7 +47,6 @@ func (ui *Button) Mouse(m draw.Mouse) Result {
 }
 func (ui *Button) Key(orig image.Point, m draw.Mouse, c rune) Result {
 	return Result{Hit: ui}
-
 }
 func (ui *Button) FirstFocus() *image.Point {
 	p := image.Pt(ui.sizes.space, ui.sizes.space)
@@ -59,4 +58,7 @@ func (ui *Button) Focus(o UI) *image.Point {
 	}
 	p := image.Pt(ui.sizes.space, ui.sizes.space)
 	return &p
+}
+func (ui *Button) Print(indent int, r image.Rectangle) {
+	uiPrint("Button", indent, r)
 }

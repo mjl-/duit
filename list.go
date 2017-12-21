@@ -153,3 +153,6 @@ func (ui *List) Focus(o UI) *image.Point {
 	}
 	return &ui.padding
 }
+func (ui *List) Print(indent int, r image.Rectangle) {
+	uiPrint("List", indent, r)
+}

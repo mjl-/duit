@@ -46,3 +46,7 @@ func (ui *Vertical) FirstFocus() *image.Point {
 func (ui *Vertical) Focus(o UI) *image.Point {
 	return kidsFocus(ui.Kids, o)
 }
+func (ui *Vertical) Print(indent int, r image.Rectangle) {
+	uiPrint("Box", indent, r)
+	kidsPrint(ui.Kids, indent+1)
+}

@@ -166,3 +166,8 @@ func (ui *Scroll) Focus(o UI) *image.Point {
 	pp := p.Add(image.Pt(ui.scrollbarSize, -ui.offset))
 	return &pp
 }
+
+func (ui *Scroll) Print(indent int, r image.Rectangle) {
+	uiPrint("Scroll", indent, r)
+	ui.Child.Print(indent+1, image.Rectangle{image.ZP, ui.childSize})
+}

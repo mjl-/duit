@@ -71,3 +71,6 @@ func (ui *Field) Focus(o UI) *image.Point {
 	p := image.Pt(ui.sizes.space, ui.sizes.space)
 	return &p
 }
+func (ui *Field) Print(indent int, r image.Rectangle) {
+	uiPrint("Field", indent, r)
+}

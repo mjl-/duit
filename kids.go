@@ -89,3 +89,9 @@ func kidsFocus(kids []*Kid, ui UI) *image.Point {
 	}
 	return nil
 }
+
+func kidsPrint(kids []*Kid, indent int) {
+	for _, k := range kids {
+		k.UI.Print(indent, k.r)
+	}
+}

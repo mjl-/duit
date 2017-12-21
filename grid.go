@@ -1,6 +1,7 @@
 package duit
 
 import (
+	"fmt"
 	"image"
 
 	"9fans.net/go/draw"
@@ -86,4 +87,8 @@ func (ui *Grid) FirstFocus() *image.Point {
 }
 func (ui *Grid) Focus(o UI) *image.Point {
 	return kidsFocus(ui.Kids, o)
+}
+func (ui *Grid) Print(indent int, r image.Rectangle) {
+	uiPrint(fmt.Sprintf("Grid columns=%d", ui.Columns), indent, r)
+	kidsPrint(ui.Kids, indent+1)
 }

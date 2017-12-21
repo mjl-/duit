@@ -31,3 +31,6 @@ func (ui *Image) Focus(o UI) *image.Point {
 	}
 	return &image.ZP
 }
+func (ui *Image) Print(indent int, r image.Rectangle) {
+	uiPrint("Image", indent, r)
+}

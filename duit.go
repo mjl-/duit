@@ -1,6 +1,7 @@
 package duit
 
 import (
+	"fmt"
 	"image"
 	"log"
 	"time"
@@ -134,6 +135,9 @@ func (d *DUI) Key(r rune) {
 	if r == Fn+2 {
 		d.logTiming = !d.logTiming
 	}
+	if r == Fn+3 {
+		d.Top.Print(0, d.Display.ScreenImage.R)
+	}
 	result := d.Top.Key(image.ZP, d.mouse, r)
 	if !result.Consumed && r == '\t' {
 		first := d.Top.FirstFocus()
@@ -179,6 +183,14 @@ func (d *DUI) Focus(ui UI) {
 	} else {
 		d.Redraw()
 	}
+}
+
+func uiPrint(s string, indent int, r image.Rectangle) {
+	indentStr := ""
+	if indent > 0 {
+		indentStr = fmt.Sprintf("%*s", indent*2, " ")
+	}
+	log.Printf("%s%s r %v\n", indentStr, s, r)
 }
 
 func scale(d *draw.Display, n int) int {

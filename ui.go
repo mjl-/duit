@@ -25,4 +25,7 @@ type UI interface {
 
 	// Focus returns the focus-point for `ui`.
 	Focus(o UI) *image.Point
+
+	// Print line about ui that includes r and is prefixed with indent spaces, following by a Print on each child.
+	Print(indent int, r image.Rectangle)
 }
