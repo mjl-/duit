@@ -103,7 +103,7 @@ func (ui *List) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Re
 		}
 	}
 	switch k {
-	case ArrowUp, ArrowDown:
+	case draw.KeyUp, draw.KeyDown:
 		if len(ui.Values) == 0 {
 			return
 		}
@@ -111,7 +111,7 @@ func (ui *List) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Re
 		oindex := -1
 		nindex := -1
 		switch k {
-		case ArrowUp:
+		case draw.KeyUp:
 			result.Consumed = true
 			if len(sel) == 0 {
 				nindex = len(ui.Values) - 1
@@ -119,7 +119,7 @@ func (ui *List) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Re
 				oindex = sel[0]
 				nindex = (sel[0] - 1 + len(ui.Values)) % len(ui.Values)
 			}
-		case ArrowDown:
+		case draw.KeyDown:
 			result.Consumed = true
 			if len(sel) == 0 {
 				nindex = 0

@@ -23,16 +23,6 @@ const (
 	Button4
 	Button5
 )
-const (
-	Fn = 0xf000 // use like Fn + <number>
-
-	ArrowUp    = 0xf00e
-	ArrowDown  = 0x80
-	ArrowLeft  = 0xf011
-	ArrowRight = 0xf012
-	PageUp     = 0xf00f
-	PageDown   = 0xf013
-)
 
 type DUI struct {
 	Display  *draw.Display
@@ -162,13 +152,13 @@ func (d *DUI) Key(r rune) {
 	if d.logEvents {
 		log.Printf("kdb %c, %x\n", r, r)
 	}
-	if r == Fn+1 {
+	if r == draw.KeyFn+1 {
 		d.logEvents = !d.logEvents
 	}
-	if r == Fn+2 {
+	if r == draw.KeyFn+2 {
 		d.logTiming = !d.logTiming
 	}
-	if r == Fn+3 {
+	if r == draw.KeyFn+3 {
 		d.Top.Print(0, d.Display.ScreenImage.R)
 	}
 	result := d.Top.Key(d.env, image.ZP, d.mouse, r)

@@ -42,7 +42,7 @@ func (ui *Field) Mouse(env *Env, m draw.Mouse) Result {
 
 func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
 	switch c {
-	case PageUp, PageDown, ArrowUp, ArrowDown:
+	case draw.KeyPageUp, draw.KeyPageDown, draw.KeyUp, draw.KeyDown:
 		return Result{Hit: ui}
 	case '\t':
 		return Result{Hit: ui}

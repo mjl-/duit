@@ -94,13 +94,13 @@ func (ui *Scroll) scroll(delta int) bool {
 
 func (ui *Scroll) scrollKey(c rune) (consumed bool) {
 	switch c {
-	case ArrowUp:
+	case draw.KeyUp:
 		return ui.scroll(-50)
-	case ArrowDown:
+	case draw.KeyDown:
 		return ui.scroll(50)
-	case PageUp:
+	case draw.KeyPageUp:
 		return ui.scroll(-200)
-	case PageDown:
+	case draw.KeyPageDown:
 		return ui.scroll(200)
 	}
 	return false
