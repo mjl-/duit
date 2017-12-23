@@ -40,17 +40,11 @@ type DUI struct {
 	Kbdctl   *draw.Keyboardctl
 	Top      UI
 
+	env         *Env
 	mouse       draw.Mouse
 	lastMouseUI UI
 	logEvents   bool
 	logTiming   bool
-}
-
-type sizes struct {
-	margin  int
-	padding int
-	border  int
-	space   int
 }
 
 func check(err error, msg string) {
@@ -71,6 +65,45 @@ func NewDUI(name, dim string) (*DUI, error) {
 	dui.Mousectl = display.InitMouse()
 	dui.Kbdctl = display.InitKeyboard()
 
+	makeColor := func(v draw.Color) *draw.Image {
+		c, err := display.AllocImage(image.Rect(0, 0, 1, 1), draw.ARGB32, true, v)
+		check(err, "allocimage")
+		return c
+	}
+
+	dui.env = &Env{
+		Display: display,
+
+		Normal: Colors{
+			Text:       makeColor(0x444444ff),
+			Background: makeColor(0xf8f8f8ff),
+			Border:     makeColor(0xccccccff),
+		},
+		Hover: Colors{
+			Text:       makeColor(0x333333ff),
+			Background: makeColor(0xffffffff),
+			Border:     makeColor(0xaaaaaaff),
+		},
+		Disabled: Colors{
+			Text:       makeColor(0x888888ff),
+			Background: makeColor(0xf0f0f0ff),
+			Border:     makeColor(0xffffff00),
+		},
+		Inverse: Colors{
+			Text:       makeColor(0xeeeeeeff),
+			Background: makeColor(0x444444ff),
+			Border:     makeColor(0x666666ff),
+		},
+
+		BackgroundColor: draw.Color(0xffffffff),
+
+		ScrollBGNormal:      makeColor(0xf4f4f4ff),
+		ScrollBGHover:       makeColor(0xf0f0f0ff),
+		ScrollVisibleNormal: makeColor(0xbbbbbbff),
+		ScrollVisibleHover:  makeColor(0x999999ff),
+	}
+	setSize(dui.Display, &dui.env.Size)
+
 	return dui, nil
 }
 
@@ -79,7 +112,7 @@ func (d *DUI) Render() {
 	if d.logTiming {
 		t0 = time.Now()
 	}
-	d.Top.Layout(d.Display, d.Display.ScreenImage.R, image.ZP)
+	d.Top.Layout(d.env, d.Display.ScreenImage.R, image.ZP)
 	if d.logTiming {
 		log.Printf("time layout: %d µs\n", time.Now().Sub(t0)/time.Microsecond)
 	}
@@ -92,7 +125,7 @@ func (d *DUI) Redraw() {
 	if d.logTiming {
 		t0 = time.Now()
 	}
-	d.Top.Draw(d.Display, d.Display.ScreenImage, image.ZP, d.mouse)
+	d.Top.Draw(d.env, d.Display.ScreenImage, image.ZP, d.mouse)
 	if d.logTiming {
 		t1 = time.Now()
 	}
@@ -108,7 +141,7 @@ func (d *DUI) Mouse(m draw.Mouse) {
 	if d.logEvents {
 		log.Printf("mouse %v, %b\n", m, m.Buttons)
 	}
-	r := d.Top.Mouse(m)
+	r := d.Top.Mouse(d.env, m)
 	if r.Layout {
 		d.Render()
 	} else if r.Hit != d.lastMouseUI || r.Redraw {
@@ -138,9 +171,9 @@ func (d *DUI) Key(r rune) {
 	if r == Fn+3 {
 		d.Top.Print(0, d.Display.ScreenImage.R)
 	}
-	result := d.Top.Key(image.ZP, d.mouse, r)
+	result := d.Top.Key(d.env, image.ZP, d.mouse, r)
 	if !result.Consumed && r == '\t' {
-		first := d.Top.FirstFocus()
+		first := d.Top.FirstFocus(d.env)
 		if first != nil {
 			result.Warp = first
 			result.Consumed = true
@@ -152,7 +185,7 @@ func (d *DUI) Key(r rune) {
 			log.Printf("move mouse to %v: %s\n", result.Warp, err)
 		}
 		d.mouse.Point = *result.Warp
-		result2 := d.Top.Mouse(d.mouse)
+		result2 := d.Top.Mouse(d.env, d.mouse)
 		result.Redraw = result.Redraw || result2.Redraw || true
 		result.Layout = result.Layout || result2.Layout
 		d.lastMouseUI = result2.Hit
@@ -165,7 +198,7 @@ func (d *DUI) Key(r rune) {
 }
 
 func (d *DUI) Focus(ui UI) {
-	p := d.Top.Focus(ui)
+	p := d.Top.Focus(d.env, ui)
 	if p == nil {
 		return
 	}
@@ -175,7 +208,7 @@ func (d *DUI) Focus(ui UI) {
 		return
 	}
 	d.mouse.Point = *p
-	r := d.Top.Mouse(d.mouse)
+	r := d.Top.Mouse(d.env, d.mouse)
 	d.lastMouseUI = r.Hit
 	if r.Layout {
 		d.Render()
@@ -200,9 +233,9 @@ func (d *DUI) Scale(n int) int {
 	return (d.Display.DPI / 100) * n
 }
 
-func setSizes(d *draw.Display, sizes *sizes) {
-	sizes.padding = d.Scale(Padding)
-	sizes.margin = d.Scale(Margin)
-	sizes.border = Border // slim border is nicer
-	sizes.space = sizes.margin + sizes.border + sizes.padding
+func setSize(d *draw.Display, size *Size) {
+	size.Padding = d.Scale(Padding)
+	size.Margin = d.Scale(Margin)
+	size.Border = Border // slim border is nicer
+	size.Space = size.Margin + size.Border + size.Padding
 }

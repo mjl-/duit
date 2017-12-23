@@ -14,17 +14,50 @@ type Result struct {
 	Warp     *image.Point // if set, mouse will warp to location
 }
 
+type Colors struct {
+	Text,
+	Background,
+	Border *draw.Image
+}
+
+type Size struct {
+	Margin  int
+	Border  int
+	Padding int
+	Space   int
+}
+
+type Env struct {
+	Display *draw.Display
+
+	// color for text
+	Normal,
+	Hover,
+	Disabled,
+	Inverse Colors
+
+	BackgroundColor draw.Color
+
+	ScrollBGNormal,
+	ScrollBGHover,
+	ScrollVisibleNormal,
+	ScrollVisibleHover *draw.Image
+
+	// sizes scaled for DPI of screen
+	Size Size
+}
+
 type UI interface {
-	Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point
-	Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse)
-	Mouse(m draw.Mouse) (result Result)
-	Key(orig image.Point, m draw.Mouse, k rune) (result Result)
+	Layout(env *Env, r image.Rectangle, cur image.Point) image.Point
+	Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
+	Mouse(env *Env, m draw.Mouse) (result Result)
+	Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Result)
 
 	// FirstFocus returns the top-left corner where the focus should go next when "tab" is hit, if anything.
-	FirstFocus() *image.Point
+	FirstFocus(env *Env) *image.Point
 
 	// Focus returns the focus-point for `ui`.
-	Focus(o UI) *image.Point
+	Focus(env *Env, o UI) *image.Point
 
 	// Print line about ui that includes r and is prefixed with indent spaces, following by a Print on each child.
 	Print(indent int, r image.Rectangle)

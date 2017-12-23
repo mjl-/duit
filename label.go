@@ -8,32 +8,29 @@ import (
 
 type Label struct {
 	Text string
-
-	sizes sizes
 }
 
-func (ui *Label) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
-	setSizes(display, &ui.sizes)
-	return display.DefaultFont.StringSize(ui.Text).Add(image.Point{2*ui.sizes.margin + 2*ui.sizes.border, 2 * ui.sizes.space})
+func (ui *Label) Layout(env *Env, r image.Rectangle, cur image.Point) image.Point {
+	return env.Display.DefaultFont.StringSize(ui.Text).Add(image.Point{2*env.Size.Margin + 2*env.Size.Border, 2 * env.Size.Space})
 }
 
-func (ui *Label) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
-	img.String(orig.Add(image.Point{ui.sizes.margin + ui.sizes.border, ui.sizes.space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
+func (ui *Label) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
+	img.String(orig.Add(image.Point{env.Size.Margin + env.Size.Border, env.Size.Space}), env.Normal.Text, image.ZP, env.Display.DefaultFont, ui.Text)
 }
 
-func (ui *Label) Mouse(m draw.Mouse) Result {
+func (ui *Label) Mouse(env *Env, m draw.Mouse) Result {
 	return Result{Hit: ui}
 }
 
-func (ui *Label) Key(orig image.Point, m draw.Mouse, c rune) Result {
+func (ui *Label) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
 	return Result{Hit: ui}
 }
 
-func (ui *Label) FirstFocus() *image.Point {
+func (ui *Label) FirstFocus(env *Env) *image.Point {
 	return nil
 }
 
-func (ui *Label) Focus(o UI) *image.Point {
+func (ui *Label) Focus(env *Env, o UI) *image.Point {
 	if ui != o {
 		return nil
 	}

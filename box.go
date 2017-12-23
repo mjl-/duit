@@ -21,13 +21,13 @@ type Box struct {
 	size image.Point
 }
 
-func (ui *Box) Layout(display *draw.Display, r image.Rectangle, ocur image.Point) image.Point {
+func (ui *Box) Layout(env *Env, r image.Rectangle, ocur image.Point) image.Point {
 	xmax := 0
 	cur := image.Point{0, 0}
 	nx := 0    // number on current line
 	liney := 0 // max y of current line
 	for _, k := range ui.Kids {
-		p := k.UI.Layout(display, r, cur.Add(image.Pt(0, liney)))
+		p := k.UI.Layout(env, r, cur.Add(image.Pt(0, liney)))
 		var kr image.Rectangle
 		if nx == 0 || cur.X+p.X <= r.Dx() {
 			kr = image.Rectangle{cur, cur.Add(p)}
@@ -56,24 +56,24 @@ func (ui *Box) Layout(display *draw.Display, r image.Rectangle, ocur image.Point
 	return ui.size
 }
 
-func (ui *Box) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
-	kidsDraw(display, ui.Kids, ui.size, img, orig, m)
+func (ui *Box) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
+	kidsDraw(env, ui.Kids, ui.size, img, orig, m)
 }
 
-func (ui *Box) Mouse(m draw.Mouse) Result {
-	return kidsMouse(ui.Kids, m)
+func (ui *Box) Mouse(env *Env, m draw.Mouse) Result {
+	return kidsMouse(env, ui.Kids, m)
 }
 
-func (ui *Box) Key(orig image.Point, m draw.Mouse, c rune) Result {
-	return kidsKey(ui, ui.Kids, orig, m, c)
+func (ui *Box) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
+	return kidsKey(env, ui, ui.Kids, orig, m, c)
 }
 
-func (ui *Box) FirstFocus() *image.Point {
-	return kidsFirstFocus(ui.Kids)
+func (ui *Box) FirstFocus(env *Env) *image.Point {
+	return kidsFirstFocus(env, ui.Kids)
 }
 
-func (ui *Box) Focus(o UI) *image.Point {
-	return kidsFocus(ui.Kids, o)
+func (ui *Box) Focus(env *Env, o UI) *image.Point {
+	return kidsFocus(env, ui.Kids, o)
 }
 
 func (ui *Box) Print(indent int, r image.Rectangle) {

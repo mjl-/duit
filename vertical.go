@@ -14,7 +14,7 @@ type Vertical struct {
 	heights []int
 }
 
-func (ui *Vertical) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
+func (ui *Vertical) Layout(env *Env, r image.Rectangle, cur image.Point) image.Point {
 	r.Min = image.Pt(0, cur.Y)
 	heights := ui.Split(r)
 	if len(heights) != len(ui.Kids) {
@@ -24,7 +24,7 @@ func (ui *Vertical) Layout(display *draw.Display, r image.Rectangle, cur image.P
 	ui.size = image.ZP
 	for i, k := range ui.Kids {
 		p := image.Pt(0, ui.size.Y)
-		size := k.UI.Layout(display, image.Rectangle{p, image.Pt(r.Dx(), heights[i])}, image.ZP)
+		size := k.UI.Layout(env, image.Rectangle{p, image.Pt(r.Dx(), heights[i])}, image.ZP)
 		k.r = image.Rectangle{p, p.Add(size)}
 		ui.size.Y += heights[i]
 	}
@@ -32,24 +32,24 @@ func (ui *Vertical) Layout(display *draw.Display, r image.Rectangle, cur image.P
 	return ui.size
 }
 
-func (ui *Vertical) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
-	kidsDraw(display, ui.Kids, ui.size, img, orig, m)
+func (ui *Vertical) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
+	kidsDraw(env, ui.Kids, ui.size, img, orig, m)
 }
 
-func (ui *Vertical) Mouse(m draw.Mouse) (result Result) {
-	return kidsMouse(ui.Kids, m)
+func (ui *Vertical) Mouse(env *Env, m draw.Mouse) (result Result) {
+	return kidsMouse(env, ui.Kids, m)
 }
 
-func (ui *Vertical) Key(orig image.Point, m draw.Mouse, k rune) (result Result) {
-	return kidsKey(ui, ui.Kids, orig, m, k)
+func (ui *Vertical) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Result) {
+	return kidsKey(env, ui, ui.Kids, orig, m, k)
 }
 
-func (ui *Vertical) FirstFocus() *image.Point {
-	return kidsFirstFocus(ui.Kids)
+func (ui *Vertical) FirstFocus(env *Env) *image.Point {
+	return kidsFirstFocus(env, ui.Kids)
 }
 
-func (ui *Vertical) Focus(o UI) *image.Point {
-	return kidsFocus(ui.Kids, o)
+func (ui *Vertical) Focus(env *Env, o UI) *image.Point {
+	return kidsFocus(env, ui.Kids, o)
 }
 
 func (ui *Vertical) Print(indent int, r image.Rectangle) {

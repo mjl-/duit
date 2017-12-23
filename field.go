@@ -10,41 +10,37 @@ type Field struct {
 	Text    string
 	Changed func(string, *Result)
 
-	size  image.Point // including space
-	sizes sizes
+	size image.Point // including space
 }
 
-func (ui *Field) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
-	setSizes(display, &ui.sizes)
-	ui.size = image.Point{r.Dx(), 2*ui.sizes.space + display.DefaultFont.Height}
+func (ui *Field) Layout(env *Env, r image.Rectangle, cur image.Point) image.Point {
+	ui.size = image.Point{r.Dx(), 2*env.Size.Space + env.Display.DefaultFont.Height}
 	return ui.size
 }
 
-func (ui *Field) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
 	hover := m.In(image.Rectangle{image.ZP, ui.size})
 	r := image.Rectangle{orig, orig.Add(ui.size)}
-	img.Draw(r, display.White, nil, image.ZP)
 
-	color := display.Black
+	colors := env.Normal
 	if hover {
-		var err error
-		color, err = display.AllocImage(image.Rect(0, 0, 1, 1), draw.ARGB32, true, draw.Blue)
-		check(err, "allocimage")
+		colors = env.Hover
 	}
+	img.Draw(r, colors.Background, nil, image.ZP)
 	img.Border(
 		image.Rectangle{
-			orig.Add(image.Point{ui.sizes.margin, ui.sizes.margin}),
-			orig.Add(ui.size).Sub(image.Point{ui.sizes.margin, ui.sizes.margin}),
+			orig.Add(image.Point{env.Size.Margin, env.Size.Margin}),
+			orig.Add(ui.size).Sub(image.Point{env.Size.Margin, env.Size.Margin}),
 		},
-		1, color, image.ZP)
-	img.String(orig.Add(image.Point{ui.sizes.space, ui.sizes.space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
+		1, colors.Border, image.ZP)
+	img.String(orig.Add(image.Point{env.Size.Space, env.Size.Space}), colors.Text, image.ZP, env.Display.DefaultFont, ui.Text)
 }
 
-func (ui *Field) Mouse(m draw.Mouse) Result {
+func (ui *Field) Mouse(env *Env, m draw.Mouse) Result {
 	return Result{Hit: ui}
 }
 
-func (ui *Field) Key(orig image.Point, m draw.Mouse, c rune) Result {
+func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
 	switch c {
 	case PageUp, PageDown, ArrowUp, ArrowDown:
 		return Result{Hit: ui}
@@ -64,16 +60,16 @@ func (ui *Field) Key(orig image.Point, m draw.Mouse, c rune) Result {
 	return result
 }
 
-func (ui *Field) FirstFocus() *image.Point {
-	p := image.Pt(ui.sizes.space, ui.sizes.space)
+func (ui *Field) FirstFocus(env *Env) *image.Point {
+	p := image.Pt(env.Size.Space, env.Size.Space)
 	return &p
 }
 
-func (ui *Field) Focus(o UI) *image.Point {
+func (ui *Field) Focus(env *Env, o UI) *image.Point {
 	if o != ui {
 		return nil
 	}
-	p := image.Pt(ui.sizes.space, ui.sizes.space)
+	p := image.Pt(env.Size.Space, env.Size.Space)
 	return &p
 }
 

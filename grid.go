@@ -16,7 +16,7 @@ type Grid struct {
 	size    image.Point
 }
 
-func (ui *Grid) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
+func (ui *Grid) Layout(env *Env, r image.Rectangle, cur image.Point) image.Point {
 	r.Min = image.Pt(0, cur.Y)
 
 	ui.widths = make([]int, ui.Columns)
@@ -26,7 +26,7 @@ func (ui *Grid) Layout(display *draw.Display, r image.Rectangle, cur image.Point
 		for i := col; i < len(ui.Kids); i += ui.Columns {
 			k := ui.Kids[i]
 			kr := image.Rectangle{image.ZP, image.Pt(r.Dx()-width, r.Dy())}
-			size := k.UI.Layout(display, kr, image.ZP)
+			size := k.UI.Layout(env, kr, image.ZP)
 			if size.X > ui.widths[col] {
 				ui.widths[col] = size.X
 			}
@@ -42,7 +42,7 @@ func (ui *Grid) Layout(display *draw.Display, r image.Rectangle, cur image.Point
 		for col := 0; col < ui.Columns; col++ {
 			k := ui.Kids[i+col]
 			kr := image.Rectangle{image.ZP, image.Pt(ui.widths[col], r.Dy())}
-			size := k.UI.Layout(display, kr, image.ZP)
+			size := k.UI.Layout(env, kr, image.ZP)
 			if size.Y > ui.heights[row] {
 				ui.heights[row] = size.Y
 			}
@@ -74,24 +74,24 @@ func (ui *Grid) Layout(display *draw.Display, r image.Rectangle, cur image.Point
 	return ui.size
 }
 
-func (ui *Grid) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
-	kidsDraw(display, ui.Kids, ui.size, img, orig, m)
+func (ui *Grid) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
+	kidsDraw(env, ui.Kids, ui.size, img, orig, m)
 }
 
-func (ui *Grid) Mouse(m draw.Mouse) (result Result) {
-	return kidsMouse(ui.Kids, m)
+func (ui *Grid) Mouse(env *Env, m draw.Mouse) (result Result) {
+	return kidsMouse(env, ui.Kids, m)
 }
 
-func (ui *Grid) Key(orig image.Point, m draw.Mouse, k rune) (result Result) {
-	return kidsKey(ui, ui.Kids, orig, m, k)
+func (ui *Grid) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Result) {
+	return kidsKey(env, ui, ui.Kids, orig, m, k)
 }
 
-func (ui *Grid) FirstFocus() *image.Point {
-	return kidsFirstFocus(ui.Kids)
+func (ui *Grid) FirstFocus(env *Env) *image.Point {
+	return kidsFirstFocus(env, ui.Kids)
 }
 
-func (ui *Grid) Focus(o UI) *image.Point {
-	return kidsFocus(ui.Kids, o)
+func (ui *Grid) Focus(env *Env, o UI) *image.Point {
+	return kidsFocus(env, ui.Kids, o)
 }
 
 func (ui *Grid) Print(indent int, r image.Rectangle) {

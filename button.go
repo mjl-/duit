@@ -7,39 +7,41 @@ import (
 )
 
 type Button struct {
-	Text  string
-	Click func(r *Result)
+	Text     string
+	Disabled bool
+	Click    func(r *Result)
 
-	m     draw.Mouse
-	sizes sizes
+	m draw.Mouse
 }
 
-func (ui *Button) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
-	setSizes(display, &ui.sizes)
-	return display.DefaultFont.StringSize(ui.Text).Add(image.Point{2 * ui.sizes.space, 2 * ui.sizes.space})
+func (ui *Button) Layout(env *Env, r image.Rectangle, cur image.Point) image.Point {
+	return env.Display.DefaultFont.StringSize(ui.Text).Add(image.Point{2 * env.Size.Space, 2 * env.Size.Space})
 }
 
-func (ui *Button) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
-	size := display.DefaultFont.StringSize(ui.Text)
+func (ui *Button) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
+	size := env.Display.DefaultFont.StringSize(ui.Text)
 
-	grey, err := display.AllocImage(image.Rect(0, 0, 1, 1), draw.ARGB32, true, draw.Palegreygreen)
-	check(err, "allocimage grey")
+	hover := m.In(image.Rectangle{image.ZP, size.Add(image.Pt(2*env.Size.Space, 2*env.Size.Space))})
+	colors := env.Normal
+	if ui.Disabled {
+		colors = env.Disabled
+	} else if hover {
+		colors = env.Hover
+	}
 
 	r := image.Rectangle{
-		orig.Add(image.Point{ui.sizes.margin + ui.sizes.border, ui.sizes.margin + ui.sizes.border}),
-		orig.Add(size).Add(image.Point{2*Padding + ui.sizes.margin + ui.sizes.border, 2*Padding + ui.sizes.margin + ui.sizes.border}),
+		orig.Add(image.Point{env.Size.Margin + env.Size.Border, env.Size.Margin + env.Size.Border}),
+		orig.Add(size).Add(image.Point{2*env.Size.Padding + env.Size.Margin + env.Size.Border, 2*env.Size.Padding + env.Size.Margin + env.Size.Border}),
 	}
-	hover := m.In(image.Rectangle{image.ZP, size.Add(image.Pt(2*ui.sizes.space, 2*ui.sizes.space))})
-	borderColor := grey
-	if hover {
-		borderColor = display.Black
-	}
-	img.Draw(r, grey, nil, image.ZP)
-	img.Border(image.Rectangle{orig.Add(image.Point{ui.sizes.margin, ui.sizes.margin}), orig.Add(size).Add(image.Point{ui.sizes.margin + 2*Padding + 2*ui.sizes.border, ui.sizes.margin + 2*Padding + 2*ui.sizes.border})}, 1, borderColor, image.ZP)
-	img.String(orig.Add(image.Point{ui.sizes.space, ui.sizes.space}), display.Black, image.ZP, display.DefaultFont, ui.Text)
+	img.Draw(r, colors.Background, nil, image.ZP)
+	img.Border(image.Rectangle{
+		orig.Add(image.Point{env.Size.Margin, env.Size.Margin}),
+		orig.Add(size).Add(image.Point{env.Size.Margin + 2*env.Size.Padding + 2*env.Size.Padding, env.Size.Margin + 2*env.Size.Padding + 2*env.Size.Border}),
+	}, 1, colors.Border, image.ZP)
+	img.String(orig.Add(image.Point{env.Size.Space, env.Size.Space}), colors.Text, image.ZP, env.Display.DefaultFont, ui.Text)
 }
 
-func (ui *Button) Mouse(m draw.Mouse) Result {
+func (ui *Button) Mouse(env *Env, m draw.Mouse) Result {
 	r := Result{Hit: ui}
 	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 && ui.Click != nil {
 		ui.Click(&r)
@@ -48,20 +50,20 @@ func (ui *Button) Mouse(m draw.Mouse) Result {
 	return r
 }
 
-func (ui *Button) Key(orig image.Point, m draw.Mouse, c rune) Result {
+func (ui *Button) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
 	return Result{Hit: ui}
 }
 
-func (ui *Button) FirstFocus() *image.Point {
-	p := image.Pt(ui.sizes.space, ui.sizes.space)
+func (ui *Button) FirstFocus(env *Env) *image.Point {
+	p := image.Pt(env.Size.Space, env.Size.Space)
 	return &p
 }
 
-func (ui *Button) Focus(o UI) *image.Point {
+func (ui *Button) Focus(env *Env, o UI) *image.Point {
 	if o != ui {
 		return nil
 	}
-	p := image.Pt(ui.sizes.space, ui.sizes.space)
+	p := image.Pt(env.Size.Space, env.Size.Space)
 	return &p
 }
 

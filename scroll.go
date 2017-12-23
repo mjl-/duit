@@ -22,12 +22,12 @@ func NewScroll(ui UI) *Scroll {
 	return &Scroll{Child: ui}
 }
 
-func (ui *Scroll) Layout(d *draw.Display, r image.Rectangle, cur image.Point) image.Point {
-	ui.scrollbarSize = scale(d, ScrollbarSize)
+func (ui *Scroll) Layout(env *Env, r image.Rectangle, cur image.Point) image.Point {
+	ui.scrollbarSize = scale(env.Display, ScrollbarSize)
 	ui.r = image.Rectangle{image.ZP, image.Pt(r.Dx(), r.Max.Y-cur.Y)}
 	ui.barR = ui.r
 	ui.barR.Max.X = ui.barR.Min.X + ui.scrollbarSize
-	ui.childSize = ui.Child.Layout(d, image.Rectangle{image.ZP, image.Pt(ui.r.Dx()-ui.barR.Dx(), ui.r.Dy())}, image.ZP)
+	ui.childSize = ui.Child.Layout(env, image.Rectangle{image.ZP, image.Pt(ui.r.Dx()-ui.barR.Dx(), ui.r.Dy())}, image.ZP)
 	if ui.r.Dy() > ui.childSize.Y {
 		ui.barR.Max.Y = ui.childSize.Y
 		ui.r.Max.Y = ui.childSize.Y
@@ -35,20 +35,23 @@ func (ui *Scroll) Layout(d *draw.Display, r image.Rectangle, cur image.Point) im
 	return ui.r.Size()
 }
 
-func (ui *Scroll) Draw(d *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Scroll) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
 	if ui.childSize.X == 0 || ui.childSize.Y == 0 {
 		return
 	}
 
 	ui.scroll(0)
+	hover := m.In(ui.barR)
 
-	// draw scrollbar
-	lightGrey, err := d.AllocImage(image.Rect(0, 0, 1, 1), draw.ARGB32, true, 0xEEEEEEFF)
-	check(err, "allowimage lightgrey")
-	darkerGrey, err := d.AllocImage(image.Rect(0, 0, 1, 1), draw.ARGB32, true, 0xAAAAAAFF)
-	check(err, "allowimage darkergrey")
+	bg := env.ScrollBGNormal
+	vis := env.ScrollVisibleNormal
+	if hover {
+		bg = env.ScrollBGHover
+		vis = env.ScrollVisibleHover
+	}
+
 	barR := ui.barR.Add(orig)
-	img.Draw(barR, lightGrey, nil, image.ZP)
+	img.Draw(barR, bg, nil, image.ZP)
 	barRActive := barR
 	h := ui.r.Dy()
 	uih := ui.childSize.Y
@@ -58,7 +61,7 @@ func (ui *Scroll) Draw(d *draw.Display, img *draw.Image, orig image.Point, m dra
 		barRActive.Min.Y += barY
 		barRActive.Max.Y = barRActive.Min.Y + barH
 	}
-	img.Draw(barRActive, darkerGrey, nil, image.ZP)
+	img.Draw(barRActive, vis, nil, image.ZP)
 
 	// draw child ui
 	if ui.childSize.X == 0 || ui.childSize.Y == 0 {
@@ -66,13 +69,13 @@ func (ui *Scroll) Draw(d *draw.Display, img *draw.Image, orig image.Point, m dra
 	}
 	if ui.img == nil || ui.childSize != ui.img.R.Size() {
 		var err error
-		ui.img, err = d.AllocImage(image.Rectangle{image.ZP, ui.childSize}, draw.ARGB32, false, draw.White)
+		ui.img, err = env.Display.AllocImage(image.Rectangle{image.ZP, ui.childSize}, draw.ARGB32, false, env.BackgroundColor)
 		check(err, "allocimage")
+	} else {
+		ui.img.Draw(ui.img.R, env.Normal.Background, nil, image.ZP)
 	}
-
-	ui.img.Draw(ui.img.R, d.White, nil, image.ZP)
 	m.Point = m.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
-	ui.Child.Draw(d, ui.img, image.Pt(0, -ui.offset), m)
+	ui.Child.Draw(env, ui.img, image.Pt(0, -ui.offset), m)
 	img.Draw(ui.img.R.Add(orig).Add(image.Pt(ui.scrollbarSize, 0)), ui.img, nil, image.ZP)
 }
 
@@ -113,7 +116,7 @@ func (ui *Scroll) scrollMouse(m draw.Mouse) (consumed bool) {
 	return false
 }
 
-func (ui *Scroll) Mouse(m draw.Mouse) Result {
+func (ui *Scroll) Mouse(env *Env, m draw.Mouse) Result {
 	if m.Point.In(ui.barR) {
 		consumed := ui.scrollMouse(m)
 		redraw := consumed
@@ -121,7 +124,7 @@ func (ui *Scroll) Mouse(m draw.Mouse) Result {
 	}
 	if m.Point.In(ui.r) {
 		m.Point = m.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
-		r := ui.Child.Mouse(m)
+		r := ui.Child.Mouse(env, m)
 		if !r.Consumed {
 			r.Consumed = ui.scrollMouse(m)
 			r.Redraw = r.Redraw || r.Consumed
@@ -131,7 +134,7 @@ func (ui *Scroll) Mouse(m draw.Mouse) Result {
 	return Result{}
 }
 
-func (ui *Scroll) Key(orig image.Point, m draw.Mouse, c rune) Result {
+func (ui *Scroll) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
 	if m.Point.In(ui.barR) {
 		consumed := ui.scrollKey(c)
 		redraw := consumed
@@ -139,7 +142,7 @@ func (ui *Scroll) Key(orig image.Point, m draw.Mouse, c rune) Result {
 	}
 	if m.Point.In(ui.r) {
 		m.Point = m.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
-		r := ui.Child.Key(orig.Add(image.Pt(ui.scrollbarSize, -ui.offset)), m, c)
+		r := ui.Child.Key(env, orig.Add(image.Pt(ui.scrollbarSize, -ui.offset)), m, c)
 		if !r.Consumed {
 			r.Consumed = ui.scrollKey(c)
 			r.Redraw = r.Redraw || r.Consumed
@@ -149,8 +152,8 @@ func (ui *Scroll) Key(orig image.Point, m draw.Mouse, c rune) Result {
 	return Result{}
 }
 
-func (ui *Scroll) FirstFocus() *image.Point {
-	first := ui.Child.FirstFocus()
+func (ui *Scroll) FirstFocus(env *Env) *image.Point {
+	first := ui.Child.FirstFocus(env)
 	if first == nil {
 		return nil
 	}
@@ -158,8 +161,8 @@ func (ui *Scroll) FirstFocus() *image.Point {
 	return &p
 }
 
-func (ui *Scroll) Focus(o UI) *image.Point {
-	p := ui.Child.Focus(o)
+func (ui *Scroll) Focus(env *Env, o UI) *image.Point {
+	p := ui.Child.Focus(env, o)
 	if p == nil {
 		return nil
 	}

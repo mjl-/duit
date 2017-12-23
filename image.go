@@ -10,27 +10,27 @@ type Image struct {
 	Image *draw.Image
 }
 
-func (ui *Image) Layout(display *draw.Display, r image.Rectangle, cur image.Point) image.Point {
+func (ui *Image) Layout(env *Env, r image.Rectangle, cur image.Point) image.Point {
 	return ui.Image.R.Size()
 }
 
-func (ui *Image) Draw(display *draw.Display, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Image) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
 	img.Draw(image.Rectangle{orig, orig.Add(ui.Image.R.Size())}, ui.Image, nil, image.ZP)
 }
 
-func (ui *Image) Mouse(m draw.Mouse) Result {
+func (ui *Image) Mouse(env *Env, m draw.Mouse) Result {
 	return Result{Hit: ui}
 }
 
-func (ui *Image) Key(orig image.Point, m draw.Mouse, c rune) Result {
+func (ui *Image) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
 	return Result{Hit: ui}
 }
 
-func (ui *Image) FirstFocus() *image.Point {
+func (ui *Image) FirstFocus(env *Env) *image.Point {
 	return nil
 }
 
-func (ui *Image) Focus(o UI) *image.Point {
+func (ui *Image) Focus(env *Env, o UI) *image.Point {
 	if ui != o {
 		return nil
 	}
