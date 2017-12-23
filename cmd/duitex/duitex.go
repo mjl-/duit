@@ -73,7 +73,7 @@ func main() {
 					Child: duit.NewBox(
 						&duit.Label{Text: "counter:"},
 						counter,
-						&duit.Button{Text: "button1", Click: func() { log.Printf("button clicked") }},
+						&duit.Button{Text: "button1", Click: func(r *duit.Result) { log.Printf("button clicked") }},
 						&duit.Button{Text: "button2"},
 						&duit.List{
 							Multiple: true,
