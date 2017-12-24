@@ -14,9 +14,18 @@ func NewBox(uis ...UI) *Box {
 	return &Box{Kids: kids}
 }
 
-// box keeps elements on a line as long as they fit
+func NewReverseBox(uis ...UI) *Box {
+	kids := make([]*Kid, len(uis))
+	for i, ui := range uis {
+		kids[i] = &Kid{UI: ui}
+	}
+	return &Box{Kids: kids, Reverse: true}
+}
+
+// Box keeps elements on a line as long as they fit, then moves on to the next line.
 type Box struct {
-	Kids []*Kid
+	Kids    []*Kid
+	Reverse bool // lay out children from bottom to top. first kid will be at the bottom.
 
 	size image.Point
 }
@@ -52,6 +61,16 @@ func (ui *Box) Layout(env *Env, size image.Point) image.Point {
 		}
 	}
 	cur.Y += liney
+
+	if ui.Reverse {
+		for _, k := range ui.Kids {
+			k.r.Dy()
+			y1 := cur.Y - k.r.Min.Y
+			y0 := y1 - k.r.Dy()
+			k.r = image.Rect(k.r.Min.X, y0, k.r.Max.X, y1)
+		}
+	}
+
 	ui.size = image.Point{xmax, cur.Y}
 	return ui.size
 }

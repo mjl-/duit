@@ -68,7 +68,7 @@ func main() {
 					},
 				}},
 				{UI: &duit.Scroll{
-					Child: duit.NewBox(
+					Child: duit.NewReverseBox(
 						&duit.Label{Text: "counter:"},
 						counter,
 						&duit.Button{
