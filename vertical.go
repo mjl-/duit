@@ -8,15 +8,16 @@ import (
 
 type Vertical struct {
 	Kids  []*Kid
-	Split func(r image.Rectangle) (heights []int)
+	Split func(height int) (heights []int)
 
 	size    image.Point
 	heights []int
 }
 
-func (ui *Vertical) Layout(env *Env, r image.Rectangle, cur image.Point) image.Point {
-	r.Min = image.Pt(0, cur.Y)
-	heights := ui.Split(r)
+var _ UI = &Vertical{}
+
+func (ui *Vertical) Layout(env *Env, size image.Point) image.Point {
+	heights := ui.Split(size.Y)
 	if len(heights) != len(ui.Kids) {
 		panic("bad number of heights from split")
 	}
@@ -24,11 +25,11 @@ func (ui *Vertical) Layout(env *Env, r image.Rectangle, cur image.Point) image.P
 	ui.size = image.ZP
 	for i, k := range ui.Kids {
 		p := image.Pt(0, ui.size.Y)
-		size := k.UI.Layout(env, image.Rectangle{p, image.Pt(r.Dx(), heights[i])}, image.ZP)
-		k.r = image.Rectangle{p, p.Add(size)}
+		childSize := k.UI.Layout(env, image.Pt(size.X, heights[i]))
+		k.r = image.Rectangle{p, p.Add(childSize)}
 		ui.size.Y += heights[i]
 	}
-	ui.size.X = r.Dx()
+	ui.size.X = size.X
 	return ui.size
 }
 

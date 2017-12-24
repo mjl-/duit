@@ -16,19 +16,18 @@ type Grid struct {
 	size    image.Point
 }
 
-func (ui *Grid) Layout(env *Env, r image.Rectangle, cur image.Point) image.Point {
-	r.Min = image.Pt(0, cur.Y)
+var _ UI = &Grid{}
 
+func (ui *Grid) Layout(env *Env, size image.Point) image.Point {
 	ui.widths = make([]int, ui.Columns)
 	width := 0
 	for col := 0; col < ui.Columns; col++ {
 		ui.widths[col] = 0
 		for i := col; i < len(ui.Kids); i += ui.Columns {
 			k := ui.Kids[i]
-			kr := image.Rectangle{image.ZP, image.Pt(r.Dx()-width, r.Dy())}
-			size := k.UI.Layout(env, kr, image.ZP)
-			if size.X > ui.widths[col] {
-				ui.widths[col] = size.X
+			childSize := k.UI.Layout(env, image.Pt(size.X-width, size.Y))
+			if childSize.X > ui.widths[col] {
+				ui.widths[col] = childSize.X
 			}
 		}
 		width += ui.widths[col]
@@ -41,10 +40,9 @@ func (ui *Grid) Layout(env *Env, r image.Rectangle, cur image.Point) image.Point
 		ui.heights[row] = 0
 		for col := 0; col < ui.Columns; col++ {
 			k := ui.Kids[i+col]
-			kr := image.Rectangle{image.ZP, image.Pt(ui.widths[col], r.Dy())}
-			size := k.UI.Layout(env, kr, image.ZP)
-			if size.Y > ui.heights[row] {
-				ui.heights[row] = size.Y
+			childSize := k.UI.Layout(env, image.Pt(ui.widths[col], size.Y))
+			if childSize.Y > ui.heights[row] {
+				ui.heights[row] = childSize.Y
 			}
 		}
 		height += ui.heights[row]

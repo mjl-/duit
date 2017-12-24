@@ -10,7 +10,9 @@ type Image struct {
 	Image *draw.Image
 }
 
-func (ui *Image) Layout(env *Env, r image.Rectangle, cur image.Point) image.Point {
+var _ UI = &Image{}
+
+func (ui *Image) Layout(env *Env, size image.Point) image.Point {
 	return ui.Image.R.Size()
 }
 

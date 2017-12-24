@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"image"
 	_ "image/jpeg"
 	_ "image/png"
 	"log"
@@ -43,8 +42,7 @@ func main() {
 
 	dui.Top = duit.NewBox(
 		&duit.Vertical{
-			Split: func(r image.Rectangle) []int {
-				height := r.Dy()
+			Split: func(height int) []int {
 				row1 := height / 4
 				row2 := height / 4
 				row3 := height - row1 - row2
@@ -101,8 +99,7 @@ func main() {
 								{UI: &duit.Label{Text: "in column 2"}},
 								{UI: &duit.Label{Text: "in column 3"}},
 							},
-							Split: func(r image.Rectangle) []int {
-								width := r.Dx()
+							Split: func(width int) []int {
 								col1 := width / 4
 								col2 := width / 4
 								col3 := width - col1 - col2

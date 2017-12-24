@@ -24,11 +24,13 @@ type List struct {
 	padding    image.Point
 }
 
-func (ui *List) Layout(env *Env, r image.Rectangle, cur image.Point) image.Point {
+var _ UI = &List{}
+
+func (ui *List) Layout(env *Env, size image.Point) image.Point {
 	font := env.Display.DefaultFont
 	ui.lineHeight = font.Height
 	ui.padding = image.Pt(font.Height/4, font.Height/4)
-	ui.size = image.Pt(r.Dx(), len(ui.Values)*ui.lineHeight).Add(ui.padding).Add(ui.padding)
+	ui.size = image.Pt(size.X, len(ui.Values)*ui.lineHeight).Add(ui.padding).Add(ui.padding)
 	return ui.size
 }
 

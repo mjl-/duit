@@ -14,8 +14,10 @@ type Field struct {
 	size image.Point // including space
 }
 
-func (ui *Field) Layout(env *Env, r image.Rectangle, cur image.Point) image.Point {
-	ui.size = image.Point{r.Dx(), 2*env.Size.Space + env.Display.DefaultFont.Height}
+var _ UI = &Field{}
+
+func (ui *Field) Layout(env *Env, size image.Point) image.Point {
+	ui.size = image.Point{size.X, 2*env.Size.Space + env.Display.DefaultFont.Height}
 	return ui.size
 }
 

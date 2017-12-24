@@ -48,10 +48,25 @@ type Env struct {
 	Size Size
 }
 
+// UI is a user interface widget.
+// It is implemented by Button, Label, Field, Image and List.
+// And by layout UI's such as Box, Grid, Horizontal, Vertical and Scroll.
+// Layout UI's simply contain other UI's, and are in charge of passing layout, draw, mouse, key, etc events on to the right child/children.
 type UI interface {
-	Layout(env *Env, r image.Rectangle, cur image.Point) image.Point
+	// Layout asks the UI to lay itself out with a max size of `r`.
+	// The UI can lay itself out beyong size.Y, not beyond size.X.
+	// size.Y is the amount of screen real estate that will still be visible.
+	Layout(env *Env, size image.Point) image.Point
+
+	// Draw asks the UI to draw itself on `img`, with an offset of `orig`.
 	Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
+
+	// Mouse tells the UI about mouse movement over it.
+	// It can also be called when the mouse moved out of the UI. This facilitates redrawing after leaving the UI element, to draw it in non-hovered form. The UI is responsible for determining if the mouse is over the UI or not.
+	// Result is used to tell the caller whether the event was consumed, and whether UI's need to be redrawn, etc.
 	Mouse(env *Env, m draw.Mouse) (result Result)
+
+	// Key tells the UI about a key press over it.
 	Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Result)
 
 	// FirstFocus returns the top-left corner where the focus should go next when "tab" is hit, if anything.

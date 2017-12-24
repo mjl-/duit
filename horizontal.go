@@ -8,23 +8,24 @@ import (
 
 type Horizontal struct {
 	Kids  []*Kid
-	Split func(r image.Rectangle) (widths []int)
+	Split func(width int) (widths []int)
 
 	size   image.Point
 	widths []int
 }
 
-func (ui *Horizontal) Layout(env *Env, r image.Rectangle, cur image.Point) image.Point {
-	r.Min = image.Pt(0, cur.Y)
-	ui.widths = ui.Split(r)
+var _ UI = &Horizontal{}
+
+func (ui *Horizontal) Layout(env *Env, size image.Point) image.Point {
+	ui.widths = ui.Split(size.X)
 	if len(ui.widths) != len(ui.Kids) {
 		panic("bad number of widths from split")
 	}
 	ui.size = image.ZP
 	for i, k := range ui.Kids {
-		size := k.UI.Layout(env, image.Rectangle{image.ZP, image.Pt(ui.widths[i], r.Dy())}, image.ZP)
+		childSize := k.UI.Layout(env, image.Pt(ui.widths[i], size.Y))
 		p := image.Pt(ui.size.X, 0)
-		k.r = image.Rectangle{p, p.Add(size)}
+		k.r = image.Rectangle{p, p.Add(childSize)}
 		ui.size.X += ui.widths[i]
 		if k.r.Dy() > ui.size.Y {
 			ui.size.Y = k.r.Dy()

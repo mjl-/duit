@@ -10,7 +10,9 @@ type Label struct {
 	Text string
 }
 
-func (ui *Label) Layout(env *Env, r image.Rectangle, cur image.Point) image.Point {
+var _ UI = &Label{}
+
+func (ui *Label) Layout(env *Env, size image.Point) image.Point {
 	return env.Display.DefaultFont.StringSize(ui.Text).Add(image.Point{2*env.Size.Margin + 2*env.Size.Border, 2 * env.Size.Space})
 }
 

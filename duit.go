@@ -107,7 +107,8 @@ func (d *DUI) Render() {
 	if d.logTiming {
 		t0 = time.Now()
 	}
-	d.Top.Layout(d.env, d.Display.ScreenImage.R, image.ZP)
+	size := image.Pt(d.Display.ScreenImage.R.Dx(), d.Display.ScreenImage.R.Dy())
+	d.Top.Layout(d.env, size)
 	if d.logTiming {
 		log.Printf("time layout: %d µs\n", time.Now().Sub(t0)/time.Microsecond)
 	}

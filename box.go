@@ -21,15 +21,17 @@ type Box struct {
 	size image.Point
 }
 
-func (ui *Box) Layout(env *Env, r image.Rectangle, ocur image.Point) image.Point {
+var _ UI = &Box{}
+
+func (ui *Box) Layout(env *Env, size image.Point) image.Point {
 	xmax := 0
-	cur := image.Point{0, 0}
+	cur := image.ZP
 	nx := 0    // number on current line
 	liney := 0 // max y of current line
 	for _, k := range ui.Kids {
-		p := k.UI.Layout(env, r, cur.Add(image.Pt(0, liney)))
+		p := k.UI.Layout(env, size.Sub(image.Pt(0, cur.Y+liney)))
 		var kr image.Rectangle
-		if nx == 0 || cur.X+p.X <= r.Dx() {
+		if nx == 0 || cur.X+p.X <= size.X {
 			kr = image.Rectangle{cur, cur.Add(p)}
 			cur.X += p.X
 			if p.Y > liney {
@@ -49,9 +51,7 @@ func (ui *Box) Layout(env *Env, r image.Rectangle, ocur image.Point) image.Point
 			xmax = cur.X
 		}
 	}
-	if len(ui.Kids) > 0 {
-		cur.Y += liney
-	}
+	cur.Y += liney
 	ui.size = image.Point{xmax, cur.Y}
 	return ui.size
 }

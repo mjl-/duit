@@ -15,7 +15,9 @@ type Button struct {
 	m draw.Mouse
 }
 
-func (ui *Button) Layout(env *Env, r image.Rectangle, cur image.Point) image.Point {
+var _ UI = &Button{}
+
+func (ui *Button) Layout(env *Env, size image.Point) image.Point {
 	return env.Display.DefaultFont.StringSize(ui.Text).Add(pt(2 * env.Size.Space))
 }
 

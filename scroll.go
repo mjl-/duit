@@ -18,16 +18,18 @@ type Scroll struct {
 	scrollbarSize int
 }
 
+var _ UI = &Scroll{}
+
 func NewScroll(ui UI) *Scroll {
 	return &Scroll{Child: ui}
 }
 
-func (ui *Scroll) Layout(env *Env, r image.Rectangle, cur image.Point) image.Point {
+func (ui *Scroll) Layout(env *Env, size image.Point) image.Point {
 	ui.scrollbarSize = scale(env.Display, ScrollbarSize)
-	ui.r = image.Rectangle{image.ZP, image.Pt(r.Dx(), r.Max.Y-cur.Y)}
+	ui.r = image.Rectangle{image.ZP, size}
 	ui.barR = ui.r
 	ui.barR.Max.X = ui.barR.Min.X + ui.scrollbarSize
-	ui.childSize = ui.Child.Layout(env, image.Rectangle{image.ZP, image.Pt(ui.r.Dx()-ui.barR.Dx(), ui.r.Dy())}, image.ZP)
+	ui.childSize = ui.Child.Layout(env, image.Pt(ui.r.Dx()-ui.barR.Dx(), ui.r.Dy()))
 	if ui.r.Dy() > ui.childSize.Y {
 		ui.barR.Max.Y = ui.childSize.Y
 		ui.r.Max.Y = ui.childSize.Y
