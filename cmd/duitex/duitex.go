@@ -40,6 +40,26 @@ func main() {
 		}
 	}()
 
+	radio1 := &duit.Radiobutton{
+		Selected: true,
+		Value:    1,
+		Changed: func(v interface{}, r *duit.Result) {
+			log.Println("radiobutton value changed, now %#v", v)
+		},
+	}
+	radio2 := &duit.Radiobutton{
+		Value: 2,
+		Changed: func(v interface{}, r *duit.Result) {
+			log.Println("radiobutton value changed, now %#v", v)
+		},
+	}
+	group := []*duit.Radiobutton{
+		radio1,
+		radio2,
+	}
+	radio1.Group = group
+	radio2.Group = group
+
 	dui.Top = duit.NewBox(
 		&duit.Vertical{
 			Split: func(height int) []int {
@@ -64,6 +84,17 @@ func main() {
 							{UI: &duit.Field{Text: "...bcc..."}},
 							{UI: &duit.Label{Text: "Subject"}},
 							{UI: &duit.Field{Text: "...subject..."}},
+							{UI: &duit.Label{Text: "Checkbox"}},
+							{UI: &duit.Checkbox{
+								Checked: true,
+								Changed: func(r *duit.Result) {
+									log.Println("checkbox value changed")
+								},
+							}},
+							{UI: &duit.Label{Text: "Radio 1"}},
+							{UI: radio1},
+							{UI: &duit.Label{Text: "Radio 2"}},
+							{UI: radio2},
 						},
 					},
 				}},
