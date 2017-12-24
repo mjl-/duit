@@ -57,7 +57,7 @@ func main() {
 						Columns: 2,
 						Kids: []*duit.Kid{
 							{UI: &duit.Label{Text: "From"}},
-							{UI: &duit.Field{Text: "...from..."}},
+							{UI: &duit.Field{Text: "...from...", Disabled: true}},
 							{UI: &duit.Label{Text: "To"}},
 							{UI: &duit.Field{Text: "...to..."}},
 							{UI: &duit.Label{Text: "Cc"}},
@@ -73,9 +73,16 @@ func main() {
 					Child: duit.NewBox(
 						&duit.Label{Text: "counter:"},
 						counter,
-						&duit.Button{Text: "button1", Click: func(r *duit.Result) { log.Printf("button clicked") }},
 						&duit.Button{
-							Text: "button2",
+							Text:    "button1",
+							Primary: true,
+							Click: func(r *duit.Result) {
+								log.Printf("button clicked")
+							},
+						},
+						&duit.Button{
+							Text:     "button2",
+							Disabled: true,
 							Click: func(r *duit.Result) {
 							},
 						},

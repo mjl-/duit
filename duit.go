@@ -11,7 +11,7 @@ import (
 
 const (
 	Margin  = 4
-	Padding = 2
+	Padding = 6
 	Border  = 1
 
 	ScrollbarSize = 8
@@ -65,24 +65,29 @@ func NewDUI(name, dim string) (*DUI, error) {
 		Display: display,
 
 		Normal: Colors{
-			Text:       makeColor(0x444444ff),
+			Text:       makeColor(0x333333ff),
 			Background: makeColor(0xf8f8f8ff),
-			Border:     makeColor(0xccccccff),
+			Border:     makeColor(0xbbbbbbff),
 		},
 		Hover: Colors{
-			Text:       makeColor(0x333333ff),
-			Background: makeColor(0xffffffff),
-			Border:     makeColor(0xaaaaaaff),
+			Text:       makeColor(0x222222ff),
+			Background: makeColor(0xfafafaff),
+			Border:     makeColor(0x3272dcff),
 		},
 		Disabled: Colors{
 			Text:       makeColor(0x888888ff),
 			Background: makeColor(0xf0f0f0ff),
-			Border:     makeColor(0xffffff00),
+			Border:     makeColor(0xe0e0e0ff),
 		},
 		Inverse: Colors{
 			Text:       makeColor(0xeeeeeeff),
 			Background: makeColor(0x444444ff),
 			Border:     makeColor(0x666666ff),
+		},
+		Primary: Colors{
+			Text:       makeColor(0xffffffff),
+			Background: makeColor(0x3272dcff),
+			Border:     makeColor(0x3272dcff),
 		},
 
 		BackgroundColor: draw.Color(0xffffffff),

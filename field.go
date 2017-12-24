@@ -7,8 +7,9 @@ import (
 )
 
 type Field struct {
-	Text    string
-	Changed func(string, *Result)
+	Text     string
+	Disabled bool
+	Changed  func(string, *Result)
 
 	size image.Point // including space
 }
@@ -23,16 +24,16 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 	r := image.Rectangle{orig, orig.Add(ui.size)}
 
 	colors := env.Normal
-	if hover {
+	if ui.Disabled {
+		colors = env.Disabled
+	} else if hover {
 		colors = env.Hover
 	}
 	img.Draw(r, colors.Background, nil, image.ZP)
-	img.Border(
-		image.Rectangle{
-			orig.Add(image.Point{env.Size.Margin, env.Size.Margin}),
-			orig.Add(ui.size).Sub(image.Point{env.Size.Margin, env.Size.Margin}),
-		},
-		1, colors.Border, image.ZP)
+	drawRoundedBorder(img, image.Rectangle{
+		orig.Add(image.Pt(env.Size.Margin, env.Size.Margin)),
+		orig.Add(ui.size).Sub(image.Pt(env.Size.Margin, env.Size.Margin)),
+	}, colors.Border)
 	img.String(orig.Add(image.Point{env.Size.Space, env.Size.Space}), colors.Text, image.ZP, env.Display.DefaultFont, ui.Text)
 }
 

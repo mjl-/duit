@@ -34,7 +34,8 @@ type Env struct {
 	Normal,
 	Hover,
 	Disabled,
-	Inverse Colors
+	Inverse,
+	Primary Colors
 
 	BackgroundColor draw.Color
 
