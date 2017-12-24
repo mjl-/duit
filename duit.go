@@ -161,6 +161,10 @@ func (d *DUI) Key(r rune) {
 	if r == draw.KeyFn+3 {
 		d.Top.Print(0, d.Display.ScreenImage.R)
 	}
+	if r == draw.KeyFn+4 {
+		d.Display.SetDebug(true)
+		log.Println("drawdebug now on")
+	}
 	result := d.Top.Key(d.env, image.ZP, d.mouse, r)
 	if !result.Consumed && r == '\t' {
 		first := d.Top.FirstFocus(d.env)
