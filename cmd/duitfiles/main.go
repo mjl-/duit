@@ -334,7 +334,7 @@ func main() {
 	dui.Top = &duit.Box{
 		Padding:     image.Pt(6, 4),
 		ChildMargin: image.Pt(6, 4),
-		VAlign:      duit.ValignMiddle,
+		Valign:      duit.ValignMiddle,
 		Kids: duit.NewKids(
 			favoriteToggle,
 			pathLabel,
