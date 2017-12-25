@@ -172,7 +172,7 @@ func (d *DUI) Resize() {
 
 func (d *DUI) Key(r rune) {
 	if d.logEvents {
-		log.Printf("kdb %c, %x\n", r, r)
+		log.Printf("key %c, %x\n", r, r)
 	}
 	if r == draw.KeyFn+1 {
 		d.logEvents = !d.logEvents
