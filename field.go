@@ -4,6 +4,7 @@ import (
 	"image"
 	"log"
 	"strings"
+	"unicode/utf8"
 
 	"9fans.net/go/draw"
 )
@@ -169,6 +170,7 @@ func expandSelection(t string, i int) (s, e int) {
 	skip := func(isSpace bool) bool {
 		return !isSpace
 	}
+
 	if strings.ContainsAny(t[s-1:s], Space) && strings.ContainsAny(t[e:e+1], Space) {
 		skip = func(isSpace bool) bool {
 			return isSpace
@@ -188,9 +190,8 @@ func (ui *Field) Mouse(env *Env, m draw.Mouse) (r Result) {
 	r.Hit = ui
 	locateCursor := func() int {
 		f := env.Display.DefaultFont
-		n := len(ui.Text)
 		mX := m.X - env.Size.Space
-		for i := 0; i < n; i++ {
+		for i := range ui.Text {
 			x := f.StringWidth(ui.Text[:i])
 			if mX <= x {
 				return i
@@ -214,7 +215,6 @@ func (ui *Field) Mouse(env *Env, m draw.Mouse) (r Result) {
 				s, e := expandSelection(ui.Text, ui.cursor0())
 				ui.Cursor1 = 1 + s
 				ui.SelectionStart1 = 1 + e
-				log.Printf("double click\n")
 			}
 			ui.prevB1Release = m
 		}
@@ -259,14 +259,28 @@ func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result
 	const Ctrl = 0x1f
 	ui.fixCursor()
 	cursor0 := ui.cursor0()
+
+	cursorPrev := func() int {
+		_, n := utf8.DecodeLastRuneInString(ui.Text[:cursor0])
+		return cursor0 - n
+	}
+	cursorNext := func() int {
+		_, n := utf8.DecodeRuneInString(ui.Text[cursor0:])
+		return cursor0 + n
+	}
+	removeSelection := func() int {
+		ui.removeSelection()
+		ui.fixCursor()
+		return ui.cursor0()
+	}
 	switch k {
 	case draw.KeyPageUp, draw.KeyPageDown, draw.KeyUp, draw.KeyDown, '\t':
 		return Result{Hit: ui}
 	case draw.KeyLeft:
-		cursor0--
+		cursor0 = cursorPrev()
 		ui.SelectionStart1 = 0
 	case draw.KeyRight:
-		cursor0++
+		cursor0 = cursorNext()
 		ui.SelectionStart1 = 0
 	case Ctrl & 'a':
 		cursor0 = 0
@@ -277,36 +291,37 @@ func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result
 
 	case Ctrl & 'h':
 		// remove char before cursor0
-		ui.removeSelection()
+		cursor0 = removeSelection()
 		if cursor0 > 0 {
-			ui.Text = ui.Text[:cursor0-1] + ui.Text[cursor0:]
-			cursor0--
+			prev := cursorPrev()
+			ui.Text = ui.Text[:cursorPrev()] + ui.Text[cursor0:]
+			cursor0 = prev
 		}
 	case Ctrl & 'w':
 		// remove to start of space+word
-		ui.removeSelection()
-		for cursor0 > 0 && strings.ContainsAny(ui.Text[cursor0-1:cursor0], " \t\r\n") {
-			cursor0--
+		cursor0 = removeSelection()
+		for cursor0 > 0 && strings.ContainsAny(ui.Text[cursorPrev():cursor0], " \t\r\n") {
+			cursor0 = cursorPrev()
 		}
-		for cursor0 > 0 && !strings.ContainsAny(ui.Text[cursor0-1:cursor0], " \t\r\n") {
-			cursor0--
+		for cursor0 > 0 && !strings.ContainsAny(ui.Text[cursorPrev():cursor0], " \t\r\n") {
+			cursor0 = cursorPrev()
 		}
 		ui.Text = ui.Text[:cursor0]
 	case Ctrl & 'u':
 		// remove entire line
-		ui.removeSelection()
+		cursor0 = removeSelection()
 		ui.Text = ""
 		cursor0 = 0
 	case Ctrl & 'k':
 		// remove to end of line
-		ui.removeSelection()
-		ui.Text = ui.Text[cursor0:]
+		cursor0 = removeSelection()
+		ui.Text = ui.Text[:cursor0]
 
 	case draw.KeyDelete:
 		// remove char after cursor0
-		ui.removeSelection()
+		cursor0 = removeSelection()
 		if cursor0 < len(ui.Text) {
-			ui.Text = ui.Text[:cursor0] + ui.Text[cursor0+1:]
+			ui.Text = ui.Text[:cursor0] + ui.Text[cursorNext():]
 		}
 
 	case draw.KeyCmd + 'a':
@@ -330,7 +345,7 @@ func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result
 		}
 
 	case draw.KeyCmd + 'v':
-		ui.removeSelection()
+		cursor0 = removeSelection()
 		buf := make([]byte, 128)
 		have, total, err := env.Display.ReadSnarf(buf)
 		if err != nil {
@@ -350,17 +365,21 @@ func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result
 		}
 		ui.Text = ui.Text[:cursor0] + t + ui.Text[cursor0:]
 
+		ui.SelectionStart1 = 1 + cursor0
+		cursor0 = 1 + cursor0 + len(t)
+
 	case '\n':
 		return
 
 	default:
-		ui.removeSelection()
-		if cursor0 > len(ui.Text) {
-			ui.Text += string(k)
+		cursor0 = removeSelection()
+		ks := string(k)
+		if cursor0 >= len(ui.Text) {
+			ui.Text += ks
 		} else {
-			ui.Text = ui.Text[:cursor0] + string(k) + ui.Text[cursor0:]
+			ui.Text = ui.Text[:cursor0] + ks + ui.Text[cursor0:]
 		}
-		cursor0 += 1
+		cursor0 += len(ks)
 	}
 	ui.Cursor1 = 1 + cursor0
 	ui.fixCursor()
