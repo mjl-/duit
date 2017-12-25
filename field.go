@@ -191,11 +191,13 @@ func (ui *Field) Mouse(env *Env, m draw.Mouse) (r Result) {
 	locateCursor := func() int {
 		f := env.Display.DefaultFont
 		mX := m.X - env.Size.Space
-		for i := range ui.Text {
-			x := f.StringWidth(ui.Text[:i])
-			if mX <= x {
+		x := 0
+		for i, c := range ui.Text {
+			dx := f.StringWidth(string(c))
+			if mX <= x+dx/2 {
 				return i
 			}
+			x += dx
 		}
 		return len(ui.Text)
 	}
