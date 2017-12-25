@@ -35,7 +35,7 @@ func (ui *List) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 	r := rect(ui.size).Add(orig)
 	img.Draw(r, env.Normal.Background, nil, image.ZP)
 	lineR := r
-	lineR.Max.Y = lineR.Min.Y + 3*font.Height/2
+	lineR.Max.Y = lineR.Min.Y + 4*font.Height/3
 
 	for _, v := range ui.Values {
 		colors := env.Normal
@@ -44,7 +44,7 @@ func (ui *List) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 		}
 		img.Draw(lineR, colors.Background, nil, image.ZP)
 		img.String(lineR.Min.Add(image.Pt(font.Height/4, font.Height/4)), colors.Text, image.ZP, font, v.Label)
-		lineR = lineR.Add(image.Pt(0, 3*font.Height/2))
+		lineR = lineR.Add(image.Pt(0, 4*font.Height/3))
 	}
 }
 
@@ -54,7 +54,7 @@ func (ui *List) Mouse(env *Env, m draw.Mouse) (result Result) {
 		return
 	}
 	font := env.Display.DefaultFont
-	index := m.Y / (3 * font.Height / 2)
+	index := m.Y / (4 * font.Height / 3)
 	if m.Buttons != 0 && ui.Click != nil {
 		ui.Click(index, m.Buttons, &result)
 	}
@@ -141,7 +141,7 @@ func (ui *List) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Re
 			}
 			// xxx orig probably should not be a part in this...
 			font := env.Display.DefaultFont
-			p := orig.Add(image.Pt(m.X, nindex*(3*font.Height/2)+font.Height/2))
+			p := orig.Add(image.Pt(m.X, nindex*(4*font.Height/3)+font.Height/2))
 			result.Warp = &p
 		}
 	}
