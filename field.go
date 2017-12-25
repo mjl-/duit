@@ -8,12 +8,12 @@ import (
 	"9fans.net/go/draw"
 )
 
-// SelectionStart is offset by 1 for sane behaviour of an empty Field struct.
+// Cursor and SelectionStart start at 1 for sane behaviour of an empty Field struct.
 
 type Field struct {
 	Text           string
 	Disabled       bool
-	Cursor         int                                   // index in string of cursor, 0 is before first char
+	Cursor         int                                   // index in string of cursor, start at 1. 0 means end of string.
 	SelectionStart int                                   // if > 0, 1 beyond the start of the selection, with Cursor being the end.
 	Changed        func(string, *Result)                 // called after contents of field have changed
 	Keys           func(m draw.Mouse, k rune, r *Result) // called before handling key. if you consume the event, Changed will not be called
@@ -24,11 +24,21 @@ type Field struct {
 
 var _ UI = &Field{}
 
+// cursor adjusted to start at 0 index
+func (ui *Field) cursor0() int {
+	ui.fixCursor()
+	if ui.Cursor == 0 {
+		return len(ui.Text)
+	}
+	return ui.Cursor-1
+}
+
+// selection with start & end with 0 indices
 func (ui *Field) selection() (start int, end int, text string) {
 	if ui.SelectionStart <= 0 {
 		return 0, 0, ""
 	}
-	s, e := ui.Cursor, ui.SelectionStart-1
+	s, e := ui.cursor0(), ui.SelectionStart-1
 	if s > e {
 		s, e = e, s
 	}
@@ -41,7 +51,7 @@ func (ui *Field) removeSelection() {
 	}
 	s, e, _ := ui.selection()
 	ui.Text = ui.Text[:s] + ui.Text[e:]
-	ui.Cursor = s
+	ui.Cursor = 1+s
 	ui.SelectionStart = 0
 }
 
@@ -85,7 +95,7 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 		ui.fixCursor()
 		f := env.Display.DefaultFont
 		p0 := r.Min.Add(pt(env.Size.Space))
-		p0.X += f.StringWidth(ui.Text[:ui.Cursor])
+		p0.X += f.StringWidth(ui.Text[:ui.cursor0()])
 		p1 := p0
 		p1.Y += f.Height
 		img.Line(p0, p1, 1, 1, 0, env.Hover.Border, image.ZP)
@@ -111,13 +121,13 @@ func (ui *Field) Mouse(env *Env, m draw.Mouse) (r Result) {
 	}
 	if ui.m.Buttons&1 == 0 && m.Buttons&1 == 1 {
 		// b1 down, start selection
-		ui.Cursor = locateCursor()
-		ui.SelectionStart = 1 + ui.Cursor
+		ui.Cursor = 1 + locateCursor()
+		ui.SelectionStart = ui.Cursor
 		r.Consumed = true
 		r.Redraw = true
 	} else if ui.m.Buttons&1 == 1 || m.Buttons&1 == 1 {
 		// b1 release, end selection
-		ui.Cursor = locateCursor()
+		ui.Cursor = 1 + locateCursor()
 		r.Consumed = true
 		r.Redraw = true
 	}
@@ -127,10 +137,10 @@ func (ui *Field) Mouse(env *Env, m draw.Mouse) (r Result) {
 
 func (ui *Field) fixCursor() {
 	if ui.Cursor < 0 {
-		ui.Cursor = 0
+		ui.Cursor = 1
 	}
-	if ui.Cursor > len(ui.Text) {
-		ui.Cursor = len(ui.Text)
+	if ui.Cursor > 1+len(ui.Text) {
+		ui.Cursor = 1+ len(ui.Text)
 	}
 	if ui.SelectionStart < 0 {
 		ui.SelectionStart = 0
@@ -160,59 +170,60 @@ func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result
 
 	const Ctrl = 0x1f
 	ui.fixCursor()
+	cursor0 := ui.cursor0()
 	switch k {
 	case draw.KeyPageUp, draw.KeyPageDown, draw.KeyUp, draw.KeyDown, '\t':
 		return Result{Hit: ui}
 	case draw.KeyLeft:
-		ui.Cursor--
+		cursor0--
 		ui.SelectionStart = 0
 	case draw.KeyRight:
-		ui.Cursor++
+		cursor0++
 		ui.SelectionStart = 0
 	case Ctrl & 'a':
-		ui.Cursor = 0
+		cursor0 = 0
 		ui.SelectionStart = 0
 	case Ctrl & 'e':
-		ui.Cursor = len(ui.Text)
+		cursor0 = len(ui.Text)
 		ui.SelectionStart = 0
 
 	case Ctrl & 'h':
-		// remove char before cursor
+		// remove char before cursor0
 		ui.removeSelection()
-		if ui.Cursor > 0 {
-			ui.Text = ui.Text[:ui.Cursor-1] + ui.Text[ui.Cursor:]
-			ui.Cursor--
+		if cursor0 > 0 {
+			ui.Text = ui.Text[:cursor0-1] + ui.Text[cursor0:]
+			cursor0--
 		}
 	case Ctrl & 'w':
 		// remove to start of space+word
 		ui.removeSelection()
-		for ui.Cursor > 0 && strings.ContainsAny(ui.Text[ui.Cursor-1:ui.Cursor], " \t\r\n") {
-			ui.Cursor--
+		for cursor0 > 0 && strings.ContainsAny(ui.Text[cursor0-1:cursor0], " \t\r\n") {
+			cursor0--
 		}
-		for ui.Cursor > 0 && !strings.ContainsAny(ui.Text[ui.Cursor-1:ui.Cursor], " \t\r\n") {
-			ui.Cursor--
+		for cursor0 > 0 && !strings.ContainsAny(ui.Text[cursor0-1:cursor0], " \t\r\n") {
+			cursor0--
 		}
-		ui.Text = ui.Text[:ui.Cursor]
+		ui.Text = ui.Text[:cursor0]
 	case Ctrl & 'u':
 		// remove entire line
 		ui.removeSelection()
 		ui.Text = ""
-		ui.Cursor = 0
+		cursor0 = 0
 	case Ctrl & 'k':
 		// remove to end of line
 		ui.removeSelection()
-		ui.Text = ui.Text[ui.Cursor:]
+		ui.Text = ui.Text[cursor0:]
 
 	case draw.KeyDelete:
-		// remove char after cursor
+		// remove char after cursor0
 		ui.removeSelection()
-		if ui.Cursor < len(ui.Text) {
-			ui.Text = ui.Text[:ui.Cursor] + ui.Text[ui.Cursor+1:]
+		if cursor0 < len(ui.Text) {
+			ui.Text = ui.Text[:cursor0] + ui.Text[cursor0+1:]
 		}
 
 	case draw.KeyCmd + 'a':
 		// select all
-		ui.Cursor = 0
+		cursor0 = 0
 		ui.SelectionStart = 1 + len(ui.Text)
 
 	case draw.KeyCmd + 'c':
@@ -226,7 +237,7 @@ func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result
 		if t != "" {
 			env.Display.WriteSnarf([]byte(t))
 			ui.Text = ui.Text[:s] + ui.Text[e:]
-			ui.Cursor = s
+			cursor0 = s
 			ui.SelectionStart = 0
 		}
 
@@ -249,20 +260,21 @@ func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result
 			}
 			t = string(buf[:have])
 		}
-		ui.Text = ui.Text[:ui.Cursor] + t + ui.Text[ui.Cursor:]
+		ui.Text = ui.Text[:cursor0] + t + ui.Text[cursor0:]
 
 	case '\n':
 		return
 
 	default:
 		ui.removeSelection()
-		if ui.Cursor > len(ui.Text) {
+		if cursor0 > len(ui.Text) {
 			ui.Text += string(k)
 		} else {
-			ui.Text = ui.Text[:ui.Cursor] + string(k) + ui.Text[ui.Cursor:]
+			ui.Text = ui.Text[:cursor0] + string(k) + ui.Text[cursor0:]
 		}
-		ui.Cursor += 1
+		cursor0 += 1
 	}
+	ui.Cursor = 1 + cursor0
 	ui.fixCursor()
 	r.Consumed = true
 	r.Redraw = true
