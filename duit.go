@@ -97,7 +97,7 @@ func NewDUI(name, dim string) (*DUI, error) {
 		},
 		Inverse: Colors{
 			Text:       makeColor(0xeeeeeeff),
-			Background: makeColor(0x444444ff),
+			Background: makeColor(0x3272dcff),
 			Border:     makeColor(0x666666ff),
 		},
 		Primary: Colors{
