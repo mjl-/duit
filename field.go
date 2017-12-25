@@ -11,12 +11,12 @@ import (
 // Cursor and SelectionStart start at 1 for sane behaviour of an empty Field struct.
 
 type Field struct {
-	Text           string
-	Disabled       bool
+	Text            string
+	Disabled        bool
 	Cursor1         int                                   // index in string of cursor, start at 1. 0 means end of string.
 	SelectionStart1 int                                   // if > 0, 1 beyond the start of the selection, with Cursor being the end.
-	Changed        func(string, *Result)                 // called after contents of field have changed
-	Keys           func(m draw.Mouse, k rune, r *Result) // called before handling key. if you consume the event, Changed will not be called
+	Changed         func(string, *Result)                 // called after contents of field have changed
+	Keys            func(m draw.Mouse, k rune, r *Result) // called before handling key. if you consume the event, Changed will not be called
 
 	size image.Point // including space
 	m    draw.Mouse
@@ -30,7 +30,7 @@ func (ui *Field) cursor0() int {
 	if ui.Cursor1 == 0 {
 		return len(ui.Text)
 	}
-	return ui.Cursor1-1
+	return ui.Cursor1 - 1
 }
 
 // selection with start & end with 0 indices
@@ -51,7 +51,7 @@ func (ui *Field) removeSelection() {
 	}
 	s, e, _ := ui.selection0()
 	ui.Text = ui.Text[:s] + ui.Text[e:]
-	ui.Cursor1 = 1+s
+	ui.Cursor1 = 1 + s
 	ui.SelectionStart1 = 0
 }
 
@@ -140,7 +140,7 @@ func (ui *Field) fixCursor() {
 		ui.Cursor1 = 1
 	}
 	if ui.Cursor1 > 1+len(ui.Text) {
-		ui.Cursor1 = 1+ len(ui.Text)
+		ui.Cursor1 = 1 + len(ui.Text)
 	}
 	if ui.SelectionStart1 < 0 {
 		ui.SelectionStart1 = 0
