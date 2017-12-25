@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"image"
 	"io/ioutil"
 	"log"
 	"os"
@@ -249,29 +250,33 @@ func main() {
 				}
 			},
 		}
-		return duit.NewBox(
-			&duit.Field{
-				Changed: func(newValue string, result *duit.Result) {
-					nl := []*duit.ListValue{}
-					exactMatch := false
-					for _, name := range c.names {
-						exactMatch = exactMatch || name == newValue
-						if strings.Contains(name, newValue) {
-							nl = append(nl, &duit.ListValue{Label: name, Value: name})
+		return &duit.Box{
+			Padding:     image.Pt(6, 4),
+			ChildMargin: image.Pt(6, 4),
+			Kids: duit.NewKids(
+				&duit.Field{
+					Changed: func(newValue string, result *duit.Result) {
+						nl := []*duit.ListValue{}
+						exactMatch := false
+						for _, name := range c.names {
+							exactMatch = exactMatch || name == newValue
+							if strings.Contains(name, newValue) {
+								nl = append(nl, &duit.ListValue{Label: name, Value: name})
+							}
 						}
-					}
-					if exactMatch {
-						selectName(colIndex, newValue)
-						dui.Render()
-						field := columnsUI.Kids[len(columnsUI.Kids)-1].UI.(*duit.Box).Kids[0].UI.(*duit.Field)
-						dui.Focus(field)
-					}
-					list.Values = nl
-					result.Layout = true
+						if exactMatch {
+							selectName(colIndex, newValue)
+							dui.Render()
+							field := columnsUI.Kids[len(columnsUI.Kids)-1].UI.(*duit.Box).Kids[0].UI.(*duit.Field)
+							dui.Focus(field)
+						}
+						list.Values = nl
+						result.Layout = true
+					},
 				},
-			},
-			duit.NewScroll(list),
-		)
+				duit.NewScroll(list),
+			),
+		}
 	}
 
 	columnsUI = &duit.Horizontal{
@@ -326,16 +331,21 @@ func main() {
 		columnsUI.Kids = append(columnsUI.Kids, &duit.Kid{UI: makeColumnUI(len(columns)-1, newCol)})
 	}
 
-	dui.Top = duit.NewBox(
-		favoriteToggle,
-		pathLabel,
-		&duit.Horizontal{
-			Split: func(width int) []int {
-				return []int{dui.Scale(200), width - dui.Scale(200)}
+	dui.Top = &duit.Box{
+		Padding:     image.Pt(6, 4),
+		ChildMargin: image.Pt(6, 4),
+		VAlign:      duit.ValignMiddle,
+		Kids: duit.NewKids(
+			favoriteToggle,
+			pathLabel,
+			&duit.Horizontal{
+				Split: func(width int) []int {
+					return []int{dui.Scale(200), width - dui.Scale(200)}
+				},
+				Kids: duit.NewKids(favoritesUI, columnsUI),
 			},
-			Kids: duit.NewKids(favoritesUI, columnsUI),
-		},
-	)
+		),
+	}
 	dui.Render()
 	dui.Focus(columnsUI.Kids[0].UI.(*duit.Box).Kids[0].UI.(*duit.Field))
 

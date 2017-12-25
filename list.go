@@ -19,61 +19,60 @@ type List struct {
 	Click    func(index, buttons int, r *Result)
 	Keys     func(index int, m draw.Mouse, k rune, r *Result)
 
-	lineHeight int
-	size       image.Point
-	padding    image.Point
+	size image.Point
 }
 
 var _ UI = &List{}
 
 func (ui *List) Layout(env *Env, size image.Point) image.Point {
 	font := env.Display.DefaultFont
-	ui.lineHeight = font.Height
-	ui.padding = image.Pt(font.Height/4, font.Height/4)
-	ui.size = image.Pt(size.X, len(ui.Values)*ui.lineHeight).Add(ui.padding).Add(ui.padding)
+	ui.size = image.Pt(size.X, len(ui.Values)*(3*font.Height/2))
 	return ui.size
 }
 
 func (ui *List) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
 	font := env.Display.DefaultFont
-	r := image.Rectangle{orig, orig.Add(ui.size)}
+	r := rect(ui.size).Add(orig)
 	img.Draw(r, env.Normal.Background, nil, image.ZP)
-	cur := orig.Add(ui.padding)
+	lineR := r
+	lineR.Max.Y = lineR.Min.Y + 3*font.Height/2
+
 	for _, v := range ui.Values {
 		colors := env.Normal
 		if v.Selected {
 			colors = env.Inverse
 		}
-		img.Draw(image.Rectangle{cur, cur.Add(image.Pt(ui.size.X-2*ui.padding.X, font.Height))}, colors.Background, nil, image.ZP)
-		img.String(cur, colors.Text, image.ZP, font, v.Label)
-		cur.Y += ui.lineHeight
+		img.Draw(lineR, colors.Background, nil, image.ZP)
+		img.String(lineR.Min.Add(image.Pt(font.Height/4, font.Height/4)), colors.Text, image.ZP, font, v.Label)
+		lineR = lineR.Add(image.Pt(0, 3*font.Height/2))
 	}
 }
 
 func (ui *List) Mouse(env *Env, m draw.Mouse) (result Result) {
 	result.Hit = ui
-	m.Point = m.Point.Sub(ui.padding)
-	if m.In(image.Rectangle{image.ZP, ui.size.Sub(ui.padding).Sub(ui.padding)}) {
-		index := m.Y / ui.lineHeight
-		if m.Buttons != 0 && ui.Click != nil {
-			ui.Click(index, m.Buttons, &result)
-		}
-		if !result.Consumed && m.Buttons == 1 {
-			v := ui.Values[index]
-			v.Selected = !v.Selected
-			if v.Selected && !ui.Multiple {
-				for _, vv := range ui.Values {
-					if vv != v {
-						vv.Selected = false
-					}
+	if !m.In(rect(ui.size)) {
+		return
+	}
+	font := env.Display.DefaultFont
+	index := m.Y / (3 * font.Height / 2)
+	if m.Buttons != 0 && ui.Click != nil {
+		ui.Click(index, m.Buttons, &result)
+	}
+	if !result.Consumed && m.Buttons == 1 {
+		v := ui.Values[index]
+		v.Selected = !v.Selected
+		if v.Selected && !ui.Multiple {
+			for _, vv := range ui.Values {
+				if vv != v {
+					vv.Selected = false
 				}
 			}
-			if ui.Changed != nil {
-				ui.Changed(index, &result)
-			}
-			result.Redraw = true
-			result.Consumed = true
 		}
+		if ui.Changed != nil {
+			ui.Changed(index, &result)
+		}
+		result.Redraw = true
+		result.Consumed = true
 	}
 	return
 }
@@ -89,7 +88,7 @@ func (ui *List) selectedIndices() (l []int) {
 
 func (ui *List) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Result) {
 	result.Hit = ui
-	if !m.In(image.Rectangle{image.ZP, ui.size.Sub(ui.padding).Sub(ui.padding)}) {
+	if !m.In(rect(ui.size)) {
 		return
 	}
 	if ui.Keys != nil {
@@ -141,7 +140,8 @@ func (ui *List) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Re
 				ui.Changed(nindex, &result)
 			}
 			// xxx orig probably should not be a part in this...
-			p := orig.Add(image.Pt(0, ui.padding.Y+nindex*ui.lineHeight+ui.lineHeight/2))
+			font := env.Display.DefaultFont
+			p := orig.Add(image.Pt(m.X, nindex*(3*font.Height/2)+font.Height/2))
 			result.Warp = &p
 		}
 	}
@@ -149,14 +149,14 @@ func (ui *List) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Re
 }
 
 func (ui *List) FirstFocus(env *Env) *image.Point {
-	return &ui.padding
+	return &image.ZP
 }
 
 func (ui *List) Focus(env *Env, o UI) *image.Point {
 	if o != ui {
 		return nil
 	}
-	return &ui.padding
+	return ui.FirstFocus(env)
 }
 
 func (ui *List) Print(indent int, r image.Rectangle) {

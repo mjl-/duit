@@ -24,6 +24,22 @@ const (
 	Button5
 )
 
+type Halign int
+
+const (
+	HalignLeft = Halign(iota)
+	HalignMiddle
+	HalignRight
+)
+
+type Valign int
+
+const (
+	ValignMiddle = Valign(iota)
+	ValignTop
+	ValignBottom
+)
+
 type DUI struct {
 	Display  *draw.Display
 	Mousectl *draw.Mousectl
@@ -229,6 +245,10 @@ func scale(d *draw.Display, n int) int {
 	return (d.DPI / 100) * n
 }
 
+func scalePt(d *draw.Display, p image.Point) image.Point {
+	return p.Mul(d.DPI / 100)
+}
+
 func (d *DUI) Scale(n int) int {
 	return (d.Display.DPI / 100) * n
 }
@@ -237,5 +257,5 @@ func setSize(d *draw.Display, size *Size) {
 	size.Padding = d.Scale(Padding)
 	size.Margin = d.Scale(Margin)
 	size.Border = Border // slim border is nicer
-	size.Space = size.Margin + size.Border + size.Padding
+	size.Space = size.Border + size.Padding
 }

@@ -19,12 +19,12 @@ type Radiobutton struct {
 var _ UI = &Radiobutton{}
 
 func (ui *Radiobutton) Layout(env *Env, size image.Point) image.Point {
-	return pt(2*(env.Size.Margin+env.Size.Border) + 4*env.Display.DefaultFont.Height/5)
+	hit := image.Point{0, 1}
+	return pt(2*env.Size.Border + 4*env.Display.DefaultFont.Height/5).Add(hit)
 }
 
 func (ui *Radiobutton) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	sp := pt(env.Size.Margin)
-	r := image.Rectangle{sp, sp.Add(pt(2*env.Size.Border + 4*env.Display.DefaultFont.Height/5))}
+	r := rect(pt(2*env.Size.Border + 4*env.Display.DefaultFont.Height/5))
 	hover := m.In(r)
 	r = r.Add(orig)
 
@@ -43,15 +43,16 @@ func (ui *Radiobutton) Draw(env *Env, img *draw.Image, orig image.Point, m draw.
 		hit = image.Pt(0, 1)
 	}
 
-	img.Draw(r, colors.Background, nil, image.ZP)
+	img.Draw(extendY(r, 1), colors.Background, nil, image.ZP)
+	r = r.Add(hit)
 
 	radius := r.Dx() / 2
-	img.Arc(r.Min.Add(pt(radius)).Add(hit), radius, radius, 0, color, image.ZP, 0, 360)
+	img.Arc(r.Min.Add(pt(radius)), radius, radius, 0, color, image.ZP, 0, 360)
 
-	cr := r.Inset((4 * env.Display.DefaultFont.Height / 5) / 5)
+	cr := r.Inset((4 * env.Display.DefaultFont.Height / 5) / 5).Add(hit)
 	if ui.Selected {
 		radius = cr.Dx() / 2
-		img.FillArc(cr.Min.Add(pt(radius)).Add(hit), radius, radius, 0, color, image.ZP, 0, 360)
+		img.FillArc(cr.Min.Add(pt(radius)), radius, radius, 0, color, image.ZP, 0, 360)
 	}
 }
 
@@ -72,8 +73,7 @@ func (ui *Radiobutton) Mouse(env *Env, m draw.Mouse) (r Result) {
 	if ui.Disabled {
 		return
 	}
-	sp := pt(env.Size.Margin)
-	rr := image.Rectangle{sp, sp.Add(pt(2*env.Size.Border + 4*env.Display.DefaultFont.Height/5))}
+	rr := rect(pt(2*env.Size.Border + 4*env.Display.DefaultFont.Height/5))
 	hover := m.In(rr)
 	if hover != ui.m.In(rr) {
 		r.Redraw = true
@@ -100,8 +100,7 @@ func (ui *Radiobutton) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r 
 }
 
 func (ui *Radiobutton) FirstFocus(env *Env) *image.Point {
-	p := pt(env.Size.Margin)
-	return &p
+	return &image.ZP
 }
 
 func (ui *Radiobutton) Focus(env *Env, o UI) *image.Point {

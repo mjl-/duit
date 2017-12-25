@@ -13,11 +13,11 @@ type Label struct {
 var _ UI = &Label{}
 
 func (ui *Label) Layout(env *Env, size image.Point) image.Point {
-	return env.Display.DefaultFont.StringSize(ui.Text).Add(image.Point{2*env.Size.Margin + 2*env.Size.Border, 2 * env.Size.Space})
+	return env.Display.DefaultFont.StringSize(ui.Text)
 }
 
 func (ui *Label) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	img.String(orig.Add(image.Point{env.Size.Margin + env.Size.Border, env.Size.Space}), env.Normal.Text, image.ZP, env.Display.DefaultFont, ui.Text)
+	img.String(orig, env.Normal.Text, image.ZP, env.Display.DefaultFont, ui.Text)
 }
 
 func (ui *Label) Mouse(env *Env, m draw.Mouse) Result {

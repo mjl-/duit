@@ -22,8 +22,9 @@ func (ui *Field) Layout(env *Env, size image.Point) image.Point {
 }
 
 func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	hover := m.In(image.Rectangle{image.ZP, ui.size})
-	r := image.Rectangle{orig, orig.Add(ui.size)}
+	r := rect(ui.size)
+	hover := m.In(r)
+	r = r.Add(orig)
 
 	colors := env.Normal
 	if ui.Disabled {
@@ -32,11 +33,8 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 		colors = env.Hover
 	}
 	img.Draw(r, colors.Background, nil, image.ZP)
-	drawRoundedBorder(img, image.Rectangle{
-		orig.Add(image.Pt(env.Size.Margin, env.Size.Margin)),
-		orig.Add(ui.size).Sub(image.Pt(env.Size.Margin, env.Size.Margin)),
-	}, colors.Border)
-	img.String(orig.Add(image.Point{env.Size.Space, env.Size.Space}), colors.Text, image.ZP, env.Display.DefaultFont, ui.Text)
+	drawRoundedBorder(img, r, colors.Border)
+	img.String(orig.Add(pt(env.Size.Space)), colors.Text, image.ZP, env.Display.DefaultFont, ui.Text)
 }
 
 func (ui *Field) Mouse(env *Env, m draw.Mouse) Result {
@@ -64,16 +62,14 @@ func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
 }
 
 func (ui *Field) FirstFocus(env *Env) *image.Point {
-	p := image.Pt(env.Size.Space, env.Size.Space)
-	return &p
+	return &image.ZP
 }
 
 func (ui *Field) Focus(env *Env, o UI) *image.Point {
 	if o != ui {
 		return nil
 	}
-	p := image.Pt(env.Size.Space, env.Size.Space)
-	return &p
+	return ui.FirstFocus(env)
 }
 
 func (ui *Field) Print(indent int, r image.Rectangle) {

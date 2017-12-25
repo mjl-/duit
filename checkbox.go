@@ -17,12 +17,12 @@ type Checkbox struct {
 var _ UI = &Checkbox{}
 
 func (ui *Checkbox) Layout(env *Env, size image.Point) image.Point {
-	return pt(2*(env.Size.Margin+env.Size.Border) + 4*env.Display.DefaultFont.Height/5)
+	hit := image.Point{0, 1}
+	return pt(2*env.Size.Border + 4*env.Display.DefaultFont.Height/5).Add(hit)
 }
 
 func (ui *Checkbox) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	sp := pt(env.Size.Margin)
-	r := image.Rectangle{sp, sp.Add(pt(2*env.Size.Border + 4*env.Display.DefaultFont.Height/5))}
+	r := rect(pt(2*env.Size.Border + 4*env.Display.DefaultFont.Height/5))
 	hover := m.In(r)
 	r = r.Add(orig)
 
@@ -41,14 +41,15 @@ func (ui *Checkbox) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 		hit = image.Pt(0, 1)
 	}
 
-	img.Draw(r, colors.Background, nil, image.ZP)
-	drawRoundedBorder(img, r.Add(hit), color)
+	img.Draw(extendY(r, 1), colors.Background, nil, image.ZP)
+	r = r.Add(hit)
+	drawRoundedBorder(img, r, color)
 
 	cr := r.Inset((4 * env.Display.DefaultFont.Height / 5) / 5)
 	if ui.Checked {
-		p0 := image.Pt(cr.Min.X, cr.Min.Y+2*cr.Dy()/3).Add(hit)
-		p1 := image.Pt(cr.Min.X+1*cr.Dx()/3, cr.Max.Y).Add(hit)
-		p2 := image.Pt(cr.Max.X, cr.Min.Y).Add(hit)
+		p0 := image.Pt(cr.Min.X, cr.Min.Y+2*cr.Dy()/3)
+		p1 := image.Pt(cr.Min.X+1*cr.Dx()/3, cr.Max.Y)
+		p2 := image.Pt(cr.Max.X, cr.Min.Y)
 		img.Line(p0, p1, 0, 0, 1, color, image.ZP)
 		img.Line(p1, p2, 0, 0, 1, color, image.ZP)
 	}
@@ -59,8 +60,7 @@ func (ui *Checkbox) Mouse(env *Env, m draw.Mouse) (r Result) {
 	if ui.Disabled {
 		return
 	}
-	sp := pt(env.Size.Margin)
-	rr := image.Rectangle{sp, sp.Add(pt(2*env.Size.Border + 4*env.Display.DefaultFont.Height/5))}
+	rr := rect(pt(2*env.Size.Border + 4*env.Display.DefaultFont.Height/5))
 	hover := m.In(rr)
 	if hover != ui.m.In(rr) {
 		r.Redraw = true
@@ -93,8 +93,7 @@ func (ui *Checkbox) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Res
 }
 
 func (ui *Checkbox) FirstFocus(env *Env) *image.Point {
-	p := pt(env.Size.Margin)
-	return &p
+	return &image.ZP
 }
 
 func (ui *Checkbox) Focus(env *Env, o UI) *image.Point {

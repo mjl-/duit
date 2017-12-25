@@ -17,14 +17,20 @@ type Button struct {
 
 var _ UI = &Button{}
 
+func (ui *Button) padding(env *Env) image.Point {
+	fontHeight := env.Display.DefaultFont.Height
+	return image.Pt(fontHeight/2, fontHeight/4)
+}
+
 func (ui *Button) Layout(env *Env, size image.Point) image.Point {
-	return env.Display.DefaultFont.StringSize(ui.Text).Add(pt(2 * env.Size.Space))
+	return env.Display.DefaultFont.StringSize(ui.Text).Add(ui.padding(env).Mul(2))
 }
 
 func (ui *Button) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	size := env.Display.DefaultFont.StringSize(ui.Text)
+	textSize := env.Display.DefaultFont.StringSize(ui.Text)
+	r := rect(textSize.Add(ui.padding(env).Mul(2)))
 
-	hover := m.In(rect(size.Add(pt(2 * env.Size.Space))))
+	hover := m.In(r)
 	colors := env.Normal
 	if ui.Disabled {
 		colors = env.Disabled
@@ -34,21 +40,15 @@ func (ui *Button) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse
 		colors = env.Hover
 	}
 
-	r := image.Rectangle{
-		orig.Add(pt(env.Size.Margin + env.Size.Border)),
-		orig.Add(size).Add(pt(env.Size.Margin + 2*env.Size.Padding + 2*env.Size.Border)),
-	}
-	img.Draw(r, colors.Background, nil, image.ZP)
-	drawRoundedBorder(img, image.Rectangle{
-		orig.Add(pt(env.Size.Margin)),
-		orig.Add(size).Add(pt(2*env.Size.Space - env.Size.Margin)),
-	}, colors.Border)
+	r = r.Add(orig)
+	img.Draw(r.Inset(1), colors.Background, nil, image.ZP)
+	drawRoundedBorder(img, r, colors.Border)
 
 	hit := image.ZP
 	if hover && !ui.Disabled && m.Buttons&1 == 1 {
 		hit = image.Pt(0, 1)
 	}
-	img.String(orig.Add(pt(env.Size.Space)).Add(hit), colors.Text, image.ZP, env.Display.DefaultFont, ui.Text)
+	img.String(r.Min.Add(ui.padding(env)).Add(hit), colors.Text, image.ZP, env.Display.DefaultFont, ui.Text)
 }
 
 func (ui *Button) Mouse(env *Env, m draw.Mouse) Result {
