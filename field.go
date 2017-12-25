@@ -2,23 +2,48 @@ package duit
 
 import (
 	"image"
+	"log"
 	"strings"
 
 	"9fans.net/go/draw"
 )
 
+// SelectionStart is offset by 1 for sane behaviour of an empty Field struct.
+
 type Field struct {
-	Text     string
-	Disabled bool
-	Cursor   int                                   // index in string of cursor, 0 is before first char
-	Changed  func(string, *Result)                 // called after contents of field have changed
-	Keys     func(m draw.Mouse, k rune, r *Result) // called before handling key. if you consume the event, Changed will not be called
+	Text           string
+	Disabled       bool
+	Cursor         int                                   // index in string of cursor, 0 is before first char
+	SelectionStart int                                   // if > 0, 1 beyond the start of the selection, with Cursor being the end.
+	Changed        func(string, *Result)                 // called after contents of field have changed
+	Keys           func(m draw.Mouse, k rune, r *Result) // called before handling key. if you consume the event, Changed will not be called
 
 	size image.Point // including space
 	m    draw.Mouse
 }
 
 var _ UI = &Field{}
+
+func (ui *Field) selection() (start int, end int, text string) {
+	if ui.SelectionStart <= 0 {
+		return 0, 0, ""
+	}
+	s, e := ui.Cursor, ui.SelectionStart-1
+	if s > e {
+		s, e = e, s
+	}
+	return s, e, ui.Text[s:e]
+}
+
+func (ui *Field) removeSelection() {
+	if ui.SelectionStart <= 0 {
+		return
+	}
+	s, e, _ := ui.selection()
+	ui.Text = ui.Text[:s] + ui.Text[e:]
+	ui.Cursor = s
+	ui.SelectionStart = 0
+}
 
 func (ui *Field) Layout(env *Env, size image.Point) image.Point {
 	ui.size = image.Point{size.X, 2*env.Size.Space + env.Display.DefaultFont.Height}
@@ -31,14 +56,30 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 	r = r.Add(orig)
 
 	colors := env.Normal
+	invColors := env.Normal
 	if ui.Disabled {
 		colors = env.Disabled
 	} else if hover {
 		colors = env.Hover
+		invColors = env.Inverse
 	}
 	img.Draw(r, colors.Background, nil, image.ZP)
 	drawRoundedBorder(img, r, colors.Border)
-	img.String(orig.Add(pt(env.Size.Space)), colors.Text, image.ZP, env.Display.DefaultFont, ui.Text)
+
+	s, e, sel := ui.selection()
+	tp := orig.Add(pt(env.Size.Space))
+	f := env.Display.DefaultFont
+	if sel != "" {
+		before := ui.Text[:s]
+		after := ui.Text[e:]
+		tp = img.String(tp, colors.Text, image.ZP, f, before)
+		selR := outsetPt(rect(f.StringSize(sel)).Add(tp), image.Pt(0, env.Size.Space/2))
+		img.Draw(selR, invColors.Background, nil, image.ZP)
+		tp = img.String(tp, invColors.Text, image.ZP, f, sel)
+		img.String(tp, colors.Text, image.ZP, f, after)
+	} else {
+		img.String(tp, colors.Text, image.ZP, f, ui.Text)
+	}
 
 	if hover && !ui.Disabled {
 		ui.fixCursor()
@@ -56,22 +97,27 @@ func (ui *Field) Mouse(env *Env, m draw.Mouse) (r Result) {
 		return
 	}
 	r.Hit = ui
-	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 {
+	locateCursor := func() int {
 		f := env.Display.DefaultFont
 		n := len(ui.Text)
 		mX := m.X - env.Size.Space
-		found := false
 		for i := 0; i < n; i++ {
 			x := f.StringWidth(ui.Text[:i])
 			if mX <= x {
-				ui.Cursor = i
-				found = true
-				break
+				return i
 			}
 		}
-		if !found {
-			ui.Cursor = len(ui.Text)
-		}
+		return len(ui.Text)
+	}
+	if ui.m.Buttons&1 == 0 && m.Buttons&1 == 1 {
+		// b1 down, start selection
+		ui.Cursor = locateCursor()
+		ui.SelectionStart = 1 + ui.Cursor
+		r.Consumed = true
+		r.Redraw = true
+	} else if ui.m.Buttons&1 == 1 || m.Buttons&1 == 1 {
+		// b1 release, end selection
+		ui.Cursor = locateCursor()
 		r.Consumed = true
 		r.Redraw = true
 	}
@@ -85,6 +131,12 @@ func (ui *Field) fixCursor() {
 	}
 	if ui.Cursor > len(ui.Text) {
 		ui.Cursor = len(ui.Text)
+	}
+	if ui.SelectionStart < 0 {
+		ui.SelectionStart = 0
+	}
+	if ui.SelectionStart-1 > len(ui.Text) {
+		ui.SelectionStart = len(ui.Text) + 1
 	}
 }
 
@@ -104,6 +156,8 @@ func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result
 		}
 	}
 
+	origText := ui.Text
+
 	const Ctrl = 0x1f
 	ui.fixCursor()
 	switch k {
@@ -111,21 +165,27 @@ func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result
 		return Result{Hit: ui}
 	case draw.KeyLeft:
 		ui.Cursor--
+		ui.SelectionStart = 0
 	case draw.KeyRight:
 		ui.Cursor++
+		ui.SelectionStart = 0
 	case Ctrl & 'a':
 		ui.Cursor = 0
+		ui.SelectionStart = 0
 	case Ctrl & 'e':
 		ui.Cursor = len(ui.Text)
+		ui.SelectionStart = 0
 
 	case Ctrl & 'h':
 		// remove char before cursor
+		ui.removeSelection()
 		if ui.Cursor > 0 {
 			ui.Text = ui.Text[:ui.Cursor-1] + ui.Text[ui.Cursor:]
 			ui.Cursor--
 		}
 	case Ctrl & 'w':
 		// remove to start of space+word
+		ui.removeSelection()
 		for ui.Cursor > 0 && strings.ContainsAny(ui.Text[ui.Cursor-1:ui.Cursor], " \t\r\n") {
 			ui.Cursor--
 		}
@@ -135,16 +195,67 @@ func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result
 		ui.Text = ui.Text[:ui.Cursor]
 	case Ctrl & 'u':
 		// remove entire line
+		ui.removeSelection()
 		ui.Text = ""
 		ui.Cursor = 0
 	case Ctrl & 'k':
 		// remove to end of line
+		ui.removeSelection()
 		ui.Text = ui.Text[ui.Cursor:]
+
+	case draw.KeyDelete:
+		// remove char after cursor
+		ui.removeSelection()
+		if ui.Cursor < len(ui.Text) {
+			ui.Text = ui.Text[:ui.Cursor] + ui.Text[ui.Cursor+1:]
+		}
+
+	case draw.KeyCmd + 'a':
+		// select all
+		ui.Cursor = 0
+		ui.SelectionStart = 1 + len(ui.Text)
+
+	case draw.KeyCmd + 'c':
+		_, _, t := ui.selection()
+		if t != "" {
+			env.Display.WriteSnarf([]byte(t))
+		}
+
+	case draw.KeyCmd + 'x':
+		s, e, t := ui.selection()
+		if t != "" {
+			env.Display.WriteSnarf([]byte(t))
+			ui.Text = ui.Text[:s] + ui.Text[e:]
+			ui.Cursor = s
+			ui.SelectionStart = 0
+		}
+
+	case draw.KeyCmd + 'v':
+		ui.removeSelection()
+		buf := make([]byte, 128)
+		have, total, err := env.Display.ReadSnarf(buf)
+		if err != nil {
+			log.Printf("duit: readsnarf: %s\n", err)
+			break
+		}
+		var t string
+		if have >= total {
+			t = string(buf[:have])
+		} else {
+			buf = make([]byte, total)
+			have, _, err = env.Display.ReadSnarf(buf)
+			if err != nil {
+				log.Printf("duit: readsnarf entire buffer: %s\n", err)
+			}
+			t = string(buf[:have])
+		}
+		ui.Text = ui.Text[:ui.Cursor] + t + ui.Text[ui.Cursor:]
 
 	case '\n':
 		return
 
 	default:
+		ui.removeSelection()
 		if ui.Cursor > len(ui.Text) {
 			ui.Text += string(k)
 		} else {
@@ -155,7 +266,7 @@ func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result
 	ui.fixCursor()
 	r.Consumed = true
 	r.Redraw = true
-	if ui.Changed != nil {
+	if ui.Changed != nil && origText != ui.Text {
 		ui.Changed(ui.Text, &r)
 	}
 	return
