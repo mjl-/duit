@@ -18,8 +18,9 @@ type Field struct {
 	Changed         func(string, *Result)                 // called after contents of field have changed
 	Keys            func(m draw.Mouse, k rune, r *Result) // called before handling key. if you consume the event, Changed will not be called
 
-	size image.Point // including space
-	m    draw.Mouse
+	size          image.Point // including space
+	m             draw.Mouse
+	prevB1Release draw.Mouse
 }
 
 var _ UI = &Field{}
@@ -102,6 +103,84 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 	}
 }
 
+func expandSelection(t string, i int) (s, e int) {
+	if i == 0 || i == len(t) {
+		return 0, len(t)
+	}
+
+	const (
+		Starts = "[{(<\"'`"
+		Ends   = "]})>\"'`"
+	)
+
+	index := strings.IndexByte(Starts, t[i-1])
+	if index >= 0 {
+		s = i
+		e = s
+		n := len(t)
+		up := Starts[index]
+		down := Ends[index]
+		nested := 1
+		for {
+			if e >= n {
+				return i, i
+			}
+			// note: order of comparison matters, for quotes, down is the same as up
+			if t[e] == down {
+				nested--
+			} else if t[e] == up {
+				nested++
+			}
+			if nested == 0 {
+				return
+			}
+			e++
+		}
+	}
+
+	index = strings.IndexByte(Ends, t[i])
+	if index >= 0 {
+		e = i
+		s = i - 1
+		up := Ends[index]
+		down := Starts[index]
+		nested := 1
+		for {
+			if s == 0 {
+				return i, i
+			}
+			// note: order of comparison matters, for quotes, down is the same as up
+			if t[s] == down {
+				nested--
+			} else if t[s] == up {
+				nested++
+			}
+			if nested == 0 {
+				return
+			}
+			s--
+		}
+	}
+
+	s = i
+	e = i
+
+	const Space = " \t\r\n\f"
+	skip := func(isSpace bool) bool {
+		return !isSpace
+	}
+	if strings.ContainsAny(t[s-1:s], Space) && strings.ContainsAny(t[e:e+1], Space) {
+		skip = func(isSpace bool) bool {
+			return isSpace
+		}
+	}
+	for ; s > 0 && skip(strings.ContainsAny(t[s-1:s], Space)) && !strings.ContainsAny(t[s-1:s], Starts+Ends); s-- {
+	}
+	for ; e < len(t) && skip(strings.ContainsAny(t[e:e+1], Space)) && !strings.ContainsAny(t[e:e+1], Starts+Ends); e++ {
+	}
+	return
+}
+
 func (ui *Field) Mouse(env *Env, m draw.Mouse) (r Result) {
 	if !m.In(rect(ui.size)) {
 		return
@@ -126,10 +205,19 @@ func (ui *Field) Mouse(env *Env, m draw.Mouse) (r Result) {
 		r.Consumed = true
 		r.Redraw = true
 	} else if ui.m.Buttons&1 == 1 || m.Buttons&1 == 1 {
-		// b1 release, end selection
+		// continue selection
 		ui.Cursor1 = 1 + locateCursor()
 		r.Consumed = true
 		r.Redraw = true
+		if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 {
+			if m.Msec-ui.prevB1Release.Msec < 400 {
+				s, e := expandSelection(ui.Text, ui.cursor0())
+				ui.Cursor1 = 1 + s
+				ui.SelectionStart1 = 1 + e
+				log.Printf("double click\n")
+			}
+			ui.prevB1Release = m
+		}
 	}
 	ui.m = m
 	return
