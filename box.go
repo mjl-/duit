@@ -112,11 +112,23 @@ func (ui *Box) Mouse(env *Env, m draw.Mouse) Result {
 }
 
 func (ui *Box) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
-	return kidsKey(env, ui, ui.Kids, orig, m, c)
+	return kidsKey(env, ui, ui.orderedKids(), orig, m, c)
+}
+
+func (ui *Box) orderedKids() []*Kid {
+	if !ui.Reverse {
+		return ui.Kids
+	}
+	n := len(ui.Kids)
+	kids := make([]*Kid, n)
+	for i := range ui.Kids {
+		kids[i] = ui.Kids[n-1-i]
+	}
+	return kids
 }
 
 func (ui *Box) FirstFocus(env *Env) *image.Point {
-	return kidsFirstFocus(env, ui.Kids)
+	return kidsFirstFocus(env, ui.orderedKids())
 }
 
 func (ui *Box) Focus(env *Env, o UI) *image.Point {
