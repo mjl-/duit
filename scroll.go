@@ -12,6 +12,7 @@ type Scroll struct {
 
 	r             image.Rectangle // entire ui
 	barR          image.Rectangle
+	childR        image.Rectangle
 	childSize     image.Point
 	offset        int         // current scroll offset in pixels
 	img           *draw.Image // for child to draw on
@@ -26,28 +27,31 @@ func NewScroll(ui UI) *Scroll {
 
 func (ui *Scroll) Layout(env *Env, size image.Point) image.Point {
 	ui.scrollbarSize = scale(env.Display, ScrollbarSize)
-	ui.r = image.Rectangle{image.ZP, size}
+	ui.r = rect(size)
 	ui.barR = ui.r
 	ui.barR.Max.X = ui.barR.Min.X + ui.scrollbarSize
+	ui.childR = ui.r
+	ui.childR.Min.X = ui.barR.Max.X
 	ui.childSize = ui.Child.Layout(env, image.Pt(ui.r.Dx()-ui.barR.Dx(), ui.r.Dy()))
 	if ui.r.Dy() > ui.childSize.Y {
 		ui.barR.Max.Y = ui.childSize.Y
 		ui.r.Max.Y = ui.childSize.Y
+		ui.childR.Max.Y = ui.childSize.Y
 	}
 	return ui.r.Size()
 }
 
 func (ui *Scroll) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	if ui.childSize.X <= 0 || ui.childSize.Y <= 0 {
+	if ui.r.Empty() {
 		return
 	}
 
 	ui.scroll(0)
-	hover := m.In(ui.barR)
+	barHover := m.In(ui.barR)
 
 	bg := env.ScrollBGNormal
 	vis := env.ScrollVisibleNormal
-	if hover {
+	if barHover {
 		bg = env.ScrollBGHover
 		vis = env.ScrollVisibleHover
 	}
@@ -66,16 +70,23 @@ func (ui *Scroll) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse
 	img.Draw(barRActive, vis, nil, image.ZP)
 
 	// draw child ui
+	if ui.childR.Empty() {
+		return
+	}
 	if ui.img == nil || ui.childSize != ui.img.R.Size() {
 		var err error
+		if ui.img != nil {
+			ui.img.Free()
+			ui.img = nil
+		}
 		ui.img, err = env.Display.AllocImage(rect(ui.childSize), draw.ARGB32, false, env.BackgroundColor)
 		check(err, "allocimage")
 	} else {
 		ui.img.Draw(ui.img.R, env.Normal.Background, nil, image.ZP)
 	}
-	m.Point = m.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
-	ui.Child.Draw(env, ui.img, image.Pt(0, -ui.offset), m)
-	img.Draw(ui.img.R.Add(orig).Add(image.Pt(ui.scrollbarSize, 0)), ui.img, nil, image.ZP)
+	m.Point = m.Point.Add(image.Pt(-ui.childR.Min.X, ui.offset))
+	ui.Child.Draw(env, ui.img, image.ZP, m)
+	img.Draw(ui.childR.Add(orig), ui.img, nil, image.Pt(0, ui.offset))
 }
 
 func (ui *Scroll) scroll(delta int) bool {
