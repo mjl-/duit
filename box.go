@@ -30,19 +30,21 @@ type Box struct {
 	Padding     image.Point // padding inside box, so children don't touch the sides; also adjusted for high dpi screens
 	Valign      Valign
 
-	size image.Point
+	size image.Point // of entire box, including padding
 }
 
 var _ UI = &Box{}
 
 func (ui *Box) Layout(env *Env, size image.Point) image.Point {
-	xmax := 0
 	padding := scalePt(env.Display, ui.Padding)
 	margin := scalePt(env.Display, ui.ChildMargin)
 	size = size.Sub(padding.Mul(2))
+	nx := 0 // number on current line
+
+	// variables below are about box contents not offset for padding
 	cur := image.ZP
-	nx := 0    // number on current line
-	liney := 0 // max y of current line
+	xmax := 0  // max x seen so far
+	lineY := 0 // max y of current line
 
 	fixValign := func(kids []*Kid) {
 		if len(kids) < 2 {
@@ -52,35 +54,33 @@ func (ui *Box) Layout(env *Env, size image.Point) image.Point {
 			switch ui.Valign {
 			case ValignTop:
 			case ValignMiddle:
-				k.r = k.r.Add(image.Pt(0, (liney-k.r.Dy())/2))
+				k.r = k.r.Add(image.Pt(0, (lineY-k.r.Dy())/2))
 			case ValignBottom:
-				k.r = k.r.Add(image.Pt(0, liney-k.r.Dy()))
+				k.r = k.r.Add(image.Pt(0, lineY-k.r.Dy()))
 			}
 		}
 	}
 
 	for i, k := range ui.Kids {
-		p := k.UI.Layout(env, size.Sub(image.Pt(0, cur.Y+liney+margin.Y)))
+		childSize := k.UI.Layout(env, size.Sub(image.Pt(0, cur.Y+lineY)))
 		var kr image.Rectangle
-		if nx == 0 || cur.X+p.X <= size.X {
-			p0 := cur.Add(padding)
-			kr = image.Rectangle{p0, p0.Add(p)}
-			cur.X += p.X + margin.X
-			if p.Y > liney {
-				liney = p.Y
+		if nx == 0 || cur.X+childSize.X <= size.X {
+			kr = rect(childSize).Add(cur).Add(padding)
+			cur.X += childSize.X + margin.X
+			if childSize.Y > lineY {
+				lineY = childSize.Y
 			}
 			nx += 1
 		} else {
 			if nx > 0 {
 				fixValign(ui.Kids[i-nx : i])
 				cur.X = 0
-				cur.Y += liney + margin.Y
+				cur.Y += lineY + margin.Y
 			}
-			p0 := cur.Add(padding)
-			kr = image.Rectangle{p0, p0.Add(p)}
+			kr = rect(childSize).Add(cur).Add(padding)
 			nx = 1
-			cur.X = p.X + margin.X
-			liney = p.Y
+			cur.X = childSize.X + margin.X
+			lineY = childSize.Y
 		}
 		k.r = kr
 		if xmax < cur.X {
@@ -88,18 +88,18 @@ func (ui *Box) Layout(env *Env, size image.Point) image.Point {
 		}
 	}
 	fixValign(ui.Kids[len(ui.Kids)-nx : len(ui.Kids)])
-	cur.Y += liney
+	cur.Y += lineY
 
 	if ui.Reverse {
+		bottomY := cur.Y + 2*padding.Y
 		for _, k := range ui.Kids {
-			k.r.Dy()
-			y1 := cur.Y - k.r.Min.Y
+			y1 := bottomY - k.r.Min.Y
 			y0 := y1 - k.r.Dy()
 			k.r = image.Rect(k.r.Min.X, y0, k.r.Max.X, y1)
 		}
 	}
 
-	ui.size = image.Point{xmax - margin.X, cur.Y}
+	ui.size = image.Pt(xmax-margin.X, cur.Y).Add(padding.Mul(2))
 	return ui.size
 }
 
