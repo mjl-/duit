@@ -38,7 +38,7 @@ func (ui *Scroll) Layout(env *Env, size image.Point) image.Point {
 }
 
 func (ui *Scroll) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	if ui.childSize.X == 0 || ui.childSize.Y == 0 {
+	if ui.childSize.X <= 0 || ui.childSize.Y <= 0 {
 		return
 	}
 
@@ -66,12 +66,9 @@ func (ui *Scroll) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse
 	img.Draw(barRActive, vis, nil, image.ZP)
 
 	// draw child ui
-	if ui.childSize.X == 0 || ui.childSize.Y == 0 {
-		return
-	}
 	if ui.img == nil || ui.childSize != ui.img.R.Size() {
 		var err error
-		ui.img, err = env.Display.AllocImage(image.Rectangle{image.ZP, ui.childSize}, draw.ARGB32, false, env.BackgroundColor)
+		ui.img, err = env.Display.AllocImage(rect(ui.childSize), draw.ARGB32, false, env.BackgroundColor)
 		check(err, "allocimage")
 	} else {
 		ui.img.Draw(ui.img.R, env.Normal.Background, nil, image.ZP)

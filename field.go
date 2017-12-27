@@ -65,6 +65,9 @@ func (ui *Field) Layout(env *Env, size image.Point) image.Point {
 }
 
 func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
+	if ui.size.X <= 0 || ui.size.Y <= 0 {
+		return
+	}
 	r := rect(ui.size)
 	hover := m.In(r)
 	r = r.Add(orig)
