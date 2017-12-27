@@ -23,15 +23,11 @@ func Alert(s string) {
 
 	for {
 		select {
-		case m := <-dui.Mousectl.C:
-			dui.Mouse(m)
-		case <-dui.Mousectl.Resize:
-			dui.Resize()
-		case r := <-dui.Kbdctl.C:
-			dui.Key(r)
+		case e := <-dui.Events:
+			dui.Event(e)
 
 		case <-stop:
-			dui.Display.Close()
+			dui.Close()
 			return
 		}
 	}

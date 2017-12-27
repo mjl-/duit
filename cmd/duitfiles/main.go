@@ -104,7 +104,7 @@ func main() {
 	log.SetPrefix("files: ")
 
 	dui, err := duit.NewDUI("files", "1200x700")
-	check(err, "new ui")
+	check(err, "new dui")
 
 	redraw := make(chan struct{}, 1)
 	layout := make(chan struct{}, 1)
@@ -351,12 +351,8 @@ func main() {
 
 	for {
 		select {
-		case m := <-dui.Mousectl.C:
-			dui.Mouse(m)
-		case <-dui.Mousectl.Resize:
-			dui.Resize()
-		case r := <-dui.Kbdctl.C:
-			dui.Key(r)
+		case e := <-dui.Events:
+			dui.Event(e)
 
 		case <-redraw:
 			dui.Redraw()

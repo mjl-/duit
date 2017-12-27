@@ -1,3 +1,6 @@
 /cmd/duitex/duitex
 /cmd/duitfiles/duitfiles
+/cmd/duitsimple/duitsimple
+/cmd/duitsimple/duitgrid
+/cmd/duitsimple/duitvertical
 /local/

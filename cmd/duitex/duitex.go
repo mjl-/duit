@@ -21,7 +21,7 @@ func check(err error, msg string) {
 
 func main() {
 	dui, err := duit.NewDUI("duitex", "600x400")
-	check(err, "new ui")
+	check(err, "new dui")
 
 	redraw := make(chan struct{}, 1)
 
@@ -179,12 +179,8 @@ func main() {
 
 	for {
 		select {
-		case m := <-dui.Mousectl.C:
-			dui.Mouse(m)
-		case <-dui.Mousectl.Resize:
-			dui.Resize()
-		case r := <-dui.Kbdctl.C:
-			dui.Key(r)
+		case e := <-dui.Events:
+			dui.Event(e)
 
 		case <-redraw:
 			dui.Redraw()

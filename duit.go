@@ -40,12 +40,27 @@ const (
 	ValignBottom
 )
 
+
+type EventType byte
+const (
+	EventMouse = EventType(iota)
+	EventKey
+	EventResize
+)
+type Event struct {
+	Type EventType
+	Mouse draw.Mouse
+	Key rune
+}
+
 type DUI struct {
 	Display  *draw.Display
-	Mousectl *draw.Mousectl
-	Kbdctl   *draw.Keyboardctl
+	Events chan Event
 	Top      UI
 
+	stop chan struct{}
+	mousectl *draw.Mousectl
+	keyctl   *draw.Keyboardctl
 	env         *Env
 	mouse       draw.Mouse
 	lastMouseUI UI
@@ -68,8 +83,24 @@ func NewDUI(name, dim string) (*DUI, error) {
 	}
 	dui.Display = display
 
-	dui.Mousectl = display.InitMouse()
-	dui.Kbdctl = display.InitKeyboard()
+	dui.mousectl = display.InitMouse()
+	dui.keyctl = display.InitKeyboard()
+	dui.stop = make(chan struct{})
+	dui.Events = make(chan Event, 1)
+	go func() {
+		for {
+			select {
+			case m := <-dui.mousectl.C:
+				dui.Events <- Event{Type: EventMouse, Mouse: m}
+			case k := <-dui.keyctl.C:
+				dui.Events <- Event{Type: EventKey, Key: k}
+			case <-dui.mousectl.Resize:
+				dui.Events <- Event{Type: EventResize}
+			case <-dui.stop:
+				return
+			}
+		}
+	}()
 
 	makeColor := func(v draw.Color) *draw.Image {
 		c, err := display.AllocImage(image.Rect(0, 0, 1, 1), draw.ARGB32, true, v)
@@ -270,4 +301,20 @@ func setSize(d *draw.Display, size *Size) {
 	size.Margin = d.Scale(Margin)
 	size.Border = Border // slim border is nicer
 	size.Space = size.Border + size.Padding
+}
+
+func (d *DUI) Event(e Event) {
+	switch e.Type {
+	case EventMouse:
+		d.Mouse(e.Mouse)
+	case EventKey:
+		d.Key(e.Key)
+	case EventResize:
+		d.Resize()
+	}
+}
+
+func (d *DUI) Close() {
+	d.stop <- struct{}{}
+	d.Display.Close()
 }
