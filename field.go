@@ -19,9 +19,11 @@ type Field struct {
 	Changed         func(string, *Result)                 // called after contents of field have changed
 	Keys            func(m draw.Mouse, k rune, r *Result) // called before handling key. if you consume the event, Changed will not be called
 
-	size          image.Point // including space
-	m             draw.Mouse
-	prevB1Release draw.Mouse
+	size           image.Point // including space
+	m              draw.Mouse
+	prevB1Release  draw.Mouse
+	img            *draw.Image // in case text is too big
+	prevTextOffset int         // offset for text for previous draw, used to determine whether to realign the cursor
 }
 
 var _ UI = &Field{}
@@ -68,39 +70,77 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 	r = r.Add(orig)
 
 	colors := env.Normal
-	invColors := env.Normal
+	selColors := env.Selection
 	if ui.Disabled {
 		colors = env.Disabled
 	} else if hover {
 		colors = env.Hover
-		invColors = env.Inverse
+		selColors = env.SelectionHover
 	}
 	img.Draw(r, colors.Background, nil, image.ZP)
 	drawRoundedBorder(img, r, colors.Border)
 
+	ui.fixCursor()
 	s, e, sel := ui.selection0()
-	tp := orig.Add(pt(env.Size.Space))
 	f := env.Display.DefaultFont
-	if sel != "" {
-		before := ui.Text[:s]
-		after := ui.Text[e:]
-		tp = img.String(tp, colors.Text, image.ZP, f, before)
-		selR := outsetPt(rect(f.StringSize(sel)).Add(tp), image.Pt(0, env.Size.Space/2))
-		img.Draw(selR, invColors.Background, nil, image.ZP)
-		tp = img.String(tp, invColors.Text, image.ZP, f, sel)
-		img.String(tp, colors.Text, image.ZP, f, after)
-	} else {
-		img.String(tp, colors.Text, image.ZP, f, ui.Text)
+
+	drawString := func(i *draw.Image, p, cp image.Point) {
+		log.Printf("drawString, text %s, p %v, cp %v, cursor0 %d\n", ui.Text, p, cp, ui.cursor0())
+		p = p.Add(pt(env.Size.Space))
+		if sel == "" {
+			i.String(p, colors.Text, image.ZP, f, ui.Text)
+		} else {
+			before := ui.Text[:s]
+			after := ui.Text[e:]
+			p = i.String(p, colors.Text, image.ZP, f, before)
+			selR := outsetPt(rect(f.StringSize(sel)).Add(p), image.Pt(0, env.Size.Space/2))
+			i.Draw(selR, selColors.Background, nil, image.ZP)
+			p = i.String(p, selColors.Text, image.ZP, f, sel)
+			i.String(p, colors.Text, image.ZP, f, after)
+		}
+
+		if hover && !ui.Disabled {
+			// draw cursor
+			cp = cp.Add(pt(env.Size.Space))
+			cp1 := cp
+			cp1.Y += f.Height
+			i.Line(cp, cp1, 1, 1, 0, env.Hover.Border, image.ZP)
+		}
 	}
 
-	if hover && !ui.Disabled {
-		ui.fixCursor()
-		f := env.Display.DefaultFont
-		p0 := r.Min.Add(pt(env.Size.Space))
-		p0.X += f.StringWidth(ui.Text[:ui.cursor0()])
-		p1 := p0
-		p1.Y += f.Height
-		img.Line(p0, p1, 1, 1, 0, env.Hover.Border, image.ZP)
+	width := f.StringWidth(ui.Text)
+	if width <= r.Inset(env.Size.Space).Dx() {
+		cp := r.Min.Add(image.Pt(f.StringWidth(ui.Text[:ui.cursor0()]), 0))
+		drawString(img, r.Min, cp)
+	} else {
+		if ui.img == nil || !ui.img.R.Size().Eq(ui.size) {
+			var err error
+			ui.img, err = env.Display.AllocImage(rect(ui.size), draw.ARGB32, false, draw.Transparent)
+			check(err, "allocimage")
+		}
+		ui.img.Draw(ui.img.R, colors.Background, nil, image.ZP)
+
+		// first, determine cursor given previous draw
+		width := ui.img.R.Dx() - 2*env.Size.Space
+		stringWidth := f.StringWidth(ui.Text[:ui.cursor0()])
+		cursorOffset := stringWidth + ui.prevTextOffset
+		var textOffset int
+		if cursorOffset < 0 {
+			// before start, realign to left
+			textOffset = -stringWidth
+			cursorOffset = 0
+		} else if cursorOffset > width {
+			// after start, realign to right
+			textOffset = width - stringWidth
+			cursorOffset = width - 1
+		} else {
+			// don't reallign
+			textOffset = ui.prevTextOffset
+		}
+
+		drawString(ui.img, image.Pt(textOffset, 0), image.Pt(cursorOffset, 0))
+		img.Draw(r.Inset(env.Size.Space), ui.img, nil, pt(env.Size.Space))
+		ui.prevTextOffset = textOffset
 	}
 }
 

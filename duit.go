@@ -100,6 +100,16 @@ func NewDUI(name, dim string) (*DUI, error) {
 			Background: makeColor(0x3272dcff),
 			Border:     makeColor(0x666666ff),
 		},
+		Selection: Colors{
+			Text:       makeColor(0xeeeeeeff),
+			Background: makeColor(0xbbbbbbff),
+			Border:     makeColor(0x666666ff),
+		},
+		SelectionHover: Colors{
+			Text:       makeColor(0xeeeeeeff),
+			Background: makeColor(0x3272dcff),
+			Border:     makeColor(0x666666ff),
+		},
 		Primary: Colors{
 			Text:       makeColor(0xffffffff),
 			Background: makeColor(0x3272dcff),
