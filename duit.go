@@ -138,6 +138,11 @@ func NewDUI(name, dim string) (*DUI, error) {
 			Background: makeColor(0xf8f8f8ff),
 			Border:     makeColor(0xbbbbbbff),
 		},
+		Placeholder: Colors{
+			Text:       makeColor(0xaaaaaaff),
+			Background: makeColor(0xf8f8f8ff),
+			Border:     makeColor(0xbbbbbbff),
+		},
 		Hover: Colors{
 			Text:       makeColor(0x222222ff),
 			Background: makeColor(0xfafafaff),

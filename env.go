@@ -14,6 +14,7 @@ type Env struct {
 	Inverse,
 	Selection,
 	SelectionHover,
+	Placeholder,
 	Primary Colors
 
 	BackgroundColor draw.Color

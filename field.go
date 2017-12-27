@@ -13,6 +13,7 @@ import (
 
 type Field struct {
 	Text            string
+	Placeholder     string // text displayed in lighter color as example
 	Disabled        bool
 	Cursor1         int // index in string of cursor, start at 1. 0 means end of string.
 	SelectionStart1 int // if > 0, 1 beyond the start of the selection, with Cursor being the end.
@@ -88,6 +89,13 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 		colors = env.Hover
 		selColors = env.SelectionHover
 	}
+	text := ui.Text
+	if text == "" {
+		text = ui.Placeholder
+		if !ui.Disabled {
+			colors = env.Placeholder
+		}
+	}
 	img.Draw(r, colors.Background, nil, image.ZP)
 	drawRoundedBorder(img, r, colors.Border)
 
@@ -98,10 +106,10 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 	drawString := func(i *draw.Image, p, cp image.Point) {
 		p = p.Add(pt(env.Size.Space))
 		if sel == "" {
-			i.String(p, colors.Text, image.ZP, f, ui.Text)
+			i.String(p, colors.Text, image.ZP, f, text)
 		} else {
-			before := ui.Text[:s]
-			after := ui.Text[e:]
+			before := text[:s]
+			after := text[e:]
 			p = i.String(p, colors.Text, image.ZP, f, before)
 			selR := outsetPt(rect(f.StringSize(sel)).Add(p), image.Pt(0, env.Size.Space/2))
 			i.Draw(selR, selColors.Background, nil, image.ZP)
@@ -118,9 +126,9 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 		}
 	}
 
-	width := f.StringWidth(ui.Text)
+	width := f.StringWidth(text)
 	if width <= r.Inset(env.Size.Space).Dx() {
-		cp := r.Min.Add(image.Pt(f.StringWidth(ui.Text[:ui.cursor0()]), 0))
+		cp := r.Min.Add(image.Pt(f.StringWidth(text[:ui.cursor0()]), 0))
 		drawString(img, r.Min, cp)
 	} else {
 		if ui.img == nil || !ui.img.R.Size().Eq(ui.size) {
@@ -132,7 +140,7 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 
 		// first, determine cursor given previous draw
 		width := ui.img.R.Dx() - 2*env.Size.Space
-		stringWidth := f.StringWidth(ui.Text[:ui.cursor0()])
+		stringWidth := f.StringWidth(text[:ui.cursor0()])
 		cursorOffset := stringWidth + ui.prevTextOffset
 		var textOffset int
 		if cursorOffset < 0 {
