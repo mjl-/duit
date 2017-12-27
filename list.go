@@ -26,7 +26,7 @@ var _ UI = &List{}
 
 func (ui *List) Layout(env *Env, size image.Point) image.Point {
 	font := env.Display.DefaultFont
-	ui.size = image.Pt(size.X, len(ui.Values)*(3*font.Height/2))
+	ui.size = image.Pt(size.X, len(ui.Values)*(4*font.Height/3))
 	return ui.size
 }
 
