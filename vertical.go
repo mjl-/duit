@@ -22,14 +22,13 @@ func (ui *Vertical) Layout(env *Env, size image.Point) image.Point {
 		panic("bad number of heights from split")
 	}
 	ui.heights = heights
-	ui.size = image.ZP
+	cur := image.ZP
 	for i, k := range ui.Kids {
-		p := image.Pt(0, ui.size.Y)
 		childSize := k.UI.Layout(env, image.Pt(size.X, heights[i]))
-		k.r = image.Rectangle{p, p.Add(childSize)}
-		ui.size.Y += heights[i]
+		k.r = rect(childSize).Add(cur)
+		cur.Y += heights[i]
 	}
-	ui.size.X = size.X
+	ui.size = image.Pt(size.X, cur.Y)
 	return ui.size
 }
 

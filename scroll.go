@@ -1,6 +1,7 @@
 package duit
 
 import (
+	"fmt"
 	"image"
 
 	"9fans.net/go/draw"
@@ -8,7 +9,8 @@ import (
 
 // Scroll shows a part of its single child, typically a box, and lets you scroll the content.
 type Scroll struct {
-	Child UI
+	Child     UI
+	MaxHeight int // < 0 means full height, 0 means as much as necessary, >0 means exactly that many lowdpi pixels
 
 	r             image.Rectangle // entire ui
 	barR          image.Rectangle
@@ -28,13 +30,17 @@ func NewScroll(ui UI) *Scroll {
 
 func (ui *Scroll) Layout(env *Env, size image.Point) image.Point {
 	ui.scrollbarSize = scale(env.Display, ScrollbarSize)
+	scaledMaxHeight := scale(env.Display, ui.MaxHeight)
+	if scaledMaxHeight > 0 && scaledMaxHeight < size.Y {
+		size.Y = scaledMaxHeight
+	}
 	ui.r = rect(size)
 	ui.barR = ui.r
 	ui.barR.Max.X = ui.barR.Min.X + ui.scrollbarSize
 	ui.childR = ui.r
 	ui.childR.Min.X = ui.barR.Max.X
 	ui.childSize = ui.Child.Layout(env, image.Pt(ui.r.Dx()-ui.barR.Dx(), ui.r.Dy()))
-	if ui.r.Dy() > ui.childSize.Y {
+	if ui.r.Dy() > ui.childSize.Y && ui.MaxHeight == 0 {
 		ui.barR.Max.Y = ui.childSize.Y
 		ui.r.Max.Y = ui.childSize.Y
 		ui.childR.Max.Y = ui.childSize.Y
@@ -57,18 +63,18 @@ func (ui *Scroll) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse
 		vis = env.ScrollVisibleHover
 	}
 
-	barR := ui.barR.Add(orig)
-	img.Draw(barR, bg, nil, image.ZP)
 	h := ui.r.Dy()
 	uih := ui.childSize.Y
 	if uih > h {
+		barR := ui.barR.Add(orig)
+		img.Draw(barR, bg, nil, image.ZP)
 		barH := int((float32(h) / float32(uih)) * float32(h))
 		barY := int((float32(ui.offset) / float32(uih)) * float32(h))
 		ui.barActiveR = ui.barR
 		ui.barActiveR.Min.Y += barY
 		ui.barActiveR.Max.Y = ui.barActiveR.Min.Y + barH
+		img.Draw(ui.barActiveR.Add(orig), vis, nil, image.ZP)
 	}
-	img.Draw(ui.barActiveR.Add(orig), vis, nil, image.ZP)
 
 	// draw child ui
 	if ui.childR.Empty() {
@@ -97,6 +103,9 @@ func (ui *Scroll) scroll(delta int) bool {
 		ui.offset = 0
 	}
 	offsetMax := ui.childSize.Y - ui.childR.Dy()
+	if offsetMax < 0 {
+		offsetMax = 0
+	}
 	if ui.offset > offsetMax {
 		ui.offset = offsetMax
 	}
@@ -120,9 +129,9 @@ func (ui *Scroll) scrollKey(c rune) (consumed bool) {
 func (ui *Scroll) scrollMouse(m draw.Mouse, scrollOnly bool) (consumed bool) {
 	switch m.Buttons {
 	case Button4:
-		return ui.scroll(-80)
+		return ui.scroll(-40)
 	case Button5:
-		return ui.scroll(80)
+		return ui.scroll(40)
 	}
 
 	if scrollOnly {
@@ -204,6 +213,6 @@ func (ui *Scroll) Focus(env *Env, o UI) *image.Point {
 }
 
 func (ui *Scroll) Print(indent int, r image.Rectangle) {
-	uiPrint("Scroll", indent, r)
+	uiPrint(fmt.Sprintf("Scroll offset=%d childR=%v childSize=%v", ui.offset, ui.childR, ui.childSize), indent, r)
 	ui.Child.Print(indent+1, image.Rectangle{image.ZP, ui.childSize})
 }

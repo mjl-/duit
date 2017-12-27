@@ -74,9 +74,12 @@ func main() {
 				{UI: &duit.Scroll{
 					Child: &duit.Grid{
 						Columns: 2,
-						Padding: image.Pt(6, 4),
-						Halign:  []duit.Halign{duit.HalignRight, duit.HalignLeft},
-						Valign:  []duit.Valign{duit.ValignMiddle, duit.ValignMiddle},
+						Padding: []duit.Space{
+							duit.SpaceXY(6, 4),
+							duit.SpaceXY(6, 4),
+						},
+						Halign: []duit.Halign{duit.HalignRight, duit.HalignLeft},
+						Valign: []duit.Valign{duit.ValignMiddle, duit.ValignMiddle},
 						Kids: []*duit.Kid{
 							{UI: &duit.Label{Text: "From"}},
 							{UI: &duit.Field{Text: "...from...", Disabled: true}},
@@ -105,7 +108,7 @@ func main() {
 				{UI: &duit.Scroll{
 					Child: &duit.Box{
 						Reverse:     true,
-						Padding:     image.Pt(6, 4),
+						Padding:     duit.SpaceXY(6, 4),
 						ChildMargin: image.Pt(6, 4),
 						Kids: duit.NewKids(
 							&duit.Label{Text: "counter:"},
@@ -147,7 +150,7 @@ func main() {
 							},
 							&duit.Label{Text: "Another box with a scrollbar:"},
 							&duit.Scroll{Child: &duit.Box{
-								Padding:     image.Pt(6, 4),
+								Padding:     duit.SpaceXY(6, 4),
 								ChildMargin: image.Pt(6, 4),
 								Kids: duit.NewKids(
 									&duit.Label{Text: "another label, this one is somewhat longer"},

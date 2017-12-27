@@ -40,28 +40,50 @@ const (
 	ValignBottom
 )
 
+type Result struct {
+	Hit      UI           // the UI where the event ended up
+	Consumed bool         // whether event was consumed, and should not be further handled by upper UI's
+	Redraw   bool         // whether event needs a redraw after
+	Layout   bool         // whether event needs a layout after
+	Warp     *image.Point // if set, mouse will warp to location
+}
+
+type Colors struct {
+	Text,
+	Background,
+	Border *draw.Image
+}
+
+type Size struct {
+	Margin  int
+	Border  int
+	Padding int
+	Space   int
+}
 
 type EventType byte
+
 const (
 	EventMouse = EventType(iota)
 	EventKey
 	EventResize
 )
+
 type Event struct {
-	Type EventType
+	Type  EventType
 	Mouse draw.Mouse
-	Key rune
+	Key   rune
 }
 
 type DUI struct {
-	Display  *draw.Display
-	Events chan Event
-	Top      UI
+	Display *draw.Display
+	Events  chan Event
+	Top     UI
+	Env     *Env
 
-	stop chan struct{}
-	mousectl *draw.Mousectl
-	keyctl   *draw.Keyboardctl
-	env         *Env
+	stop        chan struct{}
+	mousectl    *draw.Mousectl
+	keyctl      *draw.Keyboardctl
 	mouse       draw.Mouse
 	lastMouseUI UI
 	logEvents   bool
@@ -70,7 +92,7 @@ type DUI struct {
 
 func check(err error, msg string) {
 	if err != nil {
-		log.Printf(msg)
+		log.Printf("duit: %s: %s\n", msg, err)
 		panic(err)
 	}
 }
@@ -108,7 +130,7 @@ func NewDUI(name, dim string) (*DUI, error) {
 		return c
 	}
 
-	dui.env = &Env{
+	dui.Env = &Env{
 		Display: display,
 
 		Normal: Colors{
@@ -154,8 +176,14 @@ func NewDUI(name, dim string) (*DUI, error) {
 		ScrollBGHover:       makeColor(0xf0f0f0ff),
 		ScrollVisibleNormal: makeColor(0xbbbbbbff),
 		ScrollVisibleHover:  makeColor(0x999999ff),
+
+		debugColors: []*draw.Image{
+			makeColor(0x40000040),
+			makeColor(0x00400040),
+			makeColor(0x00004040),
+		},
 	}
-	setSize(dui.Display, &dui.env.Size)
+	setSize(dui.Display, &dui.Env.Size)
 
 	return dui, nil
 }
@@ -166,9 +194,9 @@ func (d *DUI) Render() {
 		t0 = time.Now()
 	}
 	size := image.Pt(d.Display.ScreenImage.R.Dx(), d.Display.ScreenImage.R.Dy())
-	d.Top.Layout(d.env, size)
+	d.Top.Layout(d.Env, size)
 	if d.logTiming {
-		log.Printf("time layout: %d µs\n", time.Now().Sub(t0)/time.Microsecond)
+		log.Printf("duit: time layout: %d µs\n", time.Now().Sub(t0)/time.Microsecond)
 	}
 	d.Display.ScreenImage.Draw(d.Display.ScreenImage.R, d.Display.White, nil, image.ZP)
 	d.Redraw()
@@ -179,24 +207,24 @@ func (d *DUI) Redraw() {
 	if d.logTiming {
 		t0 = time.Now()
 	}
-	d.Display.ScreenImage.Draw(d.Display.ScreenImage.R, d.env.Background, nil, image.ZP)
-	d.Top.Draw(d.env, d.Display.ScreenImage, image.ZP, d.mouse)
+	d.Display.ScreenImage.Draw(d.Display.ScreenImage.R, d.Env.Background, nil, image.ZP)
+	d.Top.Draw(d.Env, d.Display.ScreenImage, image.ZP, d.mouse)
 	if d.logTiming {
 		t1 = time.Now()
 	}
 	d.Display.Flush()
 	if d.logTiming {
 		t2 := time.Now()
-		log.Printf("time redraw: draw %d µs flush %d µs\n", t1.Sub(t0)/time.Microsecond, t2.Sub(t1)/time.Microsecond)
+		log.Printf("duit: time redraw: draw %d µs flush %d µs\n", t1.Sub(t0)/time.Microsecond, t2.Sub(t1)/time.Microsecond)
 	}
 }
 
 func (d *DUI) Mouse(m draw.Mouse) {
 	d.mouse = m
 	if d.logEvents {
-		log.Printf("mouse %v, %b\n", m, m.Buttons)
+		log.Printf("duit: mouse %v, %b\n", m, m.Buttons)
 	}
-	r := d.Top.Mouse(d.env, m)
+	r := d.Top.Mouse(d.Env, m)
 	if r.Layout {
 		d.Render()
 	} else if r.Hit != d.lastMouseUI || r.Redraw {
@@ -207,7 +235,7 @@ func (d *DUI) Mouse(m draw.Mouse) {
 
 func (d *DUI) Resize() {
 	if d.logEvents {
-		log.Printf("resize")
+		log.Printf("duit: resize")
 	}
 	check(d.Display.Attach(draw.Refmesg), "attach after resize")
 	d.Render()
@@ -215,8 +243,9 @@ func (d *DUI) Resize() {
 
 func (d *DUI) Key(r rune) {
 	if d.logEvents {
-		log.Printf("key %c, %x\n", r, r)
+		log.Printf("duit: key %c, %x\n", r, r)
 	}
+	layout := false
 	if r == draw.KeyFn+1 {
 		d.logEvents = !d.logEvents
 	}
@@ -228,11 +257,16 @@ func (d *DUI) Key(r rune) {
 	}
 	if r == draw.KeyFn+4 {
 		d.Display.SetDebug(true)
-		log.Println("drawdebug now on")
+		log.Println("duit: drawdebug now on")
 	}
-	result := d.Top.Key(d.env, image.ZP, d.mouse, r)
+	if r == draw.KeyFn+5 {
+		d.Env.DebugKids = !d.Env.DebugKids
+		log.Println("duit: debugKids now", d.Env.DebugKids)
+		layout = true
+	}
+	result := d.Top.Key(d.Env, image.ZP, d.mouse, r)
 	if !result.Consumed && r == '\t' {
-		first := d.Top.FirstFocus(d.env)
+		first := d.Top.FirstFocus(d.Env)
 		if first != nil {
 			result.Warp = first
 			result.Consumed = true
@@ -241,15 +275,15 @@ func (d *DUI) Key(r rune) {
 	if result.Warp != nil {
 		err := d.Display.MoveTo(*result.Warp)
 		if err != nil {
-			log.Printf("move mouse to %v: %s\n", result.Warp, err)
+			log.Printf("duit: move mouse to %v: %s\n", result.Warp, err)
 		}
 		d.mouse.Point = *result.Warp
-		result2 := d.Top.Mouse(d.env, d.mouse)
+		result2 := d.Top.Mouse(d.Env, d.mouse)
 		result.Redraw = result.Redraw || result2.Redraw || true
 		result.Layout = result.Layout || result2.Layout
 		d.lastMouseUI = result2.Hit
 	}
-	if result.Layout {
+	if result.Layout || layout {
 		d.Render()
 	} else if result.Redraw {
 		d.Redraw()
@@ -257,17 +291,17 @@ func (d *DUI) Key(r rune) {
 }
 
 func (d *DUI) Focus(ui UI) {
-	p := d.Top.Focus(d.env, ui)
+	p := d.Top.Focus(d.Env, ui)
 	if p == nil {
 		return
 	}
 	err := d.Display.MoveTo(*p)
 	if err != nil {
-		log.Printf("move mouse to %v: %v\n", *p, err)
+		log.Printf("duit: move mouse to %v: %v\n", *p, err)
 		return
 	}
 	d.mouse.Point = *p
-	r := d.Top.Mouse(d.env, d.mouse)
+	r := d.Top.Mouse(d.Env, d.mouse)
 	d.lastMouseUI = r.Hit
 	if r.Layout {
 		d.Render()
@@ -281,7 +315,7 @@ func uiPrint(s string, indent int, r image.Rectangle) {
 	if indent > 0 {
 		indentStr = fmt.Sprintf("%*s", indent*2, " ")
 	}
-	log.Printf("%s%s r %v\n", indentStr, s, r)
+	log.Printf("duit: %s%s r %v\n", indentStr, s, r)
 }
 
 func scale(d *draw.Display, n int) int {

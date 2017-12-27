@@ -10,6 +10,7 @@ type Button struct {
 	Text     string
 	Disabled bool
 	Primary  bool
+	Font     *draw.Font
 	Click    func(r *Result)
 
 	m draw.Mouse
@@ -17,17 +18,24 @@ type Button struct {
 
 var _ UI = &Button{}
 
+func (ui *Button) font(env *Env) *draw.Font {
+	if ui.Font != nil {
+		return ui.Font
+	}
+	return env.Display.DefaultFont
+}
+
 func (ui *Button) padding(env *Env) image.Point {
-	fontHeight := env.Display.DefaultFont.Height
+	fontHeight := ui.font(env).Height
 	return image.Pt(fontHeight/2, fontHeight/4)
 }
 
 func (ui *Button) Layout(env *Env, size image.Point) image.Point {
-	return env.Display.DefaultFont.StringSize(ui.Text).Add(ui.padding(env).Mul(2))
+	return ui.font(env).StringSize(ui.Text).Add(ui.padding(env).Mul(2))
 }
 
 func (ui *Button) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	textSize := env.Display.DefaultFont.StringSize(ui.Text)
+	textSize := ui.font(env).StringSize(ui.Text)
 	r := rect(textSize.Add(ui.padding(env).Mul(2)))
 
 	hover := m.In(r)
@@ -48,7 +56,7 @@ func (ui *Button) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse
 	if hover && !ui.Disabled && m.Buttons&1 == 1 {
 		hit = image.Pt(0, 1)
 	}
-	img.String(r.Min.Add(ui.padding(env)).Add(hit), colors.Text, image.ZP, env.Display.DefaultFont, ui.Text)
+	img.String(r.Min.Add(ui.padding(env)).Add(hit), colors.Text, image.ZP, ui.font(env), ui.Text)
 }
 
 func (ui *Button) Mouse(env *Env, m draw.Mouse) Result {

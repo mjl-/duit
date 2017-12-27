@@ -14,8 +14,9 @@ import (
 type Field struct {
 	Text            string
 	Disabled        bool
-	Cursor1         int                                   // index in string of cursor, start at 1. 0 means end of string.
-	SelectionStart1 int                                   // if > 0, 1 beyond the start of the selection, with Cursor being the end.
+	Cursor1         int // index in string of cursor, start at 1. 0 means end of string.
+	SelectionStart1 int // if > 0, 1 beyond the start of the selection, with Cursor being the end.
+	Font            *draw.Font
 	Changed         func(string, *Result)                 // called after contents of field have changed
 	Keys            func(m draw.Mouse, k rune, r *Result) // called before handling key. if you consume the event, Changed will not be called
 
@@ -27,6 +28,13 @@ type Field struct {
 }
 
 var _ UI = &Field{}
+
+func (ui *Field) font(env *Env) *draw.Font {
+	if ui.Font != nil {
+		return ui.Font
+	}
+	return env.Display.DefaultFont
+}
 
 // cursor adjusted to start at 0 index
 func (ui *Field) cursor0() int {
@@ -60,7 +68,7 @@ func (ui *Field) removeSelection() {
 }
 
 func (ui *Field) Layout(env *Env, size image.Point) image.Point {
-	ui.size = image.Point{size.X, 2*env.Size.Space + env.Display.DefaultFont.Height}
+	ui.size = image.Point{size.X, 2*env.Size.Space + ui.font(env).Height}
 	return ui.size
 }
 
@@ -85,7 +93,7 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 
 	ui.fixCursor()
 	s, e, sel := ui.selection0()
-	f := env.Display.DefaultFont
+	f := ui.font(env)
 
 	drawString := func(i *draw.Image, p, cp image.Point) {
 		p = p.Add(pt(env.Size.Space))
@@ -231,7 +239,7 @@ func (ui *Field) Mouse(env *Env, m draw.Mouse) (r Result) {
 	}
 	r.Hit = ui
 	locateCursor := func() int {
-		f := env.Display.DefaultFont
+		f := ui.font(env)
 		mX := m.X - env.Size.Space
 		x := 0
 		for i, c := range ui.Text {

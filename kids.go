@@ -22,7 +22,11 @@ func NewKids(uis ...UI) []*Kid {
 
 func kidsDraw(env *Env, kids []*Kid, uiSize image.Point, img *draw.Image, orig image.Point, m draw.Mouse) {
 	img.Draw(rect(uiSize).Add(orig), env.Background, nil, image.ZP)
-	for _, k := range kids {
+	for i, k := range kids {
+		if env.DebugKids {
+			img.Draw(k.r.Add(orig), env.debugColors[i%len(env.debugColors)], nil, image.ZP)
+		}
+
 		mm := m
 		mm.Point = mm.Point.Sub(k.r.Min)
 		k.UI.Draw(env, img, orig.Add(k.r.Min), mm)

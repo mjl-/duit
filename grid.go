@@ -8,11 +8,12 @@ import (
 )
 
 type Grid struct {
-	Kids    []*Kid
-	Columns int
-	Valign  []Valign
-	Halign  []Halign
-	Padding image.Point // in low DPI pixels, will be adjusted for high DPI
+	Kids     []*Kid
+	Columns  int
+	Valign   []Valign
+	Halign   []Halign
+	Padding  []Space // in low DPI pixels
+	MaxWidth int     // -1 means full width, 0 means automatic width, >0 means exactly that many lowdpi pixels
 
 	widths  []int
 	heights []int
@@ -28,10 +29,22 @@ func (ui *Grid) Layout(env *Env, size image.Point) image.Point {
 	if ui.Halign != nil && len(ui.Halign) != ui.Columns {
 		panic(fmt.Sprintf("len(halign) = %d, should be ui.Columns = %d", len(ui.Halign), ui.Columns))
 	}
+	if ui.Padding != nil && len(ui.Padding) != ui.Columns {
+		panic(fmt.Sprintf("len(padding) = %d, should be ui.Columns = %d", len(ui.Padding), ui.Columns))
+	}
 
-	ui.widths = make([]int, ui.Columns)         // widths include padding
-	padding := scalePt(env.Display, ui.Padding) // single padding
-	pad2 := padding.Mul(2)
+	scaledMaxWidth := env.Scale(ui.MaxWidth)
+	if scaledMaxWidth > 0 && scaledMaxWidth < size.X {
+		ui.size.X = scaledMaxWidth
+	}
+
+	ui.widths = make([]int, ui.Columns) // widths include padding
+	spaces := make([]Space, ui.Columns)
+	if ui.Padding != nil {
+		for i, pad := range ui.Padding {
+			spaces[i] = env.ScaleSpace(pad)
+		}
+	}
 	width := 0                       // total width so far
 	x := make([]int, len(ui.widths)) // x offsets per column
 	x[0] = 0
@@ -43,15 +56,31 @@ func (ui *Grid) Layout(env *Env, size image.Point) image.Point {
 		}
 		ui.widths[col] = 0
 		newDx := 0
+		space := spaces[col]
 		for i := col; i < len(ui.Kids); i += ui.Columns {
 			k := ui.Kids[i]
-			childSize := k.UI.Layout(env, image.Pt(size.X-width-pad2.X, size.Y-pad2.Y))
-			if childSize.X+pad2.X > newDx {
-				newDx = childSize.X + pad2.X
+			childSize := k.UI.Layout(env, image.Pt(size.X-width-space.Dx(), size.Y-space.Dy()))
+			if childSize.X+space.Dx() > newDx {
+				newDx = childSize.X + space.Dx()
 			}
 		}
 		ui.widths[col] = newDx
 		width += ui.widths[col]
+	}
+	if scaledMaxWidth < 0 && width < size.X {
+		leftover := size.X - width
+		given := 0
+		for i, _ := range ui.widths {
+			x[i] += given
+			var dx int
+			if i == len(ui.widths)-1 {
+				dx = leftover - given
+			} else {
+				dx = leftover / len(ui.widths)
+			}
+			ui.widths[i] += dx
+			given += dx
+		}
 	}
 
 	// now determine row heights
@@ -66,12 +95,13 @@ func (ui *Grid) Layout(env *Env, size image.Point) image.Point {
 		}
 		rowDy := 0
 		for col := 0; col < ui.Columns; col++ {
+			space := spaces[col]
 			k := ui.Kids[i+col]
-			childSize := k.UI.Layout(env, image.Pt(ui.widths[col]-pad2.X, size.Y-y[row]-pad2.Y))
-			offset := image.Pt(x[col], y[row]).Add(padding)
+			childSize := k.UI.Layout(env, image.Pt(ui.widths[col]-space.Dx(), size.Y-y[row]-space.Dy()))
+			offset := image.Pt(x[col], y[row]).Add(space.Topleft())
 			k.r = rect(childSize).Add(offset) // aligned in top left, fixed for halign/valign later on
-			if childSize.Y+pad2.Y > rowDy {
-				rowDy = childSize.Y + pad2.Y
+			if childSize.Y+space.Dy() > rowDy {
+				rowDy = childSize.Y + space.Dy()
 			}
 		}
 		ui.heights[row] = rowDy
@@ -82,6 +112,7 @@ func (ui *Grid) Layout(env *Env, size image.Point) image.Point {
 	for i, k := range ui.Kids {
 		row := i / ui.Columns
 		col := i % ui.Columns
+		space := spaces[col]
 
 		valign := ValignTop
 		halign := HalignLeft
@@ -91,7 +122,7 @@ func (ui *Grid) Layout(env *Env, size image.Point) image.Point {
 		if ui.Halign != nil {
 			halign = ui.Halign[col]
 		}
-		cellSize := image.Pt(ui.widths[col], ui.heights[row]).Sub(padding.Mul(2))
+		cellSize := image.Pt(ui.widths[col], ui.heights[row]).Sub(space.Size())
 		spaceX := 0
 		switch halign {
 		case HalignLeft:

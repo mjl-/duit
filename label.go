@@ -8,16 +8,24 @@ import (
 
 type Label struct {
 	Text string
+	Font *draw.Font
 }
 
 var _ UI = &Label{}
 
+func (ui *Label) font(env *Env) *draw.Font {
+	if ui.Font != nil {
+		return ui.Font
+	}
+	return env.Display.DefaultFont
+}
+
 func (ui *Label) Layout(env *Env, size image.Point) image.Point {
-	return env.Display.DefaultFont.StringSize(ui.Text)
+	return ui.font(env).StringSize(ui.Text)
 }
 
 func (ui *Label) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	img.String(orig, env.Normal.Text, image.ZP, env.Display.DefaultFont, ui.Text)
+	img.String(orig, env.Normal.Text, image.ZP, ui.font(env), ui.Text)
 }
 
 func (ui *Label) Mouse(env *Env, m draw.Mouse) Result {

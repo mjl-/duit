@@ -251,7 +251,7 @@ func main() {
 			},
 		}
 		return &duit.Box{
-			Padding:     image.Pt(6, 4),
+			Padding:     duit.SpaceXY(6, 4),
 			ChildMargin: image.Pt(6, 4),
 			Kids: duit.NewKids(
 				&duit.Field{
@@ -332,7 +332,7 @@ func main() {
 	}
 
 	dui.Top = &duit.Box{
-		Padding:     image.Pt(6, 4),
+		Padding:     duit.SpaceXY(6, 4),
 		ChildMargin: image.Pt(6, 4),
 		Valign:      duit.ValignMiddle,
 		Kids: duit.NewKids(

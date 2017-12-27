@@ -6,51 +6,6 @@ import (
 	"9fans.net/go/draw"
 )
 
-type Result struct {
-	Hit      UI           // the UI where the event ended up
-	Consumed bool         // whether event was consumed, and should not be further handled by upper UI's
-	Redraw   bool         // whether event needs a redraw after
-	Layout   bool         // whether event needs a layout after
-	Warp     *image.Point // if set, mouse will warp to location
-}
-
-type Colors struct {
-	Text,
-	Background,
-	Border *draw.Image
-}
-
-type Size struct {
-	Margin  int
-	Border  int
-	Padding int
-	Space   int
-}
-
-type Env struct {
-	Display *draw.Display
-
-	// color for text
-	Normal,
-	Hover,
-	Disabled,
-	Inverse,
-	Selection,
-	SelectionHover,
-	Primary Colors
-
-	BackgroundColor draw.Color
-
-	Background,
-	ScrollBGNormal,
-	ScrollBGHover,
-	ScrollVisibleNormal,
-	ScrollVisibleHover *draw.Image
-
-	// sizes scaled for DPI of screen
-	Size Size
-}
-
 // UI is a user interface widget.
 // It is implemented by Button, Label, Field, Image and List.
 // And by layout UI's such as Box, Grid, Horizontal, Vertical and Scroll.

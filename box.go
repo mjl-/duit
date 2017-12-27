@@ -27,8 +27,9 @@ type Box struct {
 	Kids        []*Kid
 	Reverse     bool        // lay out children from bottom to top. first kid will be at the bottom.
 	ChildMargin image.Point // in pixels, will be adjusted for high dpi screens
-	Padding     image.Point // padding inside box, so children don't touch the sides; also adjusted for high dpi screens
-	Valign      Valign
+	Padding     Space       // padding inside box, so children don't touch the sides; also adjusted for high dpi screens
+	Valign      Valign      // how to align children on a line
+	MaxWidth    int         // 0 means dynamic (as much as needed), -1 means full width, >0 means that exact amount of lowdpi pixels
 
 	size image.Point // of entire box, including padding
 }
@@ -36,9 +37,13 @@ type Box struct {
 var _ UI = &Box{}
 
 func (ui *Box) Layout(env *Env, size image.Point) image.Point {
-	padding := scalePt(env.Display, ui.Padding)
+	osize := size
+	if ui.MaxWidth > 0 && scale(env.Display, ui.MaxWidth) < size.X {
+		size.X = scale(env.Display, ui.MaxWidth)
+	}
+	padding := env.ScaleSpace(ui.Padding)
 	margin := scalePt(env.Display, ui.ChildMargin)
-	size = size.Sub(padding.Mul(2))
+	size = size.Sub(padding.Size())
 	nx := 0 // number on current line
 
 	// variables below are about box contents not offset for padding
@@ -65,7 +70,7 @@ func (ui *Box) Layout(env *Env, size image.Point) image.Point {
 		childSize := k.UI.Layout(env, size.Sub(image.Pt(0, cur.Y+lineY)))
 		var kr image.Rectangle
 		if nx == 0 || cur.X+childSize.X <= size.X {
-			kr = rect(childSize).Add(cur).Add(padding)
+			kr = rect(childSize).Add(cur).Add(padding.Topleft())
 			cur.X += childSize.X + margin.X
 			if childSize.Y > lineY {
 				lineY = childSize.Y
@@ -77,7 +82,7 @@ func (ui *Box) Layout(env *Env, size image.Point) image.Point {
 				cur.X = 0
 				cur.Y += lineY + margin.Y
 			}
-			kr = rect(childSize).Add(cur).Add(padding)
+			kr = rect(childSize).Add(cur).Add(padding.Topleft())
 			nx = 1
 			cur.X = childSize.X + margin.X
 			lineY = childSize.Y
@@ -91,7 +96,7 @@ func (ui *Box) Layout(env *Env, size image.Point) image.Point {
 	cur.Y += lineY
 
 	if ui.Reverse {
-		bottomY := cur.Y + 2*padding.Y
+		bottomY := cur.Y + padding.Dy()
 		for _, k := range ui.Kids {
 			y1 := bottomY - k.r.Min.Y
 			y0 := y1 - k.r.Dy()
@@ -99,7 +104,10 @@ func (ui *Box) Layout(env *Env, size image.Point) image.Point {
 		}
 	}
 
-	ui.size = image.Pt(xmax-margin.X, cur.Y).Add(padding.Mul(2))
+	ui.size = image.Pt(xmax-margin.X, cur.Y).Add(padding.Size())
+	if ui.MaxWidth < 0 {
+		ui.size.X = osize.X
+	}
 	return ui.size
 }
 

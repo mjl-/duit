@@ -15,6 +15,7 @@ type ListValue struct {
 type List struct {
 	Values   []*ListValue
 	Multiple bool
+	Font     *draw.Font
 	Changed  func(index int, result *Result)
 	Click    func(index, buttons int, r *Result)
 	Keys     func(index int, m draw.Mouse, k rune, r *Result)
@@ -24,14 +25,20 @@ type List struct {
 
 var _ UI = &List{}
 
+func (ui *List) font(env *Env) *draw.Font {
+	if ui.Font != nil {
+		return ui.Font
+	}
+	return env.Display.DefaultFont
+}
+
 func (ui *List) Layout(env *Env, size image.Point) image.Point {
-	font := env.Display.DefaultFont
-	ui.size = image.Pt(size.X, len(ui.Values)*(4*font.Height/3))
+	ui.size = image.Pt(size.X, len(ui.Values)*(4*ui.font(env).Height/3))
 	return ui.size
 }
 
 func (ui *List) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	font := env.Display.DefaultFont
+	font := ui.font(env)
 	r := rect(ui.size).Add(orig)
 	img.Draw(r, env.Background, nil, image.ZP)
 	lineR := r
@@ -53,7 +60,7 @@ func (ui *List) Mouse(env *Env, m draw.Mouse) (result Result) {
 	if !m.In(rect(ui.size)) {
 		return
 	}
-	font := env.Display.DefaultFont
+	font := ui.font(env)
 	index := m.Y / (4 * font.Height / 3)
 	if m.Buttons != 0 && ui.Click != nil {
 		ui.Click(index, m.Buttons, &result)
@@ -84,6 +91,10 @@ func (ui *List) selectedIndices() (l []int) {
 		}
 	}
 	return
+}
+
+func (ui *List) Selected() (indices []int) {
+	return ui.selectedIndices()
 }
 
 func (ui *List) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Result) {
@@ -140,7 +151,7 @@ func (ui *List) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Re
 				ui.Changed(nindex, &result)
 			}
 			// xxx orig probably should not be a part in this...
-			font := env.Display.DefaultFont
+			font := ui.font(env)
 			p := orig.Add(image.Pt(m.X, nindex*(4*font.Height/3)+font.Height/2))
 			result.Warp = &p
 		}
