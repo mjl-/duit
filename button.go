@@ -63,8 +63,9 @@ func (ui *Button) Mouse(env *Env, m draw.Mouse) Result {
 	return r
 }
 
-func (ui *Button) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
-	return Result{Hit: ui}
+func (ui *Button) Key(env *Env, orig image.Point, m draw.Mouse, c rune) (r Result) {
+	r.Hit = ui
+	return
 }
 
 func (ui *Button) FirstFocus(env *Env) *image.Point {
@@ -76,8 +77,7 @@ func (ui *Button) Focus(env *Env, o UI) *image.Point {
 	if o != ui {
 		return nil
 	}
-	p := image.Pt(env.Size.Space, env.Size.Space)
-	return &p
+	return ui.FirstFocus(env)
 }
 
 func (ui *Button) Print(indent int, r image.Rectangle) {
