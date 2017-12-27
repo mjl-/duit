@@ -85,7 +85,6 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 	f := env.Display.DefaultFont
 
 	drawString := func(i *draw.Image, p, cp image.Point) {
-		log.Printf("drawString, text %s, p %v, cp %v, cursor0 %d\n", ui.Text, p, cp, ui.cursor0())
 		p = p.Add(pt(env.Size.Space))
 		if sel == "" {
 			i.String(p, colors.Text, image.ZP, f, ui.Text)
