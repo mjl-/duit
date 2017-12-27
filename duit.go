@@ -14,7 +14,7 @@ const (
 	Padding = 6
 	Border  = 1
 
-	ScrollbarSize = 8
+	ScrollbarSize = 10
 )
 const (
 	Button1 = 1 << iota

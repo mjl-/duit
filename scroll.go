@@ -12,6 +12,7 @@ type Scroll struct {
 
 	r             image.Rectangle // entire ui
 	barR          image.Rectangle
+	barActiveR    image.Rectangle
 	childR        image.Rectangle
 	childSize     image.Point
 	offset        int         // current scroll offset in pixels
@@ -58,16 +59,16 @@ func (ui *Scroll) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse
 
 	barR := ui.barR.Add(orig)
 	img.Draw(barR, bg, nil, image.ZP)
-	barRActive := barR
 	h := ui.r.Dy()
 	uih := ui.childSize.Y
 	if uih > h {
 		barH := int((float32(h) / float32(uih)) * float32(h))
 		barY := int((float32(ui.offset) / float32(uih)) * float32(h))
-		barRActive.Min.Y += barY
-		barRActive.Max.Y = barRActive.Min.Y + barH
+		ui.barActiveR = ui.barR
+		ui.barActiveR.Min.Y += barY
+		ui.barActiveR.Max.Y = ui.barActiveR.Min.Y + barH
 	}
-	img.Draw(barRActive, vis, nil, image.ZP)
+	img.Draw(ui.barActiveR.Add(orig), vis, nil, image.ZP)
 
 	// draw child ui
 	if ui.childR.Empty() {
@@ -95,7 +96,7 @@ func (ui *Scroll) scroll(delta int) bool {
 	if ui.offset < 0 {
 		ui.offset = 0
 	}
-	offsetMax := ui.childSize.Y - ui.r.Dy()
+	offsetMax := ui.childSize.Y - ui.childR.Dy()
 	if ui.offset > offsetMax {
 		ui.offset = offsetMax
 	}
@@ -116,32 +117,54 @@ func (ui *Scroll) scrollKey(c rune) (consumed bool) {
 	return false
 }
 
-func (ui *Scroll) scrollMouse(m draw.Mouse) (consumed bool) {
-	if m.Buttons == Button4 {
+func (ui *Scroll) scrollMouse(m draw.Mouse, scrollOnly bool) (consumed bool) {
+	switch m.Buttons {
+	case Button4:
 		return ui.scroll(-80)
+	case Button5:
+		return ui.scroll(80)
 	}
-	if m.Buttons == Button5 {
+
+	if scrollOnly {
+		return false
+	}
+	switch m.Buttons {
+	case Button1:
+		return ui.scroll(-80)
+	case Button2:
+		offset := m.Y * ui.childSize.Y / ui.barR.Dy()
+		offsetMax := ui.childSize.Y - ui.childR.Dy()
+		if offset < 0 {
+			offset = 0
+		} else if offset > offsetMax {
+			offset = offsetMax
+		}
+		o := ui.offset
+		ui.offset = offset
+		return o != ui.offset
+	case Button3:
 		return ui.scroll(80)
 	}
 	return false
 }
 
-func (ui *Scroll) Mouse(env *Env, m draw.Mouse) Result {
+func (ui *Scroll) Mouse(env *Env, m draw.Mouse) (r Result) {
+	r.Hit = ui
 	if m.Point.In(ui.barR) {
-		consumed := ui.scrollMouse(m)
-		redraw := consumed
-		return Result{Hit: ui, Consumed: consumed, Redraw: redraw}
+		r.Consumed = ui.scrollMouse(m, false)
+		r.Redraw = r.Consumed
+		return
 	}
 	if m.Point.In(ui.r) {
 		m.Point = m.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
-		r := ui.Child.Mouse(env, m)
+		r = ui.Child.Mouse(env, m)
 		if !r.Consumed {
-			r.Consumed = ui.scrollMouse(m)
+			r.Consumed = ui.scrollMouse(m, true)
 			r.Redraw = r.Redraw || r.Consumed
 		}
-		return r
+		return
 	}
-	return Result{}
+	return
 }
 
 func (ui *Scroll) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
