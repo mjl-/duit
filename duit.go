@@ -116,7 +116,8 @@ func NewDUI(name, dim string) (*DUI, error) {
 			Border:     makeColor(0x3272dcff),
 		},
 
-		BackgroundColor: draw.Color(0xffffffff),
+		BackgroundColor: draw.Color(0xfcfcfcff),
+		Background:      makeColor(0xfcfcfcff),
 
 		ScrollBGNormal:      makeColor(0xf4f4f4ff),
 		ScrollBGHover:       makeColor(0xf0f0f0ff),
@@ -147,6 +148,7 @@ func (d *DUI) Redraw() {
 	if d.logTiming {
 		t0 = time.Now()
 	}
+	d.Display.ScreenImage.Draw(d.Display.ScreenImage.R, d.env.Background, nil, image.ZP)
 	d.Top.Draw(d.env, d.Display.ScreenImage, image.ZP, d.mouse)
 	if d.logTiming {
 		t1 = time.Now()

@@ -41,6 +41,7 @@ type Env struct {
 
 	BackgroundColor draw.Color
 
+	Background,
 	ScrollBGNormal,
 	ScrollBGHover,
 	ScrollVisibleNormal,

@@ -83,7 +83,7 @@ func (ui *Scroll) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse
 		ui.img, err = env.Display.AllocImage(rect(ui.childSize), draw.ARGB32, false, env.BackgroundColor)
 		check(err, "allocimage")
 	} else {
-		ui.img.Draw(ui.img.R, env.Normal.Background, nil, image.ZP)
+		ui.img.Draw(ui.img.R, env.Background, nil, image.ZP)
 	}
 	m.Point = m.Point.Add(image.Pt(-ui.childR.Min.X, ui.offset))
 	ui.Child.Draw(env, ui.img, image.ZP, m)

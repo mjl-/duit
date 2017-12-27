@@ -33,7 +33,7 @@ func (ui *List) Layout(env *Env, size image.Point) image.Point {
 func (ui *List) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
 	font := env.Display.DefaultFont
 	r := rect(ui.size).Add(orig)
-	img.Draw(r, env.Normal.Background, nil, image.ZP)
+	img.Draw(r, env.Background, nil, image.ZP)
 	lineR := r
 	lineR.Max.Y = lineR.Min.Y + 4*font.Height/3
 
@@ -41,8 +41,8 @@ func (ui *List) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 		colors := env.Normal
 		if v.Selected {
 			colors = env.Inverse
+			img.Draw(lineR, colors.Background, nil, image.ZP)
 		}
-		img.Draw(lineR, colors.Background, nil, image.ZP)
 		img.String(lineR.Min.Add(image.Pt(font.Height/4, font.Height/4)), colors.Text, image.ZP, font, v.Label)
 		lineR = lineR.Add(image.Pt(0, 4*font.Height/3))
 	}
