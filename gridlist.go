@@ -340,7 +340,8 @@ func (ui *Gridlist) Mouse(env *Env, m draw.Mouse) (r Result) {
 		// start dragging, find the column if any
 		slack := ui.font(env).StringWidth("x")
 		for i, x := range offsets {
-			if m.X >= x-slack && m.X <= x-slack {
+			x -= m.X
+			if x >= -slack && x <= slack {
 				ui.draggingColStart = i
 				r.Consumed = true
 				return
