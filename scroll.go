@@ -139,7 +139,7 @@ func (ui *Scroll) scrollMouse(m draw.Mouse, scrollOnly bool) (consumed bool) {
 	}
 	switch m.Buttons {
 	case Button1:
-		return ui.scroll(-80)
+		return ui.scroll(-m.Y)
 	case Button2:
 		offset := m.Y * ui.childSize.Y / ui.barR.Dy()
 		offsetMax := ui.childSize.Y - ui.childR.Dy()
@@ -152,7 +152,7 @@ func (ui *Scroll) scrollMouse(m draw.Mouse, scrollOnly bool) (consumed bool) {
 		ui.offset = offset
 		return o != ui.offset
 	case Button3:
-		return ui.scroll(80)
+		return ui.scroll(m.Y)
 	}
 	return false
 }
