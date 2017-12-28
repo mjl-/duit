@@ -19,10 +19,7 @@ type Button struct {
 var _ UI = &Button{}
 
 func (ui *Button) font(env *Env) *draw.Font {
-	if ui.Font != nil {
-		return ui.Font
-	}
-	return env.Display.DefaultFont
+	return env.Font(ui.Font)
 }
 
 func (ui *Button) padding(env *Env) image.Point {

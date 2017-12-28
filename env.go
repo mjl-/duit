@@ -15,6 +15,7 @@ type Env struct {
 	Selection,
 	SelectionHover,
 	Placeholder,
+	Striped,
 	Primary Colors
 
 	BackgroundColor draw.Color
@@ -43,4 +44,11 @@ func (e *Env) ScaleSpace(s Space) Space {
 		e.Scale(s.Bottom),
 		e.Scale(s.Left),
 	}
+}
+
+func (e *Env) Font(font *draw.Font) *draw.Font {
+	if font != nil {
+		return font
+	}
+	return e.Display.DefaultFont
 }

@@ -26,10 +26,7 @@ type List struct {
 var _ UI = &List{}
 
 func (ui *List) font(env *Env) *draw.Font {
-	if ui.Font != nil {
-		return ui.Font
-	}
-	return env.Display.DefaultFont
+	return env.Font(ui.Font)
 }
 
 func (ui *List) Layout(env *Env, size image.Point) image.Point {
@@ -50,7 +47,7 @@ func (ui *List) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 			colors = env.Inverse
 			img.Draw(lineR, colors.Background, nil, image.ZP)
 		}
-		img.String(lineR.Min.Add(image.Pt(font.Height/4, font.Height/4)), colors.Text, image.ZP, font, v.Label)
+		img.String(lineR.Min.Add(pt(font.Height/4)), colors.Text, image.ZP, font, v.Label)
 		lineR = lineR.Add(image.Pt(0, 4*font.Height/3))
 	}
 }

@@ -168,6 +168,11 @@ func NewDUI(name, dim string) (*DUI, error) {
 			Background: makeColor(0x3272dcff),
 			Border:     makeColor(0x666666ff),
 		},
+		Striped: Colors{
+			Text:       makeColor(0x333333ff),
+			Background: makeColor(0xf2f2f2ff),
+			Border:     makeColor(0xbbbbbbff),
+		},
 		Primary: Colors{
 			Text:       makeColor(0xffffffff),
 			Background: makeColor(0x3272dcff),

@@ -14,10 +14,7 @@ type Label struct {
 var _ UI = &Label{}
 
 func (ui *Label) font(env *Env) *draw.Font {
-	if ui.Font != nil {
-		return ui.Font
-	}
-	return env.Display.DefaultFont
+	return env.Font(ui.Font)
 }
 
 func (ui *Label) Layout(env *Env, size image.Point) image.Point {

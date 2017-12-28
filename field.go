@@ -31,10 +31,7 @@ type Field struct {
 var _ UI = &Field{}
 
 func (ui *Field) font(env *Env) *draw.Font {
-	if ui.Font != nil {
-		return ui.Font
-	}
-	return env.Display.DefaultFont
+	return env.Font(ui.Font)
 }
 
 // cursor adjusted to start at 0 index
