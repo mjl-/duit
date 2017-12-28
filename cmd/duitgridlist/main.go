@@ -20,7 +20,7 @@ func main() {
 	check(err, "new dui")
 
 	var rows []*duit.Gridrow
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 30; i++ {
 		values := []string{
 			fmt.Sprintf("cell 0,%d", i),
 			fmt.Sprintf("cell 1,%d", i),
@@ -32,6 +32,13 @@ func main() {
 		}
 		rows = append(rows, row)
 	}
+	rows = append([]*duit.Gridrow{&duit.Gridrow{
+		Values: []string{
+			"and this is the longest of them all! and this is the longest of them all! and this is the longest of them all!",
+			"this is quite a long line",
+			"but this is is even longer",
+		},
+	}}, rows...)
 
 	dui.Top = &duit.Scroll{
 		Child: &duit.Gridlist{
@@ -41,9 +48,9 @@ func main() {
 			Striped:  true,
 			Padding:  duit.SpaceXY(10, 2),
 			Halign: []duit.Halign{
-				duit.HalignLeft,
 				duit.HalignMiddle,
 				duit.HalignRight,
+				duit.HalignLeft,
 			},
 			Changed: func(index int, result *duit.Result) {
 				log.Printf("gridlist, index %d changed\n", index)
