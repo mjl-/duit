@@ -17,6 +17,7 @@ const (
 type Gridrow struct {
 	Selected bool
 	Values   []string
+	Value    interface{}
 }
 
 type Gridlist struct {
