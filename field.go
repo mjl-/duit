@@ -224,6 +224,7 @@ func expandSelection(t string, i int) (s, e int) {
 				nested++
 			}
 			if nested == 0 {
+				s++
 				return
 			}
 			s--
