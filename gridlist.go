@@ -331,6 +331,24 @@ func (ui *Gridlist) Mouse(env *Env, m draw.Mouse) (r Result) {
 			dx := m.X - offsets[ui.draggingColStart]
 			widths[ui.draggingColStart] -= dx
 			widths[ui.draggingColStart-1] += dx
+
+			// might have to move other columns
+			if dx > 0 {
+				// ui.draggingColStart became smaller, must check if later ones still have positive size
+				for i := ui.draggingColStart; i < len(widths)-1 && widths[i] < 0; i++ {
+					dx = -widths[i]
+					widths[i] = 0
+					widths[i+1] -= dx
+				}
+			} else {
+				// ui.draggingColStart-1 became smaller
+				for i := ui.draggingColStart - 1; i > 0 && widths[i] < 0; i-- {
+					dx = -widths[i]
+					widths[i] = 0
+					widths[i-1] -= dx
+				}
+			}
+
 			ui.colWidths = widths // note: this sets colWidths even if it wasn't set before
 			r.Consumed = true
 			r.Redraw = true
