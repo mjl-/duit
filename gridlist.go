@@ -35,7 +35,8 @@ type Gridlist struct {
 
 	colWidths        []int // set the first time there are rows
 	size             image.Point
-	draggingColStart int // x offset of column being dragged, so 1 means the first column is being dragged.
+	draggingColStart int         // x offset of column being dragged, so 1 means the first column is being dragged.
+	cellImage        *draw.Image // scratch image to draw cells on if they are too big
 }
 
 var _ UI = &Gridlist{}
@@ -256,6 +257,26 @@ func (ui *Gridlist) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 	font := ui.font(env)
 	rowSize := image.Pt(r.Dx(), rowHeight)
 	lineR := rect(rowSize).Add(orig)
+
+	ensureCellImage := func(size image.Point) *draw.Image {
+		if ui.cellImage != nil {
+			csize := ui.cellImage.R.Size()
+			if csize.X >= size.X && csize.Y >= size.Y {
+				return ui.cellImage
+			}
+		}
+		maxDx := 0
+		for _, dx := range widths {
+			if dx > maxDx {
+				maxDx = dx
+			}
+		}
+		var err error
+		ui.cellImage, err = env.Display.AllocImage(rect(image.Pt(maxDx, size.Y)), draw.ARGB32, false, draw.Transparent)
+		check(err, "allocimage")
+		return ui.cellImage
+	}
+
 	drawRow := func(row *Gridrow, odd bool) {
 		if len(row.Values) != ncol {
 			panic(fmt.Sprintf("row with wrong number of values, expect %d, saw %d", ncol, len(row.Values)))
@@ -272,10 +293,13 @@ func (ui *Gridlist) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 			cellR := lineR
 			cellR.Min.X = x[i] + separatorWidth
 			cellR.Max.X = cellR.Min.X + widths[i] + pad.Dx()
+			cellR = pad.Inset(cellR)
 			alignOffset := pt(0)
-			if ui.Halign != nil && ui.Halign[i] != HalignLeft {
-				leftover := widths[i] - font.StringWidth(s)
+			dx := font.StringWidth(s)
+			if ui.Halign != nil {
+				leftover := widths[i] - dx
 				switch ui.Halign[i] {
+				case HalignLeft:
 				case HalignMiddle:
 					alignOffset.X += leftover / 2
 				case HalignRight:
@@ -284,7 +308,14 @@ func (ui *Gridlist) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 					panic(fmt.Sprintf("unknown halign %d", ui.Halign[i]))
 				}
 			}
-			img.String(cellR.Min.Add(pad.Topleft()).Add(alignOffset), colors.Text, image.ZP, font, s)
+			if dx > widths[i] {
+				cellImg := ensureCellImage(cellR.Size())
+				cellImg.Draw(cellImg.R, colors.Background, nil, image.ZP)
+				cellImg.String(alignOffset, colors.Text, image.ZP, font, s)
+				img.Draw(cellR, cellImg, nil, image.ZP)
+			} else {
+				img.String(cellR.Min.Add(alignOffset), colors.Text, image.ZP, font, s)
+			}
 		}
 		lineR = lineR.Add(image.Pt(0, rowHeight+separatorHeight))
 	}
