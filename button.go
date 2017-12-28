@@ -22,18 +22,23 @@ func (ui *Button) font(env *Env) *draw.Font {
 	return env.Font(ui.Font)
 }
 
+func (ui *Button) space(env *Env) image.Point {
+	// padding + border
+	return ui.padding(env).Add(pt(BorderSize))
+}
+
 func (ui *Button) padding(env *Env) image.Point {
 	fontHeight := ui.font(env).Height
 	return image.Pt(fontHeight/2, fontHeight/4)
 }
 
 func (ui *Button) Layout(env *Env, size image.Point) image.Point {
-	return ui.font(env).StringSize(ui.Text).Add(ui.padding(env).Mul(2))
+	return ui.font(env).StringSize(ui.Text).Add(ui.space(env).Mul(2))
 }
 
 func (ui *Button) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
 	textSize := ui.font(env).StringSize(ui.Text)
-	r := rect(textSize.Add(ui.padding(env).Mul(2)))
+	r := rect(textSize.Add(ui.space(env).Mul(2)))
 
 	hover := m.In(r)
 	colors := env.Normal
@@ -53,7 +58,7 @@ func (ui *Button) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse
 	if hover && !ui.Disabled && m.Buttons&1 == 1 {
 		hit = image.Pt(0, 1)
 	}
-	img.String(r.Min.Add(ui.padding(env)).Add(hit), colors.Text, image.ZP, ui.font(env), ui.Text)
+	img.String(r.Min.Add(ui.space(env)).Add(hit), colors.Text, image.ZP, ui.font(env), ui.Text)
 }
 
 func (ui *Button) Mouse(env *Env, m draw.Mouse) Result {
@@ -74,7 +79,7 @@ func (ui *Button) Key(env *Env, orig image.Point, m draw.Mouse, c rune) (r Resul
 }
 
 func (ui *Button) FirstFocus(env *Env) *image.Point {
-	p := image.Pt(env.Size.Space, env.Size.Space)
+	p := ui.space(env)
 	return &p
 }
 

@@ -10,9 +10,7 @@ import (
 )
 
 const (
-	Margin  = 4
-	Padding = 6
-	Border  = 1
+	BorderSize = 1
 
 	ScrollbarSize = 10
 )
@@ -52,13 +50,6 @@ type Colors struct {
 	Text,
 	Background,
 	Border *draw.Image
-}
-
-type Size struct {
-	Margin  int
-	Border  int
-	Padding int
-	Space   int
 }
 
 type EventType byte
@@ -193,7 +184,6 @@ func NewDUI(name, dim string) (*DUI, error) {
 			makeColor(0x00004040),
 		},
 	}
-	setSize(dui.Display, &dui.Env.Size)
 
 	return dui, nil
 }
@@ -338,13 +328,6 @@ func scalePt(d *draw.Display, p image.Point) image.Point {
 
 func (d *DUI) Scale(n int) int {
 	return (d.Display.DPI / 100) * n
-}
-
-func setSize(d *draw.Display, size *Size) {
-	size.Padding = d.Scale(Padding)
-	size.Margin = d.Scale(Margin)
-	size.Border = Border // slim border is nicer
-	size.Space = size.Border + size.Padding
 }
 
 func (d *DUI) Event(e Event) {

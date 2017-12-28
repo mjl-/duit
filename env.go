@@ -26,9 +26,6 @@ type Env struct {
 	ScrollVisibleNormal,
 	ScrollVisibleHover *draw.Image
 
-	// sizes scaled for DPI of screen
-	Size Size
-
 	DebugKids   bool // whether to print distinct backgrounds in kids* functions
 	debugColors []*draw.Image
 }

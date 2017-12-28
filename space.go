@@ -24,6 +24,14 @@ func (s Space) Topleft() image.Point {
 	return image.Pt(s.Left, s.Top)
 }
 
+func (s Space) Inset(r image.Rectangle) image.Rectangle {
+	return image.Rect(r.Min.X+s.Left, r.Min.Y+s.Left, r.Max.X-s.Right, r.Max.Y-s.Bottom)
+}
+
 func SpaceXY(x, y int) Space {
 	return Space{y, x, y, x}
+}
+
+func SpacePt(p image.Point) Space {
+	return Space{p.Y, p.X, p.Y, p.X}
 }

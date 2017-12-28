@@ -34,6 +34,16 @@ func (ui *Field) font(env *Env) *draw.Font {
 	return env.Font(ui.Font)
 }
 
+func (ui *Field) padding(env *Env) image.Point {
+	fontHeight := ui.font(env).Height
+	return image.Pt(fontHeight/2, fontHeight/4)
+}
+
+func (ui *Field) space(env *Env) image.Point {
+	// padding + border
+	return ui.padding(env).Add(pt(1))
+}
+
 // cursor adjusted to start at 0 index
 func (ui *Field) cursor0() int {
 	ui.fixCursor()
@@ -66,7 +76,7 @@ func (ui *Field) removeSelection() {
 }
 
 func (ui *Field) Layout(env *Env, size image.Point) image.Point {
-	ui.size = image.Point{size.X, 2*env.Size.Space + ui.font(env).Height}
+	ui.size = image.Point{size.X, ui.font(env).Height + 2*ui.space(env).Y}
 	return ui.size
 }
 
@@ -100,15 +110,17 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 	s, e, sel := ui.selection0()
 	f := ui.font(env)
 
+	space := ui.space(env)
+
 	drawString := func(i *draw.Image, p, cp image.Point) {
-		p = p.Add(pt(env.Size.Space))
+		p = p.Add(space)
 		if sel == "" {
 			i.String(p, colors.Text, image.ZP, f, text)
 		} else {
 			before := text[:s]
 			after := text[e:]
 			p = i.String(p, colors.Text, image.ZP, f, before)
-			selR := outsetPt(rect(f.StringSize(sel)).Add(p), image.Pt(0, env.Size.Space/2))
+			selR := outsetPt(rect(f.StringSize(sel)).Add(p), image.Pt(0, space.Y/2))
 			i.Draw(selR, selColors.Background, nil, image.ZP)
 			p = i.String(p, selColors.Text, image.ZP, f, sel)
 			i.String(p, colors.Text, image.ZP, f, after)
@@ -116,7 +128,7 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 
 		if hover && !ui.Disabled {
 			// draw cursor
-			cp = cp.Add(pt(env.Size.Space))
+			cp = cp.Add(space)
 			cp1 := cp
 			cp1.Y += f.Height
 			i.Line(cp, cp1, 1, 1, 0, env.Hover.Border, image.ZP)
@@ -124,7 +136,7 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 	}
 
 	width := f.StringWidth(text)
-	if width <= r.Inset(env.Size.Space).Dx() {
+	if width <= r.Dx()-2*space.X {
 		cp := r.Min.Add(image.Pt(f.StringWidth(text[:ui.cursor0()]), 0))
 		drawString(img, r.Min, cp)
 	} else {
@@ -136,7 +148,7 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 		ui.img.Draw(ui.img.R, colors.Background, nil, image.ZP)
 
 		// first, determine cursor given previous draw
-		width := ui.img.R.Dx() - 2*env.Size.Space
+		width := ui.img.R.Dx() - 2*space.X
 		stringWidth := f.StringWidth(text[:ui.cursor0()])
 		cursorOffset := stringWidth + ui.prevTextOffset
 		var textOffset int
@@ -154,7 +166,7 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 		}
 
 		drawString(ui.img, image.Pt(textOffset, 0), image.Pt(cursorOffset, 0))
-		img.Draw(r.Inset(env.Size.Space), ui.img, nil, pt(env.Size.Space))
+		img.Draw(SpacePt(space).Inset(r), ui.img, nil, space)
 		ui.prevTextOffset = textOffset
 	}
 }
@@ -243,9 +255,10 @@ func (ui *Field) Mouse(env *Env, m draw.Mouse) (r Result) {
 		return
 	}
 	r.Hit = ui
+	space := ui.space(env)
 	locateCursor := func() int {
 		f := ui.font(env)
-		mX := m.X - env.Size.Space
+		mX := m.X - space.X
 		x := 0
 		for i, c := range ui.Text {
 			dx := f.StringWidth(string(c))

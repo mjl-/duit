@@ -20,11 +20,11 @@ var _ UI = &Radiobutton{}
 
 func (ui *Radiobutton) Layout(env *Env, size image.Point) image.Point {
 	hit := image.Point{0, 1}
-	return pt(2*env.Size.Border + 4*env.Display.DefaultFont.Height/5).Add(hit)
+	return pt(2*BorderSize + 4*env.Display.DefaultFont.Height/5).Add(hit)
 }
 
 func (ui *Radiobutton) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	r := rect(pt(2*env.Size.Border + 4*env.Display.DefaultFont.Height/5))
+	r := rect(pt(2*BorderSize + 4*env.Display.DefaultFont.Height/5))
 	hover := m.In(r)
 	r = r.Add(orig)
 
@@ -73,7 +73,7 @@ func (ui *Radiobutton) Mouse(env *Env, m draw.Mouse) (r Result) {
 	if ui.Disabled {
 		return
 	}
-	rr := rect(pt(2*env.Size.Border + 4*env.Display.DefaultFont.Height/5))
+	rr := rect(pt(2*BorderSize + 4*env.Display.DefaultFont.Height/5))
 	hover := m.In(rr)
 	if hover != ui.m.In(rr) {
 		r.Redraw = true
