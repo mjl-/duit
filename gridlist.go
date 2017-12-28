@@ -8,6 +8,12 @@ import (
 	"9fans.net/go/draw"
 )
 
+const (
+	// note: these are not adjusted for low/hidpi, we want them as slim as possible
+	separatorWidth  = 1
+	separatorHeight = 1
+)
+
 type Gridrow struct {
 	Selected bool
 	Values   []string
@@ -26,8 +32,9 @@ type Gridlist struct {
 	Click   func(index, buttons int, r *Result)
 	Keys    func(index int, m draw.Mouse, k rune, r *Result)
 
-	colWidths []int // set the first time there are rows
-	size      image.Point
+	colWidths        []int // set the first time there are rows
+	size             image.Point
+	draggingColStart int // x offset of column being dragged, so 1 means the first column is being dragged.
 }
 
 var _ UI = &Gridlist{}
@@ -41,6 +48,17 @@ func (ui *Gridlist) rowHeight(env *Env) int {
 	return ui.font(env).Height + env.ScaleSpace(ui.Padding).Dy()
 }
 
+func (ui *Gridlist) makeWidthOffsets(env *Env, widths []int) []int {
+	offsets := make([]int, len(widths))
+	space := env.ScaleSpace(ui.Padding)
+	for i := range widths {
+		if i > 0 {
+			offsets[i] = offsets[i-1] + separatorWidth + widths[i-1] + space.Dx()
+		}
+	}
+	return offsets
+}
+
 func (ui *Gridlist) columnWidths(env *Env, width int) []int {
 	if ui.colWidths != nil {
 		if width == ui.size.X {
@@ -49,7 +67,6 @@ func (ui *Gridlist) columnWidths(env *Env, width int) []int {
 
 		// reassign sizes, same relative size, just new absolute widths
 		ncol := len(ui.Header.Values)
-		const separatorWidth = 1
 		pad := env.ScaleSpace(ui.Padding)
 		avail := width - ncol*pad.Dx() - (ncol-1)*separatorWidth
 		prevTotal := 0
@@ -93,7 +110,6 @@ func (ui *Gridlist) columnWidths(env *Env, width int) []int {
 		}
 
 		// give out minimum width to all cols
-		const separatorWidth = 1
 		pad := env.ScaleSpace(ui.Padding)
 		minWidth := font.StringWidth("mmm")
 
@@ -183,7 +199,6 @@ func (ui *Gridlist) Layout(env *Env, sizeAvail image.Point) (sizeTaken image.Poi
 	}
 
 	n := 1 + len(ui.Rows)
-	const separatorHeight = 1
 	ui.columnWidths(env, sizeAvail.X) // calculate widths, possibly remembering
 	ui.size = image.Pt(sizeAvail.X, n*ui.rowHeight(env)+(n-1)*separatorHeight)
 	return ui.size
@@ -198,17 +213,10 @@ func (ui *Gridlist) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 	}
 
 	rowHeight := ui.rowHeight(env)
-	const separatorWidth = 1
-	const separatorHeight = 1
 	pad := env.ScaleSpace(ui.Padding)
 
 	widths := ui.columnWidths(env, ui.size.X) // widths, excluding separator and padding
-	x := make([]int, ncol)                    // x offsets of columns, including separator/padding of previous columns
-	for i := range widths {
-		if i > 0 {
-			x[i] = x[i-1] + separatorWidth + widths[i-1] + pad.Left
-		}
-	}
+	x := ui.makeWidthOffsets(env, widths)
 
 	font := ui.font(env)
 	rowSize := image.Pt(r.Dx(), rowHeight)
@@ -247,8 +255,10 @@ func (ui *Gridlist) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 	}
 
 	drawRow(&ui.Header, false)
+
+	// print separators
 	for i := 1; i < ncol; i++ {
-		p0 := image.Pt(x[i]-separatorWidth, 0).Add(orig).Add(pad.Topleft())
+		p0 := image.Pt(x[i]-separatorWidth, 0).Add(orig).Add(image.Pt(0, pad.Top))
 		p1 := p0
 		p1.Y += rowHeight - pad.Dy()
 		img.Line(p0, p1, 0, 0, 0, env.Normal.Border, image.ZP)
@@ -269,12 +279,42 @@ func (ui *Gridlist) Mouse(env *Env, m draw.Mouse) (r Result) {
 		return
 	}
 	rowHeight := ui.rowHeight(env)
-	const separatorHeight = 1
 	index := m.Y / (rowHeight + separatorHeight)
-	index--
-	if index < 0 {
+	if ui.draggingColStart > 0 || index == 0 {
+		// xxx todo: on double click, max column before fit (but at most twice as large)
+		// xxx todo: should probably show the grid separator with hover style
+
+		b1 := m.Buttons&Button1 == 1
+		if !b1 {
+			ui.draggingColStart = 0
+			return
+		}
+		widths := ui.columnWidths(env, ui.size.X)
+		offsets := ui.makeWidthOffsets(env, widths)
+		if ui.draggingColStart > 0 {
+			// user was dragging, move the grid sizes
+			dx := m.X - offsets[ui.draggingColStart]
+			widths[ui.draggingColStart] -= dx
+			widths[ui.draggingColStart-1] += dx
+			ui.colWidths = widths // note: this sets colWidths even if it wasn't set before
+			r.Consumed = true
+			r.Redraw = true
+			return
+		}
+
+		// start dragging, find the column if any
+		slack := ui.font(env).StringWidth("x")
+		for i, x := range offsets {
+			if m.X >= x-slack && m.X <= x-slack {
+				ui.draggingColStart = i
+				r.Consumed = true
+				return
+			}
+		}
+
 		return
 	}
+	index-- // adjust for header
 	if m.Buttons != 0 && ui.Click != nil {
 		ui.Click(index, m.Buttons, &r)
 	}
@@ -389,7 +429,6 @@ func (ui *Gridlist) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Res
 		if nindex >= 0 {
 			font := ui.font(env)
 			rowHeight := ui.rowHeight(env)
-			const separatorHeight = 1
 			pad := env.ScaleSpace(ui.Padding)
 
 			ui.Rows[nindex].Selected = true
