@@ -51,10 +51,10 @@ func (ui *Gridlist) rowHeight(env *Env) int {
 
 func (ui *Gridlist) makeWidthOffsets(env *Env, widths []int) []int {
 	offsets := make([]int, len(widths))
-	space := env.ScaleSpace(ui.Padding)
+	pad := env.ScaleSpace(ui.Padding)
 	for i := range widths {
 		if i > 0 {
-			offsets[i] = offsets[i-1] + separatorWidth + widths[i-1] + space.Dx()
+			offsets[i] = offsets[i-1] + widths[i-1] + pad.Dx() + separatorWidth
 		}
 	}
 	return offsets
@@ -65,6 +65,7 @@ func (ui *Gridlist) columnWidths(env *Env, width int) []int {
 		if width == ui.size.X {
 			return ui.colWidths
 		}
+		// log.Printf("making new columns, ui.size.X %d, width %d\n", ui.size.X, width)
 
 		// reassign sizes, same relative size, just new absolute widths
 		ncol := len(ui.Header.Values)
@@ -84,7 +85,7 @@ func (ui *Gridlist) columnWidths(env *Env, width int) []int {
 		return ui.colWidths
 	}
 
-	makeWidths := func(rows []*Gridrow) []int {
+	makeWidths := func(rows []*Gridrow) ([]int, bool) {
 		// first determine max & avg size of first 50 columns. there is always at least one row.
 		if len(rows) > 50 {
 			rows = rows[:50]
@@ -110,6 +111,8 @@ func (ui *Gridlist) columnWidths(env *Env, width int) []int {
 			maxTotal += v
 		}
 
+		// log.Printf("making widths, ncol %d, max %v, avg %v, maxTotal %d, width avail %d\n", ncol, max, avg, maxTotal, width)
+
 		// give out minimum width to all cols
 		pad := env.ScaleSpace(ui.Padding)
 		minWidth := font.StringWidth("mmm")
@@ -119,7 +122,9 @@ func (ui *Gridlist) columnWidths(env *Env, width int) []int {
 			widths[i] = minWidth
 		}
 
-		remain := width - ncol*(minWidth+pad.Dx()) - (ncol-1)*separatorWidth
+		overhead := ncol*pad.Dx() - (ncol-1)*separatorWidth
+		remain := width - ncol*minWidth - overhead
+		// log.Printf("gave minwidths, widths %v, remain %d\n", widths, remain)
 
 		// then see if we can fit them all
 		need := 0
@@ -137,12 +142,13 @@ func (ui *Gridlist) columnWidths(env *Env, width int) []int {
 					remain -= dx
 				}
 			}
+			// log.Printf("cols did fit, widths %v, remain %d\n", widths, remain)
 		}
 
 		// then give half remaining width to cols that would then fit without growing them to twice their previous size
 		give := remain / 2
 		for i := range widths {
-			if widths[i] >= max[i] || 2*widths[i] > max[i] {
+			if widths[i] >= max[i] || 2*widths[i] < max[i] {
 				continue
 			}
 			dx := max[i] - widths[i]
@@ -156,6 +162,7 @@ func (ui *Gridlist) columnWidths(env *Env, width int) []int {
 			}
 		}
 		remain = remain - remain/2 + give
+		// log.Printf("gave half remainig to fit small cols, widths %v, remain %d\n", widths, remain)
 
 		// give remaining half evenly based on average size of columns that don't yet fit
 		avgTotal := 0
@@ -172,9 +179,13 @@ func (ui *Gridlist) columnWidths(env *Env, width int) []int {
 					continue
 				}
 				dx := oremain * avg[i] / avgTotal
+				if dx > max[i]-widths[i] {
+					dx = max[i] - widths[i]
+				}
 				widths[i] += dx
 				remain -= dx
 			}
+			// log.Printf("gave remaining to non-fitting, widths %v, remain %d\n", widths, remain)
 		}
 
 		oremain := remain
@@ -184,13 +195,36 @@ func (ui *Gridlist) columnWidths(env *Env, width int) []int {
 			remain -= dx
 		}
 		widths[0] += remain
-		return widths
+		// log.Printf("gave remaining, widths %v, remain %d\n", widths, remain)
+		total := 0
+		for _, w := range widths {
+			total += w
+		}
+		if total != width-overhead {
+			panic(fmt.Sprintf("widths don't add up, total %d, width %d - overhead %d = %d\n", total, width, overhead, width-overhead))
+		}
+		fit := true
+		for i, w := range widths {
+			if w < max[i] {
+				fit = false
+				break
+			}
+		}
+		return widths, fit
 	}
 
 	if len(ui.Rows) == 0 {
-		return makeWidths([]*Gridrow{&ui.Header})
+		widths, _ := makeWidths([]*Gridrow{&ui.Header})
+		return widths
 	}
-	ui.colWidths = makeWidths(ui.Rows)
+	var fit bool
+	ui.colWidths, fit = makeWidths(ui.Rows)
+	if fit {
+		widths, fit := makeWidths(append([]*Gridrow{&ui.Header}, ui.Rows...))
+		if fit {
+			ui.colWidths = widths
+		}
+	}
 	return ui.colWidths
 }
 
@@ -206,12 +240,12 @@ func (ui *Gridlist) Layout(env *Env, sizeAvail image.Point) (sizeTaken image.Poi
 }
 
 func (ui *Gridlist) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	r := rect(ui.size).Add(orig)
-
 	ncol := len(ui.Header.Values)
 	if ncol == 0 {
-		panic("header has zero elements")
+		return
 	}
+
+	r := rect(ui.size).Add(orig)
 
 	rowHeight := ui.rowHeight(env)
 	pad := env.ScaleSpace(ui.Padding)
@@ -259,7 +293,7 @@ func (ui *Gridlist) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 
 	// print separators
 	for i := 1; i < ncol; i++ {
-		p0 := image.Pt(x[i]-separatorWidth, 0).Add(orig).Add(image.Pt(0, pad.Top))
+		p0 := image.Pt(x[i], 0).Add(orig).Add(image.Pt(0, pad.Top))
 		p1 := p0
 		p1.Y += rowHeight - pad.Dy()
 		img.Line(p0, p1, 0, 0, 0, env.Normal.Border, image.ZP)
