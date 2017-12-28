@@ -8,12 +8,12 @@ import (
 )
 
 type Grid struct {
-	Kids     []*Kid
-	Columns  int
-	Valign   []Valign
-	Halign   []Halign
-	Padding  []Space // in low DPI pixels
-	MaxWidth int     // -1 means full width, 0 means automatic width, >0 means exactly that many lowdpi pixels
+	Kids    []*Kid
+	Columns int
+	Valign  []Valign
+	Halign  []Halign
+	Padding []Space // in low DPI pixels
+	Width   int     // -1 means full width, 0 means automatic width, >0 means exactly that many lowdpi pixels
 
 	widths  []int
 	heights []int
@@ -33,9 +33,9 @@ func (ui *Grid) Layout(env *Env, size image.Point) image.Point {
 		panic(fmt.Sprintf("len(padding) = %d, should be ui.Columns = %d", len(ui.Padding), ui.Columns))
 	}
 
-	scaledMaxWidth := env.Scale(ui.MaxWidth)
-	if scaledMaxWidth > 0 && scaledMaxWidth < size.X {
-		ui.size.X = scaledMaxWidth
+	scaledWidth := env.Scale(ui.Width)
+	if scaledWidth > 0 && scaledWidth < size.X {
+		ui.size.X = scaledWidth
 	}
 
 	ui.widths = make([]int, ui.Columns) // widths include padding
@@ -67,7 +67,7 @@ func (ui *Grid) Layout(env *Env, size image.Point) image.Point {
 		ui.widths[col] = newDx
 		width += ui.widths[col]
 	}
-	if scaledMaxWidth < 0 && width < size.X {
+	if scaledWidth < 0 && width < size.X {
 		leftover := size.X - width
 		given := 0
 		for i, _ := range ui.widths {

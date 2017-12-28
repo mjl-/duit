@@ -29,7 +29,8 @@ type Box struct {
 	ChildMargin image.Point // in pixels, will be adjusted for high dpi screens
 	Padding     Space       // padding inside box, so children don't touch the sides; also adjusted for high dpi screens
 	Valign      Valign      // how to align children on a line
-	MaxWidth    int         // 0 means dynamic (as much as needed), -1 means full width, >0 means that exact amount of lowdpi pixels
+	Width       int         // 0 means dynamic (as much as needed), -1 means full width, >0 means that exact amount of lowdpi pixels
+	Height      int         // 0 means dynamic (as much as needed), -1 means full height, >0 means that exact amount of lowdpi pixels
 
 	size image.Point // of entire box, including padding
 }
@@ -38,8 +39,11 @@ var _ UI = &Box{}
 
 func (ui *Box) Layout(env *Env, size image.Point) image.Point {
 	osize := size
-	if ui.MaxWidth > 0 && scale(env.Display, ui.MaxWidth) < size.X {
-		size.X = scale(env.Display, ui.MaxWidth)
+	if ui.Width > 0 && scale(env.Display, ui.Width) < size.X {
+		size.X = scale(env.Display, ui.Width)
+	}
+	if ui.Height > 0 {
+		size.Y = scale(env.Display, ui.Height)
 	}
 	padding := env.ScaleSpace(ui.Padding)
 	margin := scalePt(env.Display, ui.ChildMargin)
@@ -105,8 +109,11 @@ func (ui *Box) Layout(env *Env, size image.Point) image.Point {
 	}
 
 	ui.size = image.Pt(xmax-margin.X, cur.Y).Add(padding.Size())
-	if ui.MaxWidth < 0 {
+	if ui.Width < 0 {
 		ui.size.X = osize.X
+	}
+	if ui.Height < 0 && ui.size.Y < osize.Y {
+		ui.size.Y = osize.Y
 	}
 	return ui.size
 }
