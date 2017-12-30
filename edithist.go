@@ -31,10 +31,10 @@ type text struct {
 var _ textSource = &text{}
 
 func (t *text) ReadAt(buf []byte, offset int64) (int, error) {
-	log.Printf("text.ReadAt n %d, offset %d, t %v\n", len(buf), offset, t)
+	// log.Printf("text.ReadAt n %d, offset %d, t %v\n", len(buf), offset, t)
 	for _, tp := range t.l {
 		size := tp.Size()
-		log.Printf("readAt, offset %d, size %d, tp %v\n", offset, size, tp)
+		// log.Printf("readAt, offset %d, size %d, tp %v\n", offset, size, tp)
 		n := len(buf)
 		if size < int64(n) {
 			n = int(size)

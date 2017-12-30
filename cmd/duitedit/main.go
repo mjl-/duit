@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io"
 	"log"
 	"os"
 
@@ -30,10 +31,24 @@ func main() {
 	f, err := os.Open(args[0])
 	check(err, "open")
 
-	dui, err := duit.NewDUI("page", "800x600")
+	dui, err := duit.NewDUI("page", "800x600@0,0")
 	check(err, "new dui")
 
-	dui.Top = duit.NewEdit(f)
+	edit := duit.NewEdit(f)
+
+	print := &duit.Button{
+		Text: "print",
+		Click: func(r *duit.Result) {
+			rd := edit.Reader()
+			n, err := io.Copy(os.Stdout, rd)
+			if err != nil {
+				log.Printf("error copying text: %s\n", err)
+			}
+			log.Printf("copied %d bytes\n", n)
+		},
+	}
+
+	dui.Top = &duit.Box{Kids: duit.NewKids(print, edit)}
 	dui.Render()
 
 	for {

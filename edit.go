@@ -167,6 +167,12 @@ func (ui *Edit) ensureInit() {
 	}
 }
 
+// Reader from which contents of edit can be read
+func (ui *Edit) Reader() io.Reader {
+	// xxx should make copy of ui.text
+	return io.NewSectionReader(ui.text, 0, ui.text.Size())
+}
+
 func (ui *Edit) reader(offset, size int64) *reader {
 	return &reader{ui, 0, bufio.NewReader(io.NewSectionReader(ui.text, offset, size-offset)), offset, true}
 }
@@ -216,38 +222,51 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 	rd := ui.reader(ui.offset, size)
 	lines := ui.textR.Dy() / font.Height
 
+	dropNewline := func(s string) string {
+		if s != "" && s[len(s)-1] == '\n' {
+			return s[:len(s)-1]
+		}
+		return s
+	}
+
 	c0, c1 := ui.orderedCursor()
-	drawLine := func(offsetEnd int64) {
+	// log.Printf("drawing... c0 %d, c1 %d\n", c0, c1)
+	drawLine := func(offsetEnd int64, eof bool) {
 		origS := s
 
 		n := len(s)
-		offsetStart := offsetEnd - int64(n)
-		// we draw text before cursor (selection), then selected text, then text after cursor.
+		offset := offsetEnd - int64(n)
+		// log.Printf("drawLine, offset %d, offsetEnd %d, n %d\n", offset, offsetEnd, n)
 		p := orig.Add(ui.textR.Min).Add(image.Pt(0, line*font.Height))
 
 		drawCursor := func() {
-			//log.Printf("drawCursor, c0 %d, c1 %d, cursor %d, cursor0 %d\n", c0, c1, ui.cursor, ui.cursor0)
+			// log.Printf("drawCursor, line %d c0 %d, c1 %d, cursor %d, cursor0 %d, offset %d, offsetEnd %d, s %s, n %d\n", line, c0, c1, ui.cursor, ui.cursor0, offset, offsetEnd, s, n)
 			p0 := p
 			p1 := p0
 			p1.Y += font.Height
 			img.Line(p0, p1, 0, 0, 1, env.Display.Black, image.ZP)
 		}
 
-		if offsetStart < c0 {
-			nn := minimum64(int64(n), c0-offsetStart)
-			pp := img.String(p, env.Normal.Text, image.ZP, font, s[:int(nn)])
+		// we draw text before selection
+		if offset < c0 {
+			nn := minimum64(int64(n), c0-offset)
+			// log.Printf("drawing %d before selection\n", nn)
+			pp := img.String(p, env.Normal.Text, image.ZP, font, dropNewline(s[:nn]))
 			p.X = pp.X
 			s = s[nn:]
-			offsetStart += nn
-		} else if c0 < offsetEnd {
-			c0 = offsetStart
+			offset += nn
 		}
-		if offsetStart == ui.cursor && ui.cursor == c0 && c0 != c1 {
+
+		if offset == ui.cursor && ui.cursor == c0 && c0 != c1 && offset < offsetEnd {
+			// log.Printf("cursor A, offset %d, ui.cursor %d, c1 %d, offsetEnd %d, size %d\n", offset, ui.cursor, c1, offsetEnd, size)
 			drawCursor()
 		}
-		if offsetStart == c0 && c1-c0 > 0 && offsetEnd > offsetStart {
-			nn := minimum64(c1-c0, offsetEnd-offsetStart)
-			sels := s[:int(nn)]
+
+		// then selected text
+		if offset >= c0 && offset < c1 && c1-c0 > 0 && offset < offsetEnd {
+			nn := minimum64(c1, offsetEnd) - offset
+			// log.Printf("drawing %d as selection\n", nn)
+			sels := s[:nn]
 			toEnd := sels[len(sels)-1] == '\n'
 			if toEnd {
 				sels = sels[:len(sels)-1]
@@ -261,20 +280,24 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 			pp := img.String(p, env.Inverse.Text, image.ZP, font, sels)
 			p.X = pp.X
 			s = s[nn:]
-			offsetStart += nn
+			offset += nn
 		}
-		if offsetStart == ui.cursor && ui.cursor == c1 {
+		if offset == ui.cursor && ui.cursor == c1 && (offset < offsetEnd || (offset == size && eof)) {
+			// log.Printf("cursor B, offset %d, ui.cursor %d, c1 %d, offsetEnd %d, size %d\n", offset, ui.cursor, c1, offsetEnd, size)
 			drawCursor()
 		}
-		if offsetStart >= c1 && offsetEnd > offsetStart {
-			nn := int(offsetEnd - offsetStart)
-			pp := img.String(p, env.Normal.Text, image.ZP, font, s)
+
+		// then text after cursor
+		if offset >= c1 && offsetEnd > offset {
+			nn := int(offsetEnd - offset)
+			// log.Printf("drawing %d after selection\n", nn)
+			pp := img.String(p, env.Normal.Text, image.ZP, font, dropNewline(s))
 			p.X = pp.X
 			s = s[nn:]
-			offsetStart += int64(nn)
+			offset += int64(nn)
 		}
-		if s != "" || offsetStart != offsetEnd {
-			panic(fmt.Sprintf("bug in drawLine, s %v, offsetStart %d, offsetEnd %d, c0 %d c1 %d, line %d, sdx %d, origS %s", s, offsetStart, offsetEnd, c0, c1, line, sdx, origS))
+		if s != "" || offset != offsetEnd {
+			panic(fmt.Sprintf("bug in drawLine, s %v, offset %d, offsetEnd %d, c0 %d c1 %d, line %d, sdx %d, origS %s", s, offset, offsetEnd, c0, c1, line, sdx, origS))
 		}
 
 		s = ""
@@ -282,21 +305,15 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 		line++
 	}
 
-	var lastC rune
 	for line < lines {
 		c, eof := rd.Peek()
 		if eof {
-			if s != "" {
-				drawLine(rd.Offset())
-			} else if ui.cursor == size && (lastC == '\n' || size == 0) {
-				drawLine(rd.Offset())
-			}
+			drawLine(rd.Offset(), eof)
 			break
 		}
-		lastC = c
 		if c == '\n' {
 			s += string(rd.Get())
-			drawLine(rd.Offset())
+			drawLine(rd.Offset(), false)
 			continue
 		}
 		dx := font.StringWidth(string(c))
@@ -305,7 +322,7 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 			s += string(rd.Get())
 			continue
 		}
-		drawLine(rd.Offset())
+		drawLine(rd.Offset(), false)
 		s = string(c)
 		sdx = dx
 	}
@@ -380,6 +397,7 @@ func (ui *Edit) expand(offset int64, fr, br *reader) (int64, int64) {
 	c, eof = fr.Peek()
 	index = strings.IndexRune(Ends, c)
 	if !eof && index >= 0 {
+		fr.Get()
 		n := ui.expandNested(br, rune(Ends[index]), rune(Starts[index]))
 		return offset - n, offset
 	}
@@ -470,7 +488,6 @@ func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
 				_, eof = rd.Line()
 			}
 			startLineOffset := rd.Offset()
-			log.Printf("click, startLineOffset %d\n", startLineOffset)
 			sdx := 0
 			xchars := 0
 			for {
