@@ -6,6 +6,7 @@ import (
 	"image"
 	"io"
 	"log"
+	"strings"
 	"unicode/utf8"
 
 	"9fans.net/go/draw"
@@ -28,7 +29,9 @@ type Edit struct {
 	barR,
 	barActiveR,
 	textR image.Rectangle
-	m draw.Mouse
+
+	textM,
+	prevTextB1 draw.Mouse
 }
 
 type reverseReader struct {
@@ -76,9 +79,18 @@ func (r *reverseReader) Read(buf []byte) (int, error) {
 }
 
 type reader struct {
-	ui *Edit
-	n  int64 // number of bytes read, excluding peek
-	r  *bufio.Reader
+	ui      *Edit
+	n       int64 // number of bytes read, excluding peek
+	r       *bufio.Reader
+	offset  int64
+	forward bool
+}
+
+func (r *reader) Offset() int64 {
+	if r.forward {
+		return r.offset + r.n
+	}
+	return r.offset - r.n
 }
 
 func (r *reader) Peek() (rune, bool) {
@@ -121,10 +133,6 @@ func (r *reader) RevLine() (s string, eof bool) {
 	if eof {
 		return
 	}
-	if c != '\n' {
-		// xxx could happen due to change on disk. how to handle?
-		panic(fmt.Sprintf("RevLine called at offset not preceeded by newline, char %c (%#x)", c, c))
-	}
 	r.Get()
 	for {
 		c, eof = r.Peek()
@@ -142,11 +150,18 @@ func (r *reader) RevLine() (s string, eof bool) {
 }
 
 func (ui *Edit) reader(offset, size int64) *reader {
-	return &reader{ui: ui, n: 0, r: bufio.NewReader(io.NewSectionReader(ui.Src, offset, size-offset))}
+	return &reader{ui, 0, bufio.NewReader(io.NewSectionReader(ui.Src, offset, size-offset)), offset, true}
 }
 
 func (ui *Edit) revReader(offset int64) *reader {
-	return &reader{ui: ui, n: 0, r: bufio.NewReader(&reverseReader{ui.Src, offset})}
+	return &reader{ui, 0, bufio.NewReader(&reverseReader{ui.Src, offset}), offset, false}
+}
+
+func (ui *Edit) orderedCursor() (int64, int64) {
+	if ui.cursor > ui.cursor0 {
+		return ui.cursor0, ui.cursor
+	}
+	return ui.cursor, ui.cursor0
 }
 
 // size of source
@@ -184,24 +199,90 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 	lineWidth := ui.textR.Dx()
 	line := 0
 
-	drawLine := func() {
-		img.String(ui.textR.Min.Add(image.Pt(0, line*font.Height)).Add(orig), env.Normal.Text, image.ZP, font, s)
+	size := ui.size()
+	rd := ui.reader(ui.offset, size)
+	lines := ui.textR.Dy() / font.Height
+
+	c0, c1 := ui.orderedCursor()
+	drawLine := func(offsetEnd int64) {
+		origS := s
+
+		n := len(s)
+		offsetStart := offsetEnd - int64(n)
+		// we draw text before cursor (selection), then selected text, then text after cursor.
+		p := orig.Add(ui.textR.Min).Add(image.Pt(0, line*font.Height))
+
+		drawCursor := func() {
+			p0 := p
+			p1 := p0
+			p1.Y += font.Height
+			img.Line(p0, p1, 0, 0, 1, env.Display.Black, image.ZP)
+		}
+
+		if offsetStart < c0 {
+			nn := minimum64(int64(n), c0-offsetStart)
+			pp := img.String(p, env.Normal.Text, image.ZP, font, s[:int(nn)])
+			p.X = pp.X
+			s = s[nn:]
+			offsetStart += nn
+		} else if c0 < offsetEnd {
+			c0 = offsetStart
+		}
+		if offsetStart == ui.cursor && ui.cursor == c0 && c0 != c1 {
+			drawCursor()
+		}
+		if offsetStart == c0 && c1-c0 > 0 && offsetEnd > offsetStart {
+			nn := minimum64(c1-c0, offsetEnd-offsetStart)
+			sels := s[:int(nn)]
+			toEnd := sels[len(sels)-1] == '\n'
+			if toEnd {
+				sels = sels[:len(sels)-1]
+			}
+			seldx := font.StringWidth(sels)
+			selR := rect(image.Pt(seldx, font.Height)).Add(p)
+			if toEnd {
+				selR.Max.X = ui.textR.Max.X
+			}
+			img.Draw(selR, env.Inverse.Background, nil, image.ZP)
+			pp := img.String(p, env.Inverse.Text, image.ZP, font, sels)
+			p.X = pp.X
+			s = s[nn:]
+			offsetStart += nn
+		}
+		if offsetStart == ui.cursor && ui.cursor == c1 {
+			drawCursor()
+		}
+		if offsetStart >= c1 && offsetEnd > offsetStart {
+			nn := int(offsetEnd - offsetStart)
+			pp := img.String(p, env.Normal.Text, image.ZP, font, s)
+			p.X = pp.X
+			s = s[nn:]
+			offsetStart += int64(nn)
+		}
+		if s != "" || offsetStart != offsetEnd {
+			panic(fmt.Sprintf("bug in drawLine, s %v, offsetStart %d, offsetEnd %d, c0 %d c1 %d, line %d, sdx %d, origS %s", s, offsetStart, offsetEnd, c0, c1, line, sdx, origS))
+		}
+
 		s = ""
 		sdx = 0
 		line++
 	}
 
-	size := ui.size()
-	rd := ui.reader(ui.offset, size)
-	lines := ui.textR.Dy() / font.Height
+	var lastC rune
 	for line < lines {
 		c, eof := rd.Peek()
 		if eof {
+			if s != "" {
+				drawLine(rd.Offset())
+			} else if ui.cursor == size && (lastC == '\n' || size == 0) {
+				drawLine(rd.Offset())
+			}
 			break
 		}
+		lastC = c
 		if c == '\n' {
-			rd.Get()
-			drawLine()
+			s += string(rd.Get())
+			drawLine(rd.Offset())
 			continue
 		}
 		dx := font.StringWidth(string(c))
@@ -210,7 +291,7 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 			s += string(rd.Get())
 			continue
 		}
-		drawLine()
+		drawLine(rd.Offset())
 		s = string(c)
 		sdx = dx
 	}
@@ -223,8 +304,8 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 		vis = env.ScrollVisibleHover
 	}
 
-	ui.barActiveR.Min.Y = int(int64(ui.barR.Dy()) * ui.offset / size)
-	ui.barActiveR.Max.Y = int(int64(ui.barR.Dy()) * (ui.offset + rd.n) / size)
+	ui.barActiveR.Min.Y = int(int64(ui.barR.Dy()) * ui.offset / maximum64(1, size))
+	ui.barActiveR.Max.Y = int(int64(ui.barR.Dy()) * rd.Offset() / maximum64(1, size))
 	img.Draw(ui.barR.Add(orig), bg, nil, image.ZP)
 	img.Draw(ui.barActiveR.Add(orig), vis, nil, image.ZP)
 }
@@ -237,23 +318,93 @@ func (ui *Edit) scroll(lines int, r *Result) {
 		for ; lines > 0 && !eof; lines-- {
 			_, eof = rd.Line()
 		}
-		offset += rd.n
+		offset = rd.Offset()
 	} else if lines < 0 {
 		rd := ui.revReader(ui.offset)
 		eof := false
 		for ; lines < 0 && !eof; lines++ {
 			_, eof = rd.RevLine()
 		}
-		offset -= rd.n
+		offset = rd.Offset()
 	}
 
 	r.Redraw = offset != ui.offset
 	ui.offset = offset
 }
 
+func (ui *Edit) expandNested(r *reader, up, down rune) int64 {
+	nested := 1
+	for {
+		c, eof := r.Peek()
+		if eof {
+			return 0
+		}
+		if c == down {
+			nested--
+		} else if c == up {
+			nested++
+		}
+		if nested == 0 {
+			return r.n
+		}
+		r.Get()
+	}
+}
+
+func (ui *Edit) expand(offset int64, fr, br *reader) (int64, int64) {
+	const (
+		Starts = "[{(<\"'`"
+		Ends   = "]})>\"'`"
+	)
+
+	c, eof := br.Peek()
+	index := strings.IndexRune(Starts, c)
+	if !eof && index >= 0 {
+		n := ui.expandNested(fr, rune(Starts[index]), rune(Ends[index]))
+		return offset, offset + n
+	}
+	c, eof = fr.Peek()
+	index = strings.IndexRune(Ends, c)
+	if !eof && index >= 0 {
+		n := ui.expandNested(br, rune(Ends[index]), rune(Starts[index]))
+		return offset - n, offset
+	}
+
+	const Space = " \t\r\n\f"
+	skip := func(isSpace bool) bool {
+		return !isSpace
+	}
+
+	bc, _ := br.Peek()
+	fc, _ := fr.Peek()
+	if strings.ContainsAny(string(bc), Space) && strings.ContainsAny(string(fc), Space) {
+		skip = func(isSpace bool) bool {
+			return isSpace
+		}
+	}
+	for {
+		c, eof := br.Peek()
+		if !eof && skip(strings.ContainsAny(string(c), Space)) && !strings.ContainsAny(string(c), Starts+Ends) {
+			br.Get()
+		} else {
+			break
+		}
+	}
+	for {
+		c, eof := fr.Peek()
+		if !eof && skip(strings.ContainsAny(string(c), Space)) && !strings.ContainsAny(string(c), Starts+Ends) {
+			fr.Get()
+		} else {
+			break
+		}
+	}
+	return offset - br.n, offset + fr.n
+}
+
 func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
+	font := ui.font(env)
 	scrollLines := func(y int) int {
-		lines := ui.textR.Dy() / ui.font(env).Height
+		lines := ui.textR.Dy() / font.Height
 		n := lines * y / ui.textR.Dy()
 		if n == 0 {
 			return 1
@@ -266,8 +417,7 @@ func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
 		case Button1:
 			ui.scroll(-scrollLines(m.Y), &r)
 		case Button2:
-			offset := ui.size() * int64(m.Y) / int64(ui.textR.Dy())
-			rd := ui.revReader(offset)
+			rd := ui.revReader(ui.size() * int64(m.Y) / int64(ui.textR.Dy()))
 			for {
 				c, eof := rd.Peek()
 				if eof || c == '\n' {
@@ -275,9 +425,8 @@ func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
 				}
 				rd.Get()
 			}
-			offset -= rd.n
-			r.Redraw = offset != ui.offset
-			ui.offset = offset
+			r.Redraw = rd.Offset() != ui.offset
+			ui.offset = rd.Offset()
 		case Button3:
 			ui.scroll(scrollLines(m.Y), &r)
 		case Button4:
@@ -290,14 +439,65 @@ func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
 	if !m.In(ui.textR) {
 		return
 	}
-	om := ui.m
-	ui.m = m
+	m.Point = m.Point.Sub(ui.textR.Min)
+	om := ui.textM
+	ui.textM = m
 	switch m.Buttons {
 	case Button4:
 		ui.scroll(-scrollLines(m.Y/4), &r)
 	case Button5:
 		ui.scroll(scrollLines(m.Y/4), &r)
 	default:
+		if m.Buttons == Button1 {
+			rd := ui.reader(ui.offset, ui.size())
+			eof := false
+			for line := m.Y / ui.font(env).Height; line > 0 && !eof; line-- {
+				_, eof = rd.Line()
+			}
+			startLineOffset := rd.Offset()
+			log.Printf("click, startLineOffset %d\n", startLineOffset)
+			sdx := 0
+			xchars := 0
+			for {
+				c, eof := rd.Peek()
+				if eof || c == '\n' {
+					break
+				}
+				dx := font.StringWidth(string(c))
+				if sdx+dx/2 > m.X {
+					break
+				}
+				sdx += dx
+				rd.Get()
+				xchars++
+			}
+			ui.cursor = rd.Offset()
+			if om.Buttons == 0 {
+				if m.Msec-ui.prevTextB1.Msec < 300 {
+					if xchars == 0 {
+						// at start of line, select to end of line
+						rd.Line()
+						ui.cursor0 = rd.Offset()
+					} else {
+						c, eof := rd.Peek()
+						if eof || c == '\n' {
+							// at end of line, select to start of line
+							ui.cursor0 = startLineOffset
+						} else {
+							// somewhere else, try to expand
+							ui.cursor, ui.cursor0 = ui.expand(ui.cursor, ui.reader(ui.cursor, ui.size()), ui.revReader(ui.cursor))
+						}
+					}
+				} else {
+					ui.cursor0 = ui.cursor
+				}
+				ui.prevTextB1 = m
+			}
+			// xxx ensure cursor is visible, can happen when dragging outside UI, or through key commands
+			r.Redraw = true
+			r.Consumed = true
+			return
+		}
 		if m.Buttons^om.Buttons != 0 {
 			log.Printf("in text, mouse buttons changed %v ->  %v\n", om, m)
 		} else if m.Buttons != 0 && m.Buttons == om.Buttons {

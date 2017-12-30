@@ -26,3 +26,17 @@ func outsetPt(r image.Rectangle, pad image.Point) image.Rectangle {
 	r.Max = r.Max.Add(pad)
 	return r
 }
+
+func minimum64(a, b int64) int64 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func maximum64(a, b int64) int64 {
+	if a > b {
+		return a
+	}
+	return b
+}
