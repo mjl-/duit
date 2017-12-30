@@ -12,15 +12,15 @@ import (
 	"9fans.net/go/draw"
 )
 
-type EditSource interface {
+type SeekReaderAt interface {
 	io.Seeker
 	io.ReaderAt
 }
 
 type Edit struct {
-	Src  EditSource
 	Font *draw.Font
 
+	text    *text // what we are rendering.  offset & cursors index into this text
 	offset  int64 // byte offset of first line we draw
 	cursor  int64 // cursor and end of selection
 	cursor0 int64 // start of selection
@@ -32,6 +32,18 @@ type Edit struct {
 
 	textM,
 	prevTextB1 draw.Mouse
+}
+
+func NewEdit(f SeekReaderAt) *Edit {
+	size, err := f.Seek(0, io.SeekEnd)
+	check(err, "seek")
+	parts := []textPart{}
+	if size > 0 {
+		parts = append(parts, &file{f, 0, size})
+	}
+	return &Edit{
+		text: &text{parts},
+	}
 }
 
 type reverseReader struct {
@@ -149,12 +161,18 @@ func (r *reader) RevLine() (s string, eof bool) {
 	return
 }
 
+func (ui *Edit) ensureInit() {
+	if ui.text == nil {
+		ui.text = &text{}
+	}
+}
+
 func (ui *Edit) reader(offset, size int64) *reader {
-	return &reader{ui, 0, bufio.NewReader(io.NewSectionReader(ui.Src, offset, size-offset)), offset, true}
+	return &reader{ui, 0, bufio.NewReader(io.NewSectionReader(ui.text, offset, size-offset)), offset, true}
 }
 
 func (ui *Edit) revReader(offset int64) *reader {
-	return &reader{ui, 0, bufio.NewReader(&reverseReader{ui.Src, offset}), offset, false}
+	return &reader{ui, 0, bufio.NewReader(&reverseReader{ui.text, offset}), offset, false}
 }
 
 func (ui *Edit) orderedCursor() (int64, int64) {
@@ -164,18 +182,12 @@ func (ui *Edit) orderedCursor() (int64, int64) {
 	return ui.cursor, ui.cursor0
 }
 
-// size of source
-func (ui *Edit) size() int64 {
-	size, err := ui.Src.Seek(0, io.SeekEnd)
-	check(err, "seek")
-	return size
-}
-
 func (ui *Edit) font(env *Env) *draw.Font {
 	return env.Font(ui.Font)
 }
 
 func (ui *Edit) Layout(env *Env, sizeAvail image.Point) (sizeTaken image.Point) {
+	ui.ensureInit()
 	ui.r = rect(sizeAvail)
 	ui.barR = ui.r
 	ui.barR.Max.X = ui.barR.Min.X + env.Scale(ScrollbarSize)
@@ -187,6 +199,7 @@ func (ui *Edit) Layout(env *Env, sizeAvail image.Point) (sizeTaken image.Point) 
 }
 
 func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
+	ui.ensureInit()
 	if ui.r.Empty() {
 		return
 	}
@@ -199,7 +212,7 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 	lineWidth := ui.textR.Dx()
 	line := 0
 
-	size := ui.size()
+	size := ui.text.Size()
 	rd := ui.reader(ui.offset, size)
 	lines := ui.textR.Dy() / font.Height
 
@@ -213,6 +226,7 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 		p := orig.Add(ui.textR.Min).Add(image.Pt(0, line*font.Height))
 
 		drawCursor := func() {
+			//log.Printf("drawCursor, c0 %d, c1 %d, cursor %d, cursor0 %d\n", c0, c1, ui.cursor, ui.cursor0)
 			p0 := p
 			p1 := p0
 			p1.Y += font.Height
@@ -313,7 +327,7 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 func (ui *Edit) scroll(lines int, r *Result) {
 	offset := ui.offset
 	if lines > 0 {
-		rd := ui.reader(ui.offset, ui.size())
+		rd := ui.reader(ui.offset, ui.text.Size())
 		eof := false
 		for ; lines > 0 && !eof; lines-- {
 			_, eof = rd.Line()
@@ -402,6 +416,7 @@ func (ui *Edit) expand(offset int64, fr, br *reader) (int64, int64) {
 }
 
 func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
+	ui.ensureInit()
 	font := ui.font(env)
 	scrollLines := func(y int) int {
 		lines := ui.textR.Dy() / font.Height
@@ -417,7 +432,7 @@ func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
 		case Button1:
 			ui.scroll(-scrollLines(m.Y), &r)
 		case Button2:
-			rd := ui.revReader(ui.size() * int64(m.Y) / int64(ui.textR.Dy()))
+			rd := ui.revReader(ui.text.Size() * int64(m.Y) / int64(ui.textR.Dy()))
 			for {
 				c, eof := rd.Peek()
 				if eof || c == '\n' {
@@ -449,7 +464,7 @@ func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
 		ui.scroll(scrollLines(m.Y/4), &r)
 	default:
 		if m.Buttons == Button1 {
-			rd := ui.reader(ui.offset, ui.size())
+			rd := ui.reader(ui.offset, ui.text.Size())
 			eof := false
 			for line := m.Y / ui.font(env).Height; line > 0 && !eof; line-- {
 				_, eof = rd.Line()
@@ -485,7 +500,7 @@ func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
 							ui.cursor0 = startLineOffset
 						} else {
 							// somewhere else, try to expand
-							ui.cursor, ui.cursor0 = ui.expand(ui.cursor, ui.reader(ui.cursor, ui.size()), ui.revReader(ui.cursor))
+							ui.cursor, ui.cursor0 = ui.expand(ui.cursor, ui.reader(ui.cursor, ui.text.Size()), ui.revReader(ui.cursor))
 						}
 					}
 				} else {
@@ -511,6 +526,7 @@ func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
 }
 
 func (ui *Edit) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result) {
+	ui.ensureInit()
 	r.Hit = ui
 	if m.In(ui.barR) {
 		log.Printf("key in scrollbar\n")
@@ -520,6 +536,18 @@ func (ui *Edit) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result)
 		return
 	}
 	log.Printf("key in text\n")
+
+	switch k {
+	default:
+		// replace selection with new text
+		s, e := ui.orderedCursor()
+		ui.text.Replace(s, e, []byte(string(k)))
+		ui.cursor = s + int64(len(string(k)))
+		ui.cursor0 = ui.cursor
+		r.Redraw = true
+		r.Consumed = true
+	}
+
 	return
 }
 

@@ -33,9 +33,7 @@ func main() {
 	dui, err := duit.NewDUI("page", "800x600")
 	check(err, "new dui")
 
-	dui.Top = &duit.Edit{
-		Src: f,
-	}
+	dui.Top = duit.NewEdit(f)
 	dui.Render()
 
 	for {
