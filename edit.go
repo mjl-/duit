@@ -391,6 +391,7 @@ func (ui *Edit) expand(offset int64, fr, br *reader) (int64, int64) {
 	c, eof := br.Peek()
 	index := strings.IndexRune(Starts, c)
 	if !eof && index >= 0 {
+		br.Get()
 		n := ui.expandNested(fr, rune(Starts[index]), rune(Ends[index]))
 		return offset, offset + n
 	}
