@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"io/ioutil"
 	"log"
 	"strings"
 	"unicode/utf8"
@@ -122,7 +123,16 @@ func (r *reader) Get() rune {
 	return c
 }
 
-func (r *reader) Line() (s string, eof bool) {
+func (r *reader) TryGet() (rune, error) {
+	c, size, err := r.r.ReadRune()
+	if err != nil {
+		return 0, err
+	}
+	r.n += int64(size)
+	return c, nil
+}
+
+func (r *reader) Line(includeNewline bool) (s string, eof bool) {
 	var c rune
 	for {
 		c, eof = r.Peek()
@@ -130,10 +140,13 @@ func (r *reader) Line() (s string, eof bool) {
 			eof = s == ""
 			break
 		}
-		r.Get()
 		if c == '\n' {
+			if includeNewline {
+				r.Get()
+			}
 			break
 		}
+		r.Get()
 		s += string(c)
 	}
 	return
@@ -153,6 +166,42 @@ func (r *reader) RevLine() (s string, eof bool) {
 			break
 		}
 		if c == '\n' {
+			break
+		}
+		r.Get()
+		s += string(c)
+	}
+	return
+}
+
+func (r *reader) Whitespace() (s string, eof bool) {
+	const Space = " \t\r\n\f\r"
+	var c rune
+	for {
+		c, eof = r.Peek()
+		if eof {
+			eof = s == ""
+			break
+		}
+		if !strings.ContainsAny(string(c), Space) {
+			break
+		}
+		r.Get()
+		s += string(c)
+	}
+	return
+}
+
+func (r *reader) Nonwhitespace() (s string, eof bool) {
+	const Space = " \t\r\n\f\r"
+	var c rune
+	for {
+		c, eof = r.Peek()
+		if eof {
+			eof = s == ""
+			break
+		}
+		if strings.ContainsAny(string(c), Space) {
 			break
 		}
 		r.Get()
@@ -347,7 +396,7 @@ func (ui *Edit) scroll(lines int, r *Result) {
 		rd := ui.reader(ui.offset, ui.text.Size())
 		eof := false
 		for ; lines > 0 && !eof; lines-- {
-			_, eof = rd.Line()
+			_, eof = rd.Line(true)
 		}
 		offset = rd.Offset()
 	} else if lines < 0 {
@@ -403,7 +452,7 @@ func (ui *Edit) expand(offset int64, fr, br *reader) (int64, int64) {
 		return offset - n, offset
 	}
 
-	const Space = " \t\r\n\f"
+	const Space = " \t\r\n\f\r"
 	skip := func(isSpace bool) bool {
 		return !isSpace
 	}
@@ -486,7 +535,7 @@ func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
 			rd := ui.reader(ui.offset, ui.text.Size())
 			eof := false
 			for line := m.Y / ui.font(env).Height; line > 0 && !eof; line-- {
-				_, eof = rd.Line()
+				_, eof = rd.Line(true)
 			}
 			startLineOffset := rd.Offset()
 			sdx := 0
@@ -509,7 +558,7 @@ func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
 				if m.Msec-ui.prevTextB1.Msec < 300 {
 					if xchars == 0 {
 						// at start of line, select to end of line
-						rd.Line()
+						rd.Line(true)
 						ui.cursor0 = rd.Offset()
 					} else {
 						c, eof := rd.Peek()
@@ -543,6 +592,40 @@ func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
 	return
 }
 
+func (ui *Edit) selectionText() string {
+	c0, c1 := ui.orderedCursor()
+	r := io.NewSectionReader(ui.text, c0, c1-c0)
+	buf, err := ioutil.ReadAll(r)
+	check(err, "read selection")
+	return string(buf)
+}
+
+func (ui *Edit) readSnarf(env *Env) ([]byte, bool) {
+	buf := make([]byte, 128)
+	have, total, err := env.Display.ReadSnarf(buf)
+	if err != nil {
+		log.Printf("duit: readsnarf: %s\n", err)
+		return nil, false
+	}
+	if have >= total {
+		return buf[:have], true
+	}
+	buf = make([]byte, total)
+	have, _, err = env.Display.ReadSnarf(buf)
+	if err != nil {
+		log.Printf("duit: readsnarf entire buffer: %s\n", err)
+		return nil, false
+	}
+	return buf[:have], true
+}
+
+func (ui *Edit) writeSnarf(env *Env, buf []byte) {
+	err := env.Display.WriteSnarf(buf)
+	if err != nil {
+		log.Printf("duit: writesnarf: %s\n", err)
+	}
+}
+
 func (ui *Edit) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result) {
 	ui.ensureInit()
 	r.Hit = ui
@@ -553,17 +636,81 @@ func (ui *Edit) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result)
 	if !m.In(ui.textR) {
 		return
 	}
-	log.Printf("key in text\n")
+
+	c0, c1 := ui.orderedCursor()
+	fr := ui.reader(c1, ui.text.Size())
+	br := ui.revReader(c0)
+	font := ui.font(env)
+	lines := ui.textR.Dy() / font.Height
+	const Ctrl = 0x1f
+
+	r.Consumed = true
+	r.Redraw = true
 
 	switch k {
-	default:
-		// replace selection with new text
-		s, e := ui.orderedCursor()
-		ui.text.Replace(s, e, []byte(string(k)))
-		ui.cursor = s + int64(len(string(k)))
+	case draw.KeyPageUp:
+		ui.scroll(-lines/2, &r)
+	case draw.KeyPageDown:
+		ui.scroll(lines/2, &r)
+	case draw.KeyUp:
+		ui.scroll(-lines/5, &r)
+	case draw.KeyDown:
+		ui.scroll(lines/5, &r)
+	case draw.KeyLeft:
+		br.TryGet()
+		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
-		r.Redraw = true
-		r.Consumed = true
+	case draw.KeyRight:
+		fr.TryGet()
+		ui.cursor = fr.Offset()
+		ui.cursor0 = ui.cursor
+	case Ctrl & 'a':
+		br.Line(false)
+		ui.cursor = br.Offset()
+		ui.cursor0 = ui.cursor
+	case Ctrl & 'e':
+		fr.Line(false)
+		ui.cursor = fr.Offset()
+		ui.cursor0 = ui.cursor
+	case Ctrl & 'h':
+		br.TryGet()
+		ui.text.Replace(br.Offset(), fr.Offset(), nil)
+		ui.cursor = br.Offset()
+		ui.cursor0 = ui.cursor
+	case Ctrl & 'w':
+		br.Whitespace()
+		br.Nonwhitespace()
+		ui.text.Replace(br.Offset(), fr.Offset(), nil)
+		ui.cursor = br.Offset()
+		ui.cursor0 = ui.cursor
+	case Ctrl & 'u':
+		br.Line(false)
+		ui.text.Replace(br.Offset(), fr.Offset(), nil)
+		ui.cursor = br.Offset()
+		ui.cursor0 = ui.cursor
+	case Ctrl & 'k':
+		fr.Line(false)
+		ui.text.Replace(br.Offset(), fr.Offset(), nil)
+	case draw.KeyDelete:
+		fr.TryGet()
+		ui.text.Replace(br.Offset(), fr.Offset(), nil)
+	case draw.KeyCmd + 'a':
+		ui.cursor = 0
+		ui.cursor0 = ui.text.Size()
+	case draw.KeyCmd + 'c':
+		ui.writeSnarf(env, []byte(ui.selectionText()))
+	case draw.KeyCmd + 'x':
+		ui.writeSnarf(env, []byte(ui.selectionText()))
+		ui.text.Replace(c0, c1, nil)
+	case draw.KeyCmd + 'v':
+		buf, ok := ui.readSnarf(env)
+		if ok {
+			ui.text.Replace(c0, c1, buf)
+		}
+	default:
+		ui.text.Replace(c0, c1, []byte(string(k)))
+		ui.cursor = c0 + int64(len(string(k)))
+		ui.cursor0 = ui.cursor
 	}
 
 	return

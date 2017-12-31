@@ -69,6 +69,10 @@ func (t *text) TryMergeWithBefore(i int) bool {
 func (t *text) Replace(s, e int64, buf []byte) {
 	// log.Printf("replace s %d, e %d, buf %v\n", s, e, buf)
 
+	if s == e && len(buf) == 0 {
+		return
+	}
+
 	if s > e {
 		panic("bad replace")
 	}
