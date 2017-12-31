@@ -600,6 +600,26 @@ func (ui *Edit) selectionText() string {
 	return string(buf)
 }
 
+// ensure cursor is visible
+func (ui *Edit) scrollCursor(env *Env) {
+	nbr := ui.revReader(ui.cursor)
+	if ui.cursor < ui.offset {
+		nbr.Line(false)
+		ui.offset = nbr.Offset()
+		return
+	}
+
+	nbr.Line(false)
+	for lines := ui.textR.Dy() / ui.font(env).Height; lines > 1; lines-- {
+		if nbr.Offset() <= ui.offset {
+			return
+		}
+		nbr.Line(true)
+		nbr.Line(false)
+	}
+	ui.offset = nbr.Offset()
+}
+
 func (ui *Edit) readSnarf(env *Env) ([]byte, bool) {
 	buf := make([]byte, 128)
 	have, total, err := env.Display.ReadSnarf(buf)
@@ -660,40 +680,49 @@ func (ui *Edit) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result)
 		br.TryGet()
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
+		ui.scrollCursor(env)
 	case draw.KeyRight:
 		fr.TryGet()
 		ui.cursor = fr.Offset()
 		ui.cursor0 = ui.cursor
+		ui.scrollCursor(env)
 	case Ctrl & 'a':
 		br.Line(false)
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
+		ui.scrollCursor(env)
 	case Ctrl & 'e':
 		fr.Line(false)
 		ui.cursor = fr.Offset()
 		ui.cursor0 = ui.cursor
+		ui.scrollCursor(env)
 	case Ctrl & 'h':
 		br.TryGet()
 		ui.text.Replace(br.Offset(), fr.Offset(), nil)
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
+		ui.scrollCursor(env)
 	case Ctrl & 'w':
 		br.Whitespace()
 		br.Nonwhitespace()
 		ui.text.Replace(br.Offset(), fr.Offset(), nil)
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
+		ui.scrollCursor(env)
 	case Ctrl & 'u':
 		br.Line(false)
 		ui.text.Replace(br.Offset(), fr.Offset(), nil)
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
+		ui.scrollCursor(env)
 	case Ctrl & 'k':
 		fr.Line(false)
 		ui.text.Replace(br.Offset(), fr.Offset(), nil)
+		ui.scrollCursor(env)
 	case draw.KeyDelete:
 		fr.TryGet()
 		ui.text.Replace(br.Offset(), fr.Offset(), nil)
+		ui.scrollCursor(env)
 	case draw.KeyCmd + 'a':
 		ui.cursor = 0
 		ui.cursor0 = ui.text.Size()
@@ -711,6 +740,7 @@ func (ui *Edit) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result)
 		ui.text.Replace(c0, c1, []byte(string(k)))
 		ui.cursor = c0 + int64(len(string(k)))
 		ui.cursor0 = ui.cursor
+		ui.scrollCursor(env)
 	}
 
 	return
