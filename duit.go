@@ -173,6 +173,9 @@ func NewDUI(name, dim string) (*DUI, error) {
 		BackgroundColor: draw.Color(0xfcfcfcff),
 		Background:      makeColor(0xfcfcfcff),
 
+		CommandMode: makeColor(0x3272dcff),
+		VisualMode:  makeColor(0x5cb85cff),
+
 		ScrollBGNormal:      makeColor(0xf4f4f4ff),
 		ScrollBGHover:       makeColor(0xf0f0f0ff),
 		ScrollVisibleNormal: makeColor(0xbbbbbbff),

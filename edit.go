@@ -2,12 +2,14 @@ package duit
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"image"
 	"io"
 	"io/ioutil"
 	"log"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"9fans.net/go/draw"
@@ -18,6 +20,15 @@ type SeekReaderAt interface {
 	io.ReaderAt
 }
 
+type EditMode int
+
+const (
+	ModeInsert     = EditMode(iota) // regular editing
+	ModeCommand                     // vi commands, after escape without selection
+	ModeVisual                      // vi visual mode, after 'v' in command mode, or escape with selection
+	ModeVisualLine                  // vi visual line mode, after 'V' in command mode
+)
+
 type Edit struct {
 	Font *draw.Font
 
@@ -25,6 +36,10 @@ type Edit struct {
 	offset  int64 // byte offset of first line we draw
 	cursor  int64 // cursor and end of selection
 	cursor0 int64 // start of selection
+
+	mode    EditMode
+	command string // vi command so far
+	visual  string // vi visual command so far
 
 	r,
 	barR,
@@ -55,7 +70,7 @@ type reverseReader struct {
 var _ io.Reader = &reverseReader{}
 
 func (r *reverseReader) Read(buf []byte) (int, error) {
-	//	log.Printf("reverseReader.Read, len buf %d, offset %d\n", len(buf), r.offset)
+	// log.Printf("reverseReader.Read, len buf %d, offset %d\n", len(buf), r.offset)
 	want := int64(len(buf))
 	if want > r.offset {
 		want = r.offset
@@ -87,7 +102,7 @@ func (r *reverseReader) Read(buf []byte) (int, error) {
 	if have > 0 {
 		r.offset -= int64(have)
 	}
-	//	log.Printf("reverseReader.Read, returning n %d, err %s, buf %s\n", have, err, string(buf[:have]))
+	// log.Printf("reverseReader.Read, returning n %d, err %s, buf %s\n", have, err, string(buf[:have]))
 	return have, err
 }
 
@@ -132,7 +147,7 @@ func (r *reader) TryGet() (rune, error) {
 	return c, nil
 }
 
-func (r *reader) Line(includeNewline bool) (s string, eof bool) {
+func (r *reader) Line(includeNewline bool) (runes int, s string, eof bool) {
 	var c rune
 	for {
 		c, eof = r.Peek()
@@ -142,11 +157,13 @@ func (r *reader) Line(includeNewline bool) (s string, eof bool) {
 		}
 		if c == '\n' {
 			if includeNewline {
+				runes++
 				r.Get()
 			}
 			break
 		}
 		r.Get()
+		runes++
 		s += string(c)
 	}
 	return
@@ -174,6 +191,7 @@ func (r *reader) RevLine() (s string, eof bool) {
 	return
 }
 
+// xxx todo: better (non)whitespace functions
 func (r *reader) Whitespace() (s string, eof bool) {
 	const Space = " \t\r\n\f\r"
 	var c rune
@@ -202,6 +220,23 @@ func (r *reader) Nonwhitespace() (s string, eof bool) {
 			break
 		}
 		if strings.ContainsAny(string(c), Space) {
+			break
+		}
+		r.Get()
+		s += string(c)
+	}
+	return
+}
+
+func (r *reader) Nonwhitespacepunct() (s string, eof bool) {
+	var c rune
+	for {
+		c, eof = r.Peek()
+		if eof {
+			eof = s == ""
+			break
+		}
+		if unicode.IsSpace(c) || unicode.IsPunct(c) {
 			break
 		}
 		r.Get()
@@ -259,6 +294,13 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 		return
 	}
 
+	switch ui.mode {
+	case ModeInsert:
+	case ModeCommand:
+		img.Draw(ui.textR.Add(orig).Inset(env.Scale(-4)), env.CommandMode, nil, image.ZP)
+	case ModeVisual, ModeVisualLine:
+		img.Draw(ui.textR.Add(orig).Inset(env.Scale(-4)), env.VisualMode, nil, image.ZP)
+	}
 	img.Draw(ui.textR.Add(orig), env.Normal.Background, nil, image.ZP)
 
 	font := ui.font(env)
@@ -384,8 +426,12 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 		vis = env.ScrollVisibleHover
 	}
 
-	ui.barActiveR.Min.Y = int(int64(ui.barR.Dy()) * ui.offset / maximum64(1, size))
-	ui.barActiveR.Max.Y = int(int64(ui.barR.Dy()) * rd.Offset() / maximum64(1, size))
+	if size == 0 {
+		ui.barActiveR = ui.barR
+	} else {
+		ui.barActiveR.Min.Y = int(int64(ui.barR.Dy()) * ui.offset / size)
+		ui.barActiveR.Max.Y = int(int64(ui.barR.Dy()) * rd.Offset() / size)
+	}
 	img.Draw(ui.barR.Add(orig), bg, nil, image.ZP)
 	img.Draw(ui.barActiveR.Add(orig), vis, nil, image.ZP)
 }
@@ -396,7 +442,7 @@ func (ui *Edit) scroll(lines int, r *Result) {
 		rd := ui.reader(ui.offset, ui.text.Size())
 		eof := false
 		for ; lines > 0 && !eof; lines-- {
-			_, eof = rd.Line(true)
+			_, _, eof = rd.Line(true)
 		}
 		offset = rd.Offset()
 	} else if lines < 0 {
@@ -535,7 +581,7 @@ func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
 			rd := ui.reader(ui.offset, ui.text.Size())
 			eof := false
 			for line := m.Y / ui.font(env).Height; line > 0 && !eof; line-- {
-				_, eof = rd.Line(true)
+				_, _, eof = rd.Line(true)
 			}
 			startLineOffset := rd.Offset()
 			sdx := 0
@@ -592,6 +638,13 @@ func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
 	return
 }
 
+func (ui *Edit) readText(c0, c1 int64) string {
+	r := io.NewSectionReader(ui.text, c0, c1-c0)
+	buf, err := ioutil.ReadAll(r)
+	check(err, "read selection")
+	return string(buf)
+}
+
 func (ui *Edit) selectionText() string {
 	c0, c1 := ui.orderedCursor()
 	r := io.NewSectionReader(ui.text, c0, c1-c0)
@@ -646,6 +699,36 @@ func (ui *Edit) writeSnarf(env *Env, buf []byte) {
 	}
 }
 
+func (ui *Edit) indent(c0, c1 int64) int64 {
+	s := ui.readText(c0, c1)
+	buf := []byte(s)
+	r := &bytes.Buffer{}
+	if len(buf) >= 1 && buf[0] != '\n' {
+		r.WriteByte('\t')
+	}
+	for i, c := range buf {
+		r.WriteByte(c)
+		if c == '\n' {
+			if i+1 < len(buf) && buf[i+1] != '\n' {
+				r.WriteByte('\t')
+			}
+		}
+	}
+	rbuf := r.Bytes()
+	ui.text.Replace(c0, c1, rbuf)
+	return int64(len(rbuf))
+}
+
+func (ui *Edit) unindent(c0, c1 int64) int64 {
+	s := ui.readText(c0, c1)
+	ns := strings.Replace(s, "\n\t", "\n", -1)
+	if len(ns) > 0 && ns[0] == '\t' {
+		ns = ns[1:]
+	}
+	ui.text.Replace(c0, c1, []byte(ns))
+	return int64(len(ns))
+}
+
 func (ui *Edit) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result) {
 	ui.ensureInit()
 	r.Hit = ui
@@ -657,15 +740,27 @@ func (ui *Edit) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result)
 		return
 	}
 
+	r.Consumed = true
+	r.Redraw = true
+
+	switch ui.mode {
+	case ModeCommand:
+		ui.commandKey(env, k, &r)
+		return
+	case ModeVisual:
+		ui.visualKey(env, k, false, &r)
+		return
+	case ModeVisualLine:
+		ui.visualKey(env, k, true, &r)
+		return
+	}
+
 	c0, c1 := ui.orderedCursor()
 	fr := ui.reader(c1, ui.text.Size())
 	br := ui.revReader(c0)
 	font := ui.font(env)
 	lines := ui.textR.Dy() / font.Height
 	const Ctrl = 0x1f
-
-	r.Consumed = true
-	r.Redraw = true
 
 	switch k {
 	case draw.KeyPageUp:
@@ -726,6 +821,8 @@ func (ui *Edit) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result)
 	case draw.KeyCmd + 'a':
 		ui.cursor = 0
 		ui.cursor0 = ui.text.Size()
+	case draw.KeyCmd + 'n':
+		ui.cursor0 = ui.cursor
 	case draw.KeyCmd + 'c':
 		ui.writeSnarf(env, []byte(ui.selectionText()))
 	case draw.KeyCmd + 'x':
@@ -736,6 +833,28 @@ func (ui *Edit) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result)
 		if ok {
 			ui.text.Replace(c0, c1, buf)
 		}
+	case draw.KeyCmd + 'z':
+		// xxx todo: undo
+	case draw.KeyCmd + 'Z':
+		// xxx todo: redo
+	case draw.KeyCmd + '[':
+		br.Line(false)
+		n := ui.unindent(br.Offset(), fr.Offset())
+		ui.cursor = br.Offset()
+		ui.cursor0 = ui.cursor + n
+	case draw.KeyCmd + ']':
+		br.Line(false)
+		n := ui.indent(br.Offset(), fr.Offset())
+		ui.cursor = br.Offset()
+		ui.cursor0 = ui.cursor + n
+	case draw.KeyEscape:
+		// oh yeah
+		if ui.cursor == ui.cursor0 {
+			ui.mode = ModeCommand
+		} else {
+			ui.mode = ModeVisual
+		}
+
 	default:
 		ui.text.Replace(c0, c1, []byte(string(k)))
 		ui.cursor = c0 + int64(len(string(k)))
