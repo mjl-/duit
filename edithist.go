@@ -3,7 +3,6 @@ package duit
 import (
 	"fmt"
 	"io"
-	"log"
 	"strings"
 )
 
@@ -34,15 +33,14 @@ func (t *text) ReadAt(buf []byte, offset int64) (int, error) {
 	// log.Printf("text.ReadAt n %d, offset %d, t %v\n", len(buf), offset, t)
 	for _, tp := range t.l {
 		size := tp.Size()
-		// log.Printf("readAt, offset %d, size %d, tp %v\n", offset, size, tp)
-		n := len(buf)
-		if size < int64(n) {
-			n = int(size)
+		if offset >= size {
+			offset -= size
+			continue
 		}
-		if offset < size {
-			return tp.ReadAt(buf[:n], offset)
-		}
-		offset -= size
+		// log.Printf("text.readAt, offset %d, size %d, tp %v\n", offset, size, tp)
+		n := minimum64(int64(len(buf)), size-offset)
+		// xxx read from multiple parts
+		return tp.ReadAt(buf[:n], offset)
 	}
 	return 0, io.EOF
 }
@@ -60,7 +58,7 @@ func (t *text) TryMergeWithBefore(i int) bool {
 	}
 	m, ok := t.l[i-1].Merge(t.l[i])
 	if ok {
-		log.Printf("merged i %d with i-1 %d\n", i, i-1)
+		// log.Printf("merged i %d with i-1 %d\n", i, i-1)
 		t.l[i-1] = m
 		copy(t.l[i:], t.l[i+1:])
 		t.l = t.l[:len(t.l)-1]
@@ -69,7 +67,7 @@ func (t *text) TryMergeWithBefore(i int) bool {
 }
 
 func (t *text) Replace(s, e int64, buf []byte) {
-	log.Printf("replace s %d, e %d, buf %v\n", s, e, buf)
+	// log.Printf("replace s %d, e %d, buf %v\n", s, e, buf)
 
 	if s > e {
 		panic("bad replace")
@@ -100,7 +98,7 @@ func (t *text) Replace(s, e int64, buf []byte) {
 	drop := e - s
 	i := 0
 	for i < len(t.l) && (drop > 0 || len(buf) > 0) {
-		log.Printf("replace, loop, drop %d, i %d, s %d, t %v\n", drop, i, s, t)
+		// log.Printf("replace, loop, drop %d, i %d, s %d, t %v\n", drop, i, s, t)
 		ts := t.l[i]
 
 		size := ts.Size()
@@ -131,18 +129,18 @@ func (t *text) Replace(s, e int64, buf []byte) {
 			continue
 		}
 
-		log.Printf("inserting buf from loop, i %d\n", i)
+		// log.Printf("inserting buf from loop, i %d\n", i)
 		insertBuf(i)
 		t.TryMergeWithBefore(i + 1)
 		t.TryMergeWithBefore(i)
 	}
 	if len(buf) > 0 {
-		log.Printf("at end, insert buf, i %d, s %d, t %v\n", i, s, t)
+		// log.Printf("at end, insert buf, i %d, s %d, t %v\n", i, s, t)
 		insertBuf(i)
 		t.TryMergeWithBefore(i + 1)
 		t.TryMergeWithBefore(i)
 	}
-	log.Printf("replace done, t %v\n", t)
+	// log.Printf("replace done, t %v\n", t)
 }
 
 func (t *text) String() string {
@@ -161,7 +159,7 @@ func (s stretch) ReadAt(buf []byte, offset int64) (int, error) {
 	if offset < 0 {
 		return -1, fmt.Errorf("read at negative offset")
 	}
-	if offset >= int64(len(buf)) {
+	if offset >= int64(len(s)) {
 		return 0, io.EOF
 	}
 	start := int(offset)
