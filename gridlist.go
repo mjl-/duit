@@ -291,7 +291,7 @@ func (ui *Gridlist) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 		}
 		for i, s := range row.Values {
 			cellR := lineR
-			cellR.Min.X = x[i] + separatorWidth
+			cellR.Min.X = lineR.Min.X + x[i] + separatorWidth
 			cellR.Max.X = cellR.Min.X + widths[i] + pad.Dx()
 			cellR = pad.Inset(cellR)
 			alignOffset := pt(0)
