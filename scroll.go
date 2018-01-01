@@ -9,8 +9,8 @@ import (
 
 // Scroll shows a part of its single child, typically a box, and lets you scroll the content.
 type Scroll struct {
-	Child     UI
-	MaxHeight int // < 0 means full height, 0 means as much as necessary, >0 means exactly that many lowdpi pixels
+	Child  UI
+	Height int // < 0 means full height, 0 means as much as necessary, >0 means exactly that many lowdpi pixels
 
 	r             image.Rectangle // entire ui
 	barR          image.Rectangle
@@ -30,9 +30,9 @@ func NewScroll(ui UI) *Scroll {
 
 func (ui *Scroll) Layout(env *Env, size image.Point) image.Point {
 	ui.scrollbarSize = scale(env.Display, ScrollbarSize)
-	scaledMaxHeight := scale(env.Display, ui.MaxHeight)
-	if scaledMaxHeight > 0 && scaledMaxHeight < size.Y {
-		size.Y = scaledMaxHeight
+	scaledHeight := scale(env.Display, ui.Height)
+	if scaledHeight > 0 && scaledHeight < size.Y {
+		size.Y = scaledHeight
 	}
 	ui.r = rect(size)
 	ui.barR = ui.r
@@ -40,7 +40,7 @@ func (ui *Scroll) Layout(env *Env, size image.Point) image.Point {
 	ui.childR = ui.r
 	ui.childR.Min.X = ui.barR.Max.X
 	ui.childSize = ui.Child.Layout(env, image.Pt(ui.r.Dx()-ui.barR.Dx(), ui.r.Dy()))
-	if ui.r.Dy() > ui.childSize.Y && ui.MaxHeight == 0 {
+	if ui.r.Dy() > ui.childSize.Y && ui.Height == 0 {
 		ui.barR.Max.Y = ui.childSize.Y
 		ui.r.Max.Y = ui.childSize.Y
 		ui.childR.Max.Y = ui.childSize.Y
