@@ -129,9 +129,9 @@ func (ui *Scroll) scrollKey(c rune) (consumed bool) {
 func (ui *Scroll) scrollMouse(m draw.Mouse, scrollOnly bool) (consumed bool) {
 	switch m.Buttons {
 	case Button4:
-		return ui.scroll(-40)
+		return ui.scroll(-m.Y / 4)
 	case Button5:
-		return ui.scroll(40)
+		return ui.scroll(m.Y / 4)
 	}
 
 	if scrollOnly {
@@ -165,8 +165,9 @@ func (ui *Scroll) Mouse(env *Env, m draw.Mouse) (r Result) {
 		return
 	}
 	if m.Point.In(ui.r) {
-		m.Point = m.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
-		r = ui.Child.Mouse(env, m)
+		nm := m
+		nm.Point = nm.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
+		r = ui.Child.Mouse(env, nm)
 		if !r.Consumed {
 			r.Consumed = ui.scrollMouse(m, true)
 			r.Redraw = r.Redraw || r.Consumed
