@@ -66,7 +66,7 @@ func (ui *Button) Mouse(env *Env, m draw.Mouse) Result {
 	if ui.m.Buttons&1 != m.Buttons&1 {
 		r.Redraw = true
 	}
-	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 && ui.Click != nil {
+	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 && ui.Click != nil && !ui.Disabled {
 		ui.Click(&r)
 	}
 	ui.m = m
