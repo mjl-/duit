@@ -15,9 +15,10 @@ type Field struct {
 	Text            string
 	Placeholder     string // text displayed in lighter color as example
 	Disabled        bool
-	Cursor1         int // index in string of cursor, start at 1. 0 means end of string.
-	SelectionStart1 int // if > 0, 1 beyond the start of the selection, with Cursor being the end.
+	Cursor1         int // index in string of cursor in bytes, start at 1. 0 means end of string.
+	SelectionStart1 int // if > 0, 1 beyond the start of the selection in bytes, with Cursor being the end.
 	Font            *draw.Font
+	Password        bool                                  // if true, text is rendered as bullet items to hide the password (but not the length of the password)
 	Changed         func(string, *Result)                 // called after contents of field have changed
 	Keys            func(m draw.Mouse, k rune, r *Result) // called before handling key. if you consume the event, Changed will not be called
 
@@ -88,6 +89,10 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 	hover := m.In(r)
 	r = r.Add(orig)
 
+	ui.fixCursor()
+	s, e, sel := ui.selection0()
+	f := ui.font(env)
+
 	colors := env.Normal
 	selColors := env.Selection
 	if ui.Disabled {
@@ -97,18 +102,50 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 		selColors = env.SelectionHover
 	}
 	text := ui.Text
+	c0 := ui.cursor0()
 	if text == "" {
 		text = ui.Placeholder
 		if !ui.Disabled {
 			colors = env.Placeholder
 		}
+	} else if ui.Password {
+		// ugh
+		nt := ""
+		sel = ""
+		inSel := false
+		ns := -1
+		ne := -1
+		nc0 := -1
+		for o := range text {
+			if s == o {
+				ns = len(nt)
+				inSel = true
+			}
+			if e == o {
+				ne = len(nt)
+				inSel = false
+			}
+			if c0 == o {
+				nc0 = len(nt)
+			}
+			nt += "•"
+			if inSel {
+				sel += "•"
+			}
+		}
+		if nc0 < 0 {
+			nc0 = len(nt)
+		}
+		if ns < 0 {
+			ns = len(nt)
+		}
+		if ne < 0 {
+			ne = len(nt)
+		}
+		text, s, e, c0 = nt, ns, ne, nc0
 	}
 	img.Draw(r, colors.Background, nil, image.ZP)
 	drawRoundedBorder(img, r, colors.Border)
-
-	ui.fixCursor()
-	s, e, sel := ui.selection0()
-	f := ui.font(env)
 
 	space := ui.space(env)
 
@@ -137,7 +174,7 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 
 	width := f.StringWidth(text)
 	if width <= r.Dx()-2*space.X {
-		cp := r.Min.Add(image.Pt(f.StringWidth(text[:ui.cursor0()]), 0))
+		cp := r.Min.Add(image.Pt(f.StringWidth(text[:c0]), 0))
 		drawString(img, r.Min, cp)
 	} else {
 		if ui.img == nil || !ui.img.R.Size().Eq(ui.size) {
@@ -149,7 +186,7 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 
 		// first, determine cursor given previous draw
 		width := ui.img.R.Dx() - 2*space.X
-		stringWidth := f.StringWidth(text[:ui.cursor0()])
+		stringWidth := f.StringWidth(text[:c0])
 		cursorOffset := stringWidth + ui.prevTextOffset
 		var textOffset int
 		if cursorOffset < 0 {
@@ -262,6 +299,9 @@ func (ui *Field) Mouse(env *Env, m draw.Mouse) (r Result) {
 		mX := m.X - space.X
 		x := 0
 		for i, c := range ui.Text {
+			if ui.Password {
+				c = '•'
+			}
 			dx := f.StringWidth(string(c))
 			if mX <= x+dx/2 {
 				return i
