@@ -31,6 +31,7 @@ const (
 
 type Edit struct {
 	Font *draw.Font
+	Keys func(m draw.Mouse, k rune, result *Result)
 
 	text    *text // what we are rendering.  offset & cursors index into this text
 	offset  int64 // byte offset of first line we draw
@@ -251,10 +252,33 @@ func (ui *Edit) ensureInit() {
 	}
 }
 
-// Reader from which contents of edit can be read
-func (ui *Edit) Reader() io.Reader {
+type TextReader interface {
+	Peek() (rune, bool)
+	Get() rune
+	Offset() int64
+}
+
+type ReaderReaderAt interface {
+	io.Reader
+	io.ReaderAt
+}
+
+// Reader from which contents of edit can be read.
+func (ui *Edit) Reader() ReaderReaderAt {
 	// xxx should make copy of ui.text
-	return io.NewSectionReader(ui.text, 0, ui.text.Size())
+	return io.NewSectionReader(ui.text, 0, ui.text.Size()-0)
+}
+
+// Reader from which contents of edit can be read, starting at offset.
+func (ui *Edit) TextReader(offset int64) TextReader {
+	// xxx should make copy of ui.text
+	return ui.reader(offset, ui.text.Size())
+}
+
+// Reader from which contents of edit can be read in reverse (whole utf-8 characters), starting at offset, to 0.
+func (ui *Edit) ReverseTextReader(offset int64) TextReader {
+	// xxx should make copy of ui.text
+	return ui.revReader(offset)
 }
 
 func (ui *Edit) reader(offset, size int64) *reader {
@@ -335,6 +359,10 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 			p0 := p
 			p1 := p0
 			p1.Y += font.Height
+			thick := env.Scale(1)
+			if thick == 1 {
+				thick = 0
+			}
 			img.Line(p0, p1, 0, 0, 1, env.Display.Black, image.ZP)
 		}
 
@@ -653,6 +681,14 @@ func (ui *Edit) selectionText() string {
 	return string(buf)
 }
 
+func (ui *Edit) Selection() string {
+	return ui.selectionText()
+}
+
+func (ui *Edit) Cursor() int64 {
+	return ui.cursor
+}
+
 // ensure cursor is visible
 func (ui *Edit) scrollCursor(env *Env) {
 	nbr := ui.revReader(ui.cursor)
@@ -738,6 +774,13 @@ func (ui *Edit) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result)
 	}
 	if !m.In(ui.textR) {
 		return
+	}
+
+	if ui.Keys != nil {
+		ui.Keys(m, k, &r)
+		if r.Consumed {
+			return
+		}
 	}
 
 	r.Consumed = true
