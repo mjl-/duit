@@ -45,13 +45,13 @@ func main() {
 		Selected: true,
 		Value:    1,
 		Changed: func(v interface{}, r *duit.Result) {
-			log.Println("radiobutton value changed, now %#v", v)
+			log.Printf("radiobutton value changed, now %#v\n", v)
 		},
 	}
 	radio2 := &duit.Radiobutton{
 		Value: 2,
 		Changed: func(v interface{}, r *duit.Result) {
-			log.Println("radiobutton value changed, now %#v", v)
+			log.Printf("radiobutton value changed, now %#v\n", v)
 		},
 	}
 	group := []*duit.Radiobutton{
