@@ -94,6 +94,19 @@ func (ui *List) Selected() (indices []int) {
 	return ui.selectedIndices()
 }
 
+// unselect indices, or if indices is nil, unselect all
+func (ui *List) Unselect(indices []int) {
+	if indices == nil {
+		for _, lv := range ui.Values {
+			lv.Selected = false
+		}
+	} else {
+		for _, i := range indices {
+			ui.Values[i].Selected = false
+		}
+	}
+}
+
 func (ui *List) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Result) {
 	result.Hit = ui
 	if !m.In(rect(ui.size)) {
