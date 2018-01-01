@@ -73,8 +73,12 @@ func (ui *Button) Mouse(env *Env, m draw.Mouse) Result {
 	return r
 }
 
-func (ui *Button) Key(env *Env, orig image.Point, m draw.Mouse, c rune) (r Result) {
+func (ui *Button) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result) {
 	r.Hit = ui
+	if !ui.Disabled && (k == ' ' || k == '\n') {
+		r.Consumed = true
+		ui.Click(&r)
+	}
 	return
 }
 
