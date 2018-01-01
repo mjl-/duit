@@ -42,8 +42,8 @@ func favoritesPath() string {
 func loadFavorites() ([]*duit.ListValue, error) {
 	home := os.Getenv("HOME") + "/"
 	l := []*duit.ListValue{
-		{Label: "home", Value: home, Selected: true},
-		{Label: "/", Value: "/"},
+		{Text: "home", Value: home, Selected: true},
+		{Text: "/", Value: "/"},
 	}
 
 	f, err := os.Open(favoritesPath())
@@ -54,7 +54,7 @@ func loadFavorites() ([]*duit.ListValue, error) {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		name := scanner.Text()
-		l = append(l, &duit.ListValue{Label: path.Base(name), Value: name})
+		l = append(l, &duit.ListValue{Text: path.Base(name), Value: name})
 	}
 	err = scanner.Err()
 	if err != nil {
@@ -172,7 +172,7 @@ func main() {
 			}
 			if lv == nil {
 				lv = &duit.ListValue{
-					Label:    path.Base(pathLabel.Text),
+					Text:     path.Base(pathLabel.Text),
 					Value:    pathLabel.Text,
 					Selected: true,
 				}
@@ -195,7 +195,7 @@ func main() {
 	makeColumnUI = func(colIndex int, c column) duit.UI {
 		l := make([]*duit.ListValue, len(c.names))
 		for i, name := range c.names {
-			l[i] = &duit.ListValue{Label: name, Value: name}
+			l[i] = &duit.ListValue{Text: name, Value: name}
 		}
 		var list *duit.List
 		list = &duit.List{
@@ -261,7 +261,7 @@ func main() {
 						for _, name := range c.names {
 							exactMatch = exactMatch || name == newValue
 							if strings.Contains(name, newValue) {
-								nl = append(nl, &duit.ListValue{Label: name, Value: name})
+								nl = append(nl, &duit.ListValue{Text: name, Value: name})
 							}
 						}
 						if exactMatch {

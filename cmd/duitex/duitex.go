@@ -129,9 +129,9 @@ func main() {
 							&duit.List{
 								Multiple: true,
 								Values: []*duit.ListValue{
-									{Label: "Elem 1", Value: 1},
-									{Label: "Elem 2", Value: 2},
-									{Label: "Elem 3", Value: 3},
+									{Text: "Elem 1", Value: 1},
+									{Text: "Elem 2", Value: 2},
+									{Text: "Elem 3", Value: 3},
 								},
 							},
 							&duit.Label{Text: "Horizontal split"},

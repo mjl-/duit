@@ -7,7 +7,7 @@ import (
 )
 
 type ListValue struct {
-	Label    string
+	Text     string
 	Value    interface{}
 	Selected bool
 }
@@ -47,7 +47,7 @@ func (ui *List) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 			colors = env.Inverse
 			img.Draw(lineR, colors.Background, nil, image.ZP)
 		}
-		img.String(lineR.Min.Add(pt(font.Height/4)), colors.Text, image.ZP, font, v.Label)
+		img.String(lineR.Min.Add(pt(font.Height/4)), colors.Text, image.ZP, font, v.Text)
 		lineR = lineR.Add(image.Pt(0, 4*font.Height/3))
 	}
 }
