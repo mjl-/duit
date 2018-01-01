@@ -363,7 +363,7 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 			if thick == 1 {
 				thick = 0
 			}
-			img.Line(p0, p1, 0, 0, 1, env.Display.Black, image.ZP)
+			img.Line(p0, p1, 0, 0, thick, env.Display.Black, image.ZP)
 		}
 
 		// we draw text before selection
