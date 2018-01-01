@@ -32,6 +32,9 @@ func (ui *Grid) Layout(env *Env, size image.Point) image.Point {
 	if ui.Padding != nil && len(ui.Padding) != ui.Columns {
 		panic(fmt.Sprintf("len(padding) = %d, should be ui.Columns = %d", len(ui.Padding), ui.Columns))
 	}
+	if len(ui.Kids)%ui.Columns != 0 {
+		panic(fmt.Sprintf("len(kids) = %d, should be multiple of ui.Columns = %d", len(ui.Kids), ui.Columns))
+	}
 
 	scaledWidth := env.Scale(ui.Width)
 	if scaledWidth > 0 && scaledWidth < size.X {
