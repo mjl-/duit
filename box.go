@@ -31,6 +31,7 @@ type Box struct {
 	Valign      Valign      // how to align children on a line
 	Width       int         // 0 means dynamic (as much as needed), -1 means full width, >0 means that exact amount of lowdpi pixels
 	Height      int         // 0 means dynamic (as much as needed), -1 means full height, >0 means that exact amount of lowdpi pixels
+	MaxWidth    int         // if >0, the max number of lowdpi pixels that will be used
 
 	size image.Point // of entire box, including padding
 }
@@ -38,9 +39,16 @@ type Box struct {
 var _ UI = &Box{}
 
 func (ui *Box) Layout(env *Env, size image.Point) image.Point {
+	if ui.Width < 0 && ui.MaxWidth > 0 {
+		panic("combination ui.Width < 0 and ui.MaxWidth > 0 invalid")
+	}
+
 	osize := size
 	if ui.Width > 0 && scale(env.Display, ui.Width) < size.X {
 		size.X = scale(env.Display, ui.Width)
+	} else if ui.MaxWidth > 0 && scale(env.Display, ui.MaxWidth) < size.X {
+		// note: ui.Width is currently the same as MaxWidth, but that might change when we don't mind extending beyong given X, eg with horizontal scroll
+		size.X = scale(env.Display, ui.MaxWidth)
 	}
 	if ui.Height > 0 {
 		size.Y = scale(env.Display, ui.Height)
