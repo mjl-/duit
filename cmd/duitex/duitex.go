@@ -107,9 +107,9 @@ func main() {
 				}},
 				{UI: &duit.Scroll{
 					Child: &duit.Box{
-						Reverse:     true,
-						Padding:     duit.SpaceXY(6, 4),
-						ChildMargin: image.Pt(6, 4),
+						Reverse: true,
+						Padding: duit.SpaceXY(6, 4),
+						Margin:  image.Pt(6, 4),
 						Kids: duit.NewKids(
 							&duit.Label{Text: "counter:"},
 							counter,
@@ -150,8 +150,8 @@ func main() {
 							},
 							&duit.Label{Text: "Another box with a scrollbar:"},
 							&duit.Scroll{Child: &duit.Box{
-								Padding:     duit.SpaceXY(6, 4),
-								ChildMargin: image.Pt(6, 4),
+								Padding: duit.SpaceXY(6, 4),
+								Margin:  image.Pt(6, 4),
 								Kids: duit.NewKids(
 									&duit.Label{Text: "another label, this one is somewhat longer"},
 									&duit.Button{Text: "some other button"},

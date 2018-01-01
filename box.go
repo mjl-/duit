@@ -24,14 +24,14 @@ func NewReverseBox(uis ...UI) *Box {
 
 // Box keeps elements on a line as long as they fit, then moves on to the next line.
 type Box struct {
-	Kids        []*Kid
-	Reverse     bool        // lay out children from bottom to top. first kid will be at the bottom.
-	ChildMargin image.Point // in pixels, will be adjusted for high dpi screens
-	Padding     Space       // padding inside box, so children don't touch the sides; also adjusted for high dpi screens
-	Valign      Valign      // how to align children on a line
-	Width       int         // 0 means dynamic (as much as needed), -1 means full width, >0 means that exact amount of lowdpi pixels
-	Height      int         // 0 means dynamic (as much as needed), -1 means full height, >0 means that exact amount of lowdpi pixels
-	MaxWidth    int         // if >0, the max number of lowdpi pixels that will be used
+	Kids     []*Kid
+	Reverse  bool        // lay out children from bottom to top. first kid will be at the bottom.
+	Margin   image.Point // in pixels, will be adjusted for high dpi screens
+	Padding  Space       // padding inside box, so children don't touch the sides; also adjusted for high dpi screens
+	Valign   Valign      // how to align children on a line
+	Width    int         // 0 means dynamic (as much as needed), -1 means full width, >0 means that exact amount of lowdpi pixels
+	Height   int         // 0 means dynamic (as much as needed), -1 means full height, >0 means that exact amount of lowdpi pixels
+	MaxWidth int         // if >0, the max number of lowdpi pixels that will be used
 
 	size image.Point // of entire box, including padding
 }
@@ -54,7 +54,7 @@ func (ui *Box) Layout(env *Env, size image.Point) image.Point {
 		size.Y = scale(env.Display, ui.Height)
 	}
 	padding := env.ScaleSpace(ui.Padding)
-	margin := scalePt(env.Display, ui.ChildMargin)
+	margin := scalePt(env.Display, ui.Margin)
 	size = size.Sub(padding.Size())
 	nx := 0 // number on current line
 

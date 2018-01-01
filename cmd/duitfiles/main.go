@@ -251,8 +251,8 @@ func main() {
 			},
 		}
 		return &duit.Box{
-			Padding:     duit.SpaceXY(6, 4),
-			ChildMargin: image.Pt(6, 4),
+			Padding: duit.SpaceXY(6, 4),
+			Margin:  image.Pt(6, 4),
 			Kids: duit.NewKids(
 				&duit.Field{
 					Changed: func(newValue string, result *duit.Result) {
@@ -332,9 +332,9 @@ func main() {
 	}
 
 	dui.Top = &duit.Box{
-		Padding:     duit.SpaceXY(6, 4),
-		ChildMargin: image.Pt(6, 4),
-		Valign:      duit.ValignMiddle,
+		Padding: duit.SpaceXY(6, 4),
+		Margin:  image.Pt(6, 4),
+		Valign:  duit.ValignMiddle,
 		Kids: duit.NewKids(
 			favoriteToggle,
 			pathLabel,
