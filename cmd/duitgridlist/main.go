@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"mjl/duit"
+	"github.com/mjl-/duit"
 
 	"9fans.net/go/draw"
 )

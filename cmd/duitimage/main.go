@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"9fans.net/go/draw"
-	"mjl/duit"
+	"github.com/mjl-/duit"
 )
 
 func check(err error, msg string) {
@@ -17,7 +17,7 @@ func check(err error, msg string) {
 
 func main() {
 	flag.Usage = func() {
-		log.Println("duitimage path\n")
+		log.Println("duitimage path")
 		flag.PrintDefaults()
 	}
 	flag.Parse()

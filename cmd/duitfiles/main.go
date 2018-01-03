@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"9fans.net/go/draw"
-	"mjl/duit"
+	"github.com/mjl-/duit"
 )
 
 type column struct {

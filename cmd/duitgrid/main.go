@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"mjl/duit"
+	"github.com/mjl-/duit"
 )
 
 func check(err error, msg string) {

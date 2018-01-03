@@ -4,7 +4,7 @@ import (
 	"image"
 	"log"
 
-	"mjl/duit"
+	"github.com/mjl-/duit"
 )
 
 func check(err error, msg string) {
