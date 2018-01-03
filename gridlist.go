@@ -339,7 +339,7 @@ func (ui *Gridlist) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 	}
 }
 
-func (ui *Gridlist) Mouse(env *Env, m draw.Mouse) (r Result) {
+func (ui *Gridlist) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 	r.Hit = ui
 	if !m.In(rect(ui.size)) {
 		return

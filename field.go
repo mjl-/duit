@@ -288,15 +288,15 @@ func expandSelection(t string, i int) (s, e int) {
 	return
 }
 
-func (ui *Field) Mouse(env *Env, m draw.Mouse) (r Result) {
-	if !m.In(rect(ui.size)) {
+func (ui *Field) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
+	if !origM.In(rect(ui.size)) {
 		return
 	}
 	r.Hit = ui
 	space := ui.space(env)
 	locateCursor := func() int {
 		f := ui.font(env)
-		mX := m.X - space.X
+		mX := m.X - space.X - ui.prevTextOffset
 		x := 0
 		for i, c := range ui.Text {
 			if ui.Password {

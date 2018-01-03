@@ -55,7 +55,7 @@ func (ui *Checkbox) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 	}
 }
 
-func (ui *Checkbox) Mouse(env *Env, m draw.Mouse) (r Result) {
+func (ui *Checkbox) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 	r.Hit = ui
 	if ui.Disabled {
 		return

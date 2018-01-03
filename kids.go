@@ -33,11 +33,12 @@ func kidsDraw(env *Env, kids []*Kid, uiSize image.Point, img *draw.Image, orig i
 	}
 }
 
-func kidsMouse(env *Env, kids []*Kid, m draw.Mouse) Result {
+func kidsMouse(env *Env, kids []*Kid, origM, m draw.Mouse) Result {
 	for _, k := range kids {
-		if m.Point.In(k.r) {
+		if origM.Point.In(k.r) {
+			origM.Point = origM.Point.Sub(k.r.Min)
 			m.Point = m.Point.Sub(k.r.Min)
-			return k.UI.Mouse(env, m)
+			return k.UI.Mouse(env, origM, m)
 		}
 	}
 	return Result{}

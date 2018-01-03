@@ -157,7 +157,7 @@ func (ui *Scroll) scrollMouse(m draw.Mouse, scrollOnly bool) (consumed bool) {
 	return false
 }
 
-func (ui *Scroll) Mouse(env *Env, m draw.Mouse) (r Result) {
+func (ui *Scroll) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 	r.Hit = ui
 	if m.Point.In(ui.barR) {
 		r.Consumed = ui.scrollMouse(m, false)
@@ -165,9 +165,11 @@ func (ui *Scroll) Mouse(env *Env, m draw.Mouse) (r Result) {
 		return
 	}
 	if m.Point.In(ui.r) {
+		nOrigM := origM
+		nOrigM.Point = nOrigM.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
 		nm := m
 		nm.Point = nm.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
-		r = ui.Child.Mouse(env, nm)
+		r = ui.Child.Mouse(env, nOrigM, nm)
 		if !r.Consumed {
 			r.Consumed = ui.scrollMouse(m, true)
 			r.Redraw = r.Redraw || r.Consumed

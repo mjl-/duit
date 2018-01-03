@@ -20,7 +20,7 @@ func (ui *Image) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 	img.Draw(image.Rectangle{orig, orig.Add(ui.Image.R.Size())}, ui.Image, nil, image.ZP)
 }
 
-func (ui *Image) Mouse(env *Env, m draw.Mouse) Result {
+func (ui *Image) Mouse(env *Env, origM, m draw.Mouse) Result {
 	return Result{Hit: ui}
 }
 

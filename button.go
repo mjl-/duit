@@ -61,12 +61,12 @@ func (ui *Button) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse
 	img.String(r.Min.Add(ui.space(env)).Add(hit), colors.Text, image.ZP, ui.font(env), ui.Text)
 }
 
-func (ui *Button) Mouse(env *Env, m draw.Mouse) Result {
+func (ui *Button) Mouse(env *Env, origM, m draw.Mouse) Result {
 	r := Result{Hit: ui}
 	if ui.m.Buttons&1 != m.Buttons&1 {
 		r.Redraw = true
 	}
-	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 && ui.Click != nil && !ui.Disabled {
+	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 && ui.Click != nil && !ui.Disabled && m.Point.In(rect(ui.Layout(env, image.ZP))) {
 		ui.Click(&r)
 	}
 	ui.m = m

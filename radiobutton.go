@@ -68,7 +68,7 @@ func (ui *Radiobutton) check(r *Result) {
 	}
 }
 
-func (ui *Radiobutton) Mouse(env *Env, m draw.Mouse) (r Result) {
+func (ui *Radiobutton) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 	r.Hit = ui
 	if ui.Disabled {
 		return

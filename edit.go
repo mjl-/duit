@@ -557,7 +557,7 @@ func (ui *Edit) expand(offset int64, fr, br *reader) (int64, int64) {
 	return offset - br.n, offset + fr.n
 }
 
-func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
+func (ui *Edit) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 	ui.ensureInit()
 	font := ui.font(env)
 	scrollLines := func(y int) int {
@@ -569,12 +569,13 @@ func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
 		return n
 	}
 	r.Hit = ui
-	if m.In(ui.barR) {
+	if origM.In(ui.barR) {
 		switch m.Buttons {
 		case Button1:
-			ui.scroll(-scrollLines(m.Y), &r)
+			ui.scroll(-scrollLines(origM.Y), &r)
 		case Button2:
-			rd := ui.revReader(ui.text.Size() * int64(m.Y) / int64(ui.textR.Dy()))
+			y := maximum(0, minimum(m.Y, ui.textR.Dy()))
+			rd := ui.revReader(ui.text.Size() * int64(y) / int64(ui.textR.Dy()))
 			for {
 				c, eof := rd.Peek()
 				if eof || c == '\n' {
@@ -585,17 +586,18 @@ func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
 			r.Redraw = rd.Offset() != ui.offset
 			ui.offset = rd.Offset()
 		case Button3:
-			ui.scroll(scrollLines(m.Y), &r)
+			ui.scroll(scrollLines(origM.Y), &r)
 		case Button4:
-			ui.scroll(-scrollLines(m.Y/4), &r)
+			ui.scroll(-scrollLines(origM.Y/4), &r)
 		case Button5:
-			ui.scroll(scrollLines(m.Y/4), &r)
+			ui.scroll(scrollLines(origM.Y/4), &r)
 		}
 		return
 	}
-	if !m.In(ui.textR) {
+	if !origM.In(ui.textR) {
 		return
 	}
+	origM.Point = origM.Point.Sub(ui.textR.Min)
 	m.Point = m.Point.Sub(ui.textR.Min)
 	om := ui.textM
 	ui.textM = m
@@ -606,9 +608,15 @@ func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
 		ui.scroll(scrollLines(m.Y/4), &r)
 	default:
 		if m.Buttons == Button1 {
-			rd := ui.reader(ui.offset, ui.text.Size())
+			rrd := ui.revReader(ui.offset)
+			line := m.Y / ui.font(env).Height
 			eof := false
-			for line := m.Y / ui.font(env).Height; line > 0 && !eof; line-- {
+			for ; line < 0 && !eof; line++ {
+				_, eof = rrd.RevLine()
+			}
+			rd := ui.reader(rrd.Offset(), ui.text.Size())
+			eof = false
+			for ; line > 0 && !eof; line-- {
 				_, _, eof = rd.Line(true)
 			}
 			startLineOffset := rd.Offset()
@@ -628,6 +636,7 @@ func (ui *Edit) Mouse(env *Env, m draw.Mouse) (r Result) {
 				xchars++
 			}
 			ui.cursor = rd.Offset()
+			ui.scrollCursor(env)
 			if om.Buttons == 0 {
 				if m.Msec-ui.prevTextB1.Msec < 300 {
 					if xchars == 0 {

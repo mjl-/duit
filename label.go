@@ -25,7 +25,7 @@ func (ui *Label) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 	img.String(orig, env.Normal.Text, image.ZP, ui.font(env), ui.Text)
 }
 
-func (ui *Label) Mouse(env *Env, m draw.Mouse) Result {
+func (ui *Label) Mouse(env *Env, origM, m draw.Mouse) Result {
 	return Result{Hit: ui}
 }
 

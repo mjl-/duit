@@ -20,9 +20,10 @@ type UI interface {
 	Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 
 	// Mouse tells the UI about mouse movement over it.
+	// OrigM is the mouse of first button down change, to facilitate tracking dragging. If no button is down, origM is the same as m.
 	// It can also be called when the mouse moved out of the UI. This facilitates redrawing after leaving the UI element, to draw it in non-hovered form. The UI is responsible for determining if the mouse is over the UI or not.
 	// Result is used to tell the caller whether the event was consumed, and whether UI's need to be redrawn, etc.
-	Mouse(env *Env, m draw.Mouse) (r Result)
+	Mouse(env *Env, origM, m draw.Mouse) (r Result)
 
 	// Key tells the UI about a key press over it.
 	Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result)

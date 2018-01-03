@@ -130,8 +130,8 @@ func (ui *Box) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
 	kidsDraw(env, ui.Kids, ui.size, img, orig, m)
 }
 
-func (ui *Box) Mouse(env *Env, m draw.Mouse) Result {
-	return kidsMouse(env, ui.Kids, m)
+func (ui *Box) Mouse(env *Env, origM, m draw.Mouse) Result {
+	return kidsMouse(env, ui.Kids, origM, m)
 }
 
 func (ui *Box) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {

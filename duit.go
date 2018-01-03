@@ -76,6 +76,7 @@ type DUI struct {
 	mousectl    *draw.Mousectl
 	keyctl      *draw.Keyboardctl
 	mouse       draw.Mouse
+	origMouse   draw.Mouse
 	lastMouseUI UI
 	logEvents   bool
 	logTiming   bool
@@ -223,11 +224,14 @@ func (d *DUI) Redraw() {
 }
 
 func (d *DUI) Mouse(m draw.Mouse) {
+	if m.Buttons == 0 || d.origMouse.Buttons == 0 {
+		d.origMouse = m
+	}
 	d.mouse = m
 	if d.logEvents {
 		log.Printf("duit: mouse %v, %b\n", m, m.Buttons)
 	}
-	r := d.Top.Mouse(d.Env, m)
+	r := d.Top.Mouse(d.Env, d.origMouse, m)
 	if r.Layout {
 		d.Render()
 	} else if r.Hit != d.lastMouseUI || r.Redraw {
@@ -281,7 +285,8 @@ func (d *DUI) Key(r rune) {
 			log.Printf("duit: move mouse to %v: %s\n", result.Warp, err)
 		}
 		d.mouse.Point = *result.Warp
-		result2 := d.Top.Mouse(d.Env, d.mouse)
+		d.origMouse.Point = *result.Warp
+		result2 := d.Top.Mouse(d.Env, d.origMouse, d.mouse)
 		result.Redraw = result.Redraw || result2.Redraw || true
 		result.Layout = result.Layout || result2.Layout
 		d.lastMouseUI = result2.Hit
@@ -304,7 +309,8 @@ func (d *DUI) Focus(ui UI) {
 		return
 	}
 	d.mouse.Point = *p
-	r := d.Top.Mouse(d.Env, d.mouse)
+	d.origMouse.Point = *p
+	r := d.Top.Mouse(d.Env, d.origMouse, d.mouse)
 	d.lastMouseUI = r.Hit
 	if r.Layout {
 		d.Render()

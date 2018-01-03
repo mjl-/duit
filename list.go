@@ -52,7 +52,7 @@ func (ui *List) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 	}
 }
 
-func (ui *List) Mouse(env *Env, m draw.Mouse) (result Result) {
+func (ui *List) Mouse(env *Env, origM, m draw.Mouse) (result Result) {
 	result.Hit = ui
 	if !m.In(rect(ui.size)) {
 		return

@@ -36,8 +36,8 @@ func (ui *Vertical) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 	kidsDraw(env, ui.Kids, ui.size, img, orig, m)
 }
 
-func (ui *Vertical) Mouse(env *Env, m draw.Mouse) (result Result) {
-	return kidsMouse(env, ui.Kids, m)
+func (ui *Vertical) Mouse(env *Env, origM, m draw.Mouse) (result Result) {
+	return kidsMouse(env, ui.Kids, origM, m)
 }
 
 func (ui *Vertical) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Result) {

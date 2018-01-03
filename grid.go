@@ -153,8 +153,8 @@ func (ui *Grid) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 	kidsDraw(env, ui.Kids, ui.size, img, orig, m)
 }
 
-func (ui *Grid) Mouse(env *Env, m draw.Mouse) (result Result) {
-	return kidsMouse(env, ui.Kids, m)
+func (ui *Grid) Mouse(env *Env, origM, m draw.Mouse) (result Result) {
+	return kidsMouse(env, ui.Kids, origM, m)
 }
 
 func (ui *Grid) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Result) {
