@@ -13,10 +13,16 @@ type Image struct {
 var _ UI = &Image{}
 
 func (ui *Image) Layout(env *Env, size image.Point) image.Point {
+	if ui.Image == nil {
+		return image.ZP
+	}
 	return ui.Image.R.Size()
 }
 
 func (ui *Image) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
+	if ui.Image == nil {
+		return
+	}
 	img.Draw(image.Rectangle{orig, orig.Add(ui.Image.R.Size())}, ui.Image, nil, image.ZP)
 }
 

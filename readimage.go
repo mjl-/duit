@@ -27,9 +27,8 @@ func ReadImage(display *draw.Display, f io.Reader) (*draw.Image, error) {
 		imagedraw.Draw(rgba, rgba.Bounds(), img, b.Min, imagedraw.Src)
 	}
 
-	// todo: colors are wrong. it should be RGBA32, but that looks even worse.
-
-	ni, err := display.AllocImage(rgba.Bounds(), draw.ARGB32, false, draw.White)
+	// todo: package image claims data is in r,g,b,a.  who is reversing the bytes? devdraw? will this work on big endian?
+	ni, err := display.AllocImage(rgba.Bounds(), draw.ABGR32, false, draw.White)
 	if err != nil {
 		return nil, fmt.Errorf("allocimage: %s", err)
 	}
