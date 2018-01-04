@@ -58,12 +58,14 @@ const (
 	EventMouse = EventType(iota)
 	EventKey
 	EventResize
+	EventFunc
 )
 
 type Event struct {
 	Type  EventType
 	Mouse draw.Mouse
 	Key   rune
+	Func  func()
 }
 
 type DUI struct {
@@ -71,6 +73,7 @@ type DUI struct {
 	Events  chan Event
 	Top     UI
 	Env     *Env
+	Call    chan func()
 
 	stop        chan struct{}
 	mousectl    *draw.Mousectl
@@ -101,6 +104,7 @@ func NewDUI(name, dim string) (*DUI, error) {
 	dui.keyctl = display.InitKeyboard()
 	dui.stop = make(chan struct{})
 	dui.Events = make(chan Event, 1)
+	dui.Call = make(chan func(), 1)
 	go func() {
 		for {
 			select {
@@ -110,6 +114,8 @@ func NewDUI(name, dim string) (*DUI, error) {
 				dui.Events <- Event{Type: EventKey, Key: k}
 			case <-dui.mousectl.Resize:
 				dui.Events <- Event{Type: EventResize}
+			case fn := <-dui.Call:
+				dui.Events <- Event{Type: EventFunc, Func: fn}
 			case <-dui.stop:
 				return
 			}
@@ -347,6 +353,8 @@ func (d *DUI) Event(e Event) {
 		d.Key(e.Key)
 	case EventResize:
 		d.Resize()
+	case EventFunc:
+		e.Func()
 	}
 }
 
