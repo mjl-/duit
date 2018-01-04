@@ -146,6 +146,9 @@ func (ui *Grid) Layout(env *Env, size image.Point) image.Point {
 	}
 
 	ui.size = image.Pt(width, height)
+	if ui.Width < 0 && ui.size.X < size.X {
+		ui.size.X = size.X
+	}
 	return ui.size
 }
 
