@@ -45,5 +45,5 @@ func (ui *Label) Focus(env *Env, o UI) *image.Point {
 }
 
 func (ui *Label) Print(indent int, r image.Rectangle) {
-	uiPrint("Label", indent, r)
+	PrintUI("Label", indent, r)
 }

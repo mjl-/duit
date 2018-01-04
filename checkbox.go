@@ -104,5 +104,5 @@ func (ui *Checkbox) Focus(env *Env, o UI) *image.Point {
 }
 
 func (ui *Checkbox) Print(indent int, r image.Rectangle) {
-	uiPrint("Checkbox", indent, r)
+	PrintUI("Checkbox", indent, r)
 }

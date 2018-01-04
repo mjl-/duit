@@ -111,5 +111,5 @@ func (ui *Radiobutton) Focus(env *Env, o UI) *image.Point {
 }
 
 func (ui *Radiobutton) Print(indent int, r image.Rectangle) {
-	uiPrint("Radiobutton", indent, r)
+	PrintUI("Radiobutton", indent, r)
 }

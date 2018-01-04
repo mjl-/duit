@@ -55,6 +55,6 @@ func (ui *Horizontal) Focus(env *Env, o UI) *image.Point {
 }
 
 func (ui *Horizontal) Print(indent int, r image.Rectangle) {
-	uiPrint("Horizontal", indent, r)
+	PrintUI("Horizontal", indent, r)
 	kidsPrint(ui.Kids, indent+1)
 }

@@ -159,6 +159,6 @@ func (ui *Box) Focus(env *Env, o UI) *image.Point {
 }
 
 func (ui *Box) Print(indent int, r image.Rectangle) {
-	uiPrint("Box", indent, r)
+	PrintUI("Box", indent, r)
 	kidsPrint(ui.Kids, indent+1)
 }

@@ -181,5 +181,5 @@ func (ui *List) Focus(env *Env, o UI) *image.Point {
 }
 
 func (ui *List) Print(indent int, r image.Rectangle) {
-	uiPrint("List", indent, r)
+	PrintUI("List", indent, r)
 }

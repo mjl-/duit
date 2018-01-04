@@ -46,5 +46,5 @@ func (ui *Image) Focus(env *Env, o UI) *image.Point {
 }
 
 func (ui *Image) Print(indent int, r image.Rectangle) {
-	uiPrint("Image", indent, r)
+	PrintUI("Image", indent, r)
 }

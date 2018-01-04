@@ -514,5 +514,5 @@ func (ui *Field) Focus(env *Env, o UI) *image.Point {
 }
 
 func (ui *Field) Print(indent int, r image.Rectangle) {
-	uiPrint("Field", indent, r)
+	PrintUI("Field", indent, r)
 }

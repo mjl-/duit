@@ -216,6 +216,6 @@ func (ui *Scroll) Focus(env *Env, o UI) *image.Point {
 }
 
 func (ui *Scroll) Print(indent int, r image.Rectangle) {
-	uiPrint(fmt.Sprintf("Scroll offset=%d childR=%v childSize=%v", ui.offset, ui.childR, ui.childSize), indent, r)
+	PrintUI(fmt.Sprintf("Scroll offset=%d childR=%v childSize=%v", ui.offset, ui.childR, ui.childSize), indent, r)
 	ui.Child.Print(indent+1, image.Rectangle{image.ZP, ui.childSize})
 }

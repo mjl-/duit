@@ -319,7 +319,7 @@ func (d *DUI) Focus(ui UI) {
 	}
 }
 
-func uiPrint(s string, indent int, r image.Rectangle) {
+func PrintUI(s string, indent int, r image.Rectangle) {
 	indentStr := ""
 	if indent > 0 {
 		indentStr = fmt.Sprintf("%*s", indent*2, " ")

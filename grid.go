@@ -170,6 +170,6 @@ func (ui *Grid) Focus(env *Env, o UI) *image.Point {
 }
 
 func (ui *Grid) Print(indent int, r image.Rectangle) {
-	uiPrint(fmt.Sprintf("Grid columns=%d padding=%v", ui.Columns, ui.Padding), indent, r)
+	PrintUI(fmt.Sprintf("Grid columns=%d padding=%v", ui.Columns, ui.Padding), indent, r)
 	kidsPrint(ui.Kids, indent+1)
 }

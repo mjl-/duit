@@ -53,6 +53,6 @@ func (ui *Middle) Focus(env *Env, o UI) (warp *image.Point) {
 }
 
 func (ui *Middle) Print(indent int, r image.Rectangle) {
-	uiPrint("Middle", indent, r)
+	PrintUI("Middle", indent, r)
 	kidsPrint(ui.kids, indent+1)
 }

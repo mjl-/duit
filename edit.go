@@ -929,5 +929,5 @@ func (ui *Edit) Focus(env *Env, o UI) (warp *image.Point) {
 }
 
 func (ui *Edit) Print(indent int, r image.Rectangle) {
-	uiPrint("Edit", indent, r)
+	PrintUI("Edit", indent, r)
 }

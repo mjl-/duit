@@ -541,5 +541,5 @@ func (ui *Gridlist) Focus(env *Env, o UI) (warp *image.Point) {
 }
 
 func (ui *Gridlist) Print(indent int, r image.Rectangle) {
-	uiPrint("Gridlist", indent, r)
+	PrintUI("Gridlist", indent, r)
 }

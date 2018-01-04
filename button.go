@@ -95,5 +95,5 @@ func (ui *Button) Focus(env *Env, o UI) *image.Point {
 }
 
 func (ui *Button) Print(indent int, r image.Rectangle) {
-	uiPrint("Button", indent, r)
+	PrintUI("Button", indent, r)
 }
