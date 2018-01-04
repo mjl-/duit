@@ -23,7 +23,6 @@ func (ui *Button) font(env *Env) *draw.Font {
 }
 
 func (ui *Button) space(env *Env) image.Point {
-	// padding + border
 	return ui.padding(env).Add(pt(BorderSize))
 }
 
@@ -77,7 +76,9 @@ func (ui *Button) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Resul
 	r.Hit = ui
 	if !ui.Disabled && (k == ' ' || k == '\n') {
 		r.Consumed = true
-		ui.Click(&r)
+		if ui.Click != nil {
+			ui.Click(&r)
+		}
 	}
 	return
 }
