@@ -106,9 +106,6 @@ func main() {
 	dui, err := duit.NewDUI("files", "1200x700")
 	check(err, "new dui")
 
-	redraw := make(chan struct{}, 1)
-	layout := make(chan struct{}, 1)
-
 	// layout: favorites on the left, fixed size. remainder on the right contains one or more listboxes.
 	// favorites is populated with some names that point to dirs. clicking makes the favorite active, and focuses on first column.
 	// typing then filters only the matching elements.  we just show text. names ending in "/" are directories.
@@ -353,11 +350,6 @@ func main() {
 		select {
 		case e := <-dui.Events:
 			dui.Event(e)
-
-		case <-redraw:
-			dui.Draw()
-		case <-layout:
-			dui.Render()
 		}
 	}
 }

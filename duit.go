@@ -225,7 +225,7 @@ func (d *DUI) Draw() {
 	d.Display.Flush()
 	if d.logTiming {
 		t2 := time.Now()
-		log.Printf("duit: time redraw: draw %d µs flush %d µs\n", t1.Sub(t0)/time.Microsecond, t2.Sub(t1)/time.Microsecond)
+		log.Printf("duit: time draw: draw %d µs flush %d µs\n", t1.Sub(t0)/time.Microsecond, t2.Sub(t1)/time.Microsecond)
 	}
 }
 

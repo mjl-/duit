@@ -23,8 +23,6 @@ func main() {
 	dui, err := duit.NewDUI("duitex", "600x400")
 	check(err, "new dui")
 
-	redraw := make(chan struct{}, 1)
-
 	readImagePath := func(path string) *draw.Image {
 		img, err := duit.ReadImagePath(dui.Display, path)
 		check(err, "read image")
@@ -185,8 +183,6 @@ func main() {
 		case e := <-dui.Events:
 			dui.Event(e)
 
-		case <-redraw:
-			dui.Draw()
 		case <-tick:
 			count++
 			counter.Text = fmt.Sprintf("%d", count)
