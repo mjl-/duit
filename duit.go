@@ -41,7 +41,7 @@ const (
 type Result struct {
 	Hit      UI           // the UI where the event ended up
 	Consumed bool         // whether event was consumed, and should not be further handled by upper UI's
-	Redraw   bool         // whether event needs a redraw after
+	Draw     bool         // whether event needs a redraw after
 	Layout   bool         // whether event needs a layout after
 	Warp     *image.Point // if set, mouse will warp to location
 }
@@ -209,10 +209,10 @@ func (d *DUI) Render() {
 		log.Printf("duit: time layout: %d µs\n", time.Now().Sub(t0)/time.Microsecond)
 	}
 	d.Display.ScreenImage.Draw(d.Display.ScreenImage.R, d.Display.White, nil, image.ZP)
-	d.Redraw()
+	d.Draw()
 }
 
-func (d *DUI) Redraw() {
+func (d *DUI) Draw() {
 	var t0, t1 time.Time
 	if d.logTiming {
 		t0 = time.Now()
@@ -240,8 +240,8 @@ func (d *DUI) Mouse(m draw.Mouse) {
 	r := d.Top.Mouse(d.Env, d.origMouse, m)
 	if r.Layout {
 		d.Render()
-	} else if r.Hit != d.lastMouseUI || r.Redraw {
-		d.Redraw()
+	} else if r.Hit != d.lastMouseUI || r.Draw {
+		d.Draw()
 	}
 	d.lastMouseUI = r.Hit
 }
@@ -293,14 +293,14 @@ func (d *DUI) Key(r rune) {
 		d.mouse.Point = *result.Warp
 		d.origMouse.Point = *result.Warp
 		result2 := d.Top.Mouse(d.Env, d.origMouse, d.mouse)
-		result.Redraw = result.Redraw || result2.Redraw || true
+		result.Draw = result.Draw || result2.Draw || true
 		result.Layout = result.Layout || result2.Layout
 		d.lastMouseUI = result2.Hit
 	}
 	if result.Layout || layout {
 		d.Render()
-	} else if result.Redraw {
-		d.Redraw()
+	} else if result.Draw {
+		d.Draw()
 	}
 }
 
@@ -321,7 +321,7 @@ func (d *DUI) Focus(ui UI) {
 	if r.Layout {
 		d.Render()
 	} else {
-		d.Redraw()
+		d.Draw()
 	}
 }
 

@@ -186,7 +186,7 @@ func main() {
 			dui.Event(e)
 
 		case <-redraw:
-			dui.Redraw()
+			dui.Draw()
 		case <-tick:
 			count++
 			counter.Text = fmt.Sprintf("%d", count)

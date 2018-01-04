@@ -482,7 +482,7 @@ func (ui *Edit) scroll(lines int, r *Result) {
 		offset = rd.Offset()
 	}
 
-	r.Redraw = offset != ui.offset
+	r.Draw = offset != ui.offset
 	ui.offset = offset
 }
 
@@ -583,7 +583,7 @@ func (ui *Edit) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 				}
 				rd.Get()
 			}
-			r.Redraw = rd.Offset() != ui.offset
+			r.Draw = rd.Offset() != ui.offset
 			ui.offset = rd.Offset()
 		case Button3:
 			ui.scroll(scrollLines(origM.Y), &r)
@@ -659,7 +659,7 @@ func (ui *Edit) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 				ui.prevTextB1 = m
 			}
 			// xxx ensure cursor is visible, can happen when dragging outside UI, or through key commands
-			r.Redraw = true
+			r.Draw = true
 			r.Consumed = true
 			return
 		}
@@ -793,7 +793,7 @@ func (ui *Edit) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result)
 	}
 
 	r.Consumed = true
-	r.Redraw = true
+	r.Draw = true
 
 	switch ui.mode {
 	case ModeCommand:

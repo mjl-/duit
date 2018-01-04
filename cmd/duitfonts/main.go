@@ -46,7 +46,7 @@ a b c d e f g h i j k l m n o p q r s t u v w x y z`))
 			} else {
 				edit.Font = nil
 			}
-			r.Redraw = true
+			r.Draw = true
 		},
 	}
 
@@ -61,7 +61,7 @@ a b c d e f g h i j k l m n o p q r s t u v w x y z`))
 				}
 			}
 			fontList.Values = nl
-			r.Redraw = true
+			r.Draw = true
 		},
 	}
 

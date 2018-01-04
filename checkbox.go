@@ -63,10 +63,10 @@ func (ui *Checkbox) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 	rr := rect(pt(2*BorderSize + 4*env.Display.DefaultFont.Height/5))
 	hover := m.In(rr)
 	if hover != ui.m.In(rr) {
-		r.Redraw = true
+		r.Draw = true
 	}
 	if hover && ui.m.Buttons&1 != m.Buttons&1 {
-		r.Redraw = true
+		r.Draw = true
 		if m.Buttons&1 == 0 {
 			r.Consumed = true
 			ui.Checked = !ui.Checked
@@ -83,7 +83,7 @@ func (ui *Checkbox) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Res
 	r.Hit = ui
 	if k == ' ' {
 		r.Consumed = true
-		r.Redraw = true
+		r.Draw = true
 		ui.Checked = !ui.Checked
 		if ui.Changed != nil {
 			ui.Changed(&r)

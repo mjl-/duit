@@ -315,12 +315,12 @@ func (ui *Field) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 		ui.Cursor1 = 1 + locateCursor()
 		ui.SelectionStart1 = ui.Cursor1
 		r.Consumed = true
-		r.Redraw = true
+		r.Draw = true
 	} else if ui.m.Buttons&1 == 1 || m.Buttons&1 == 1 {
 		// continue selection
 		ui.Cursor1 = 1 + locateCursor()
 		r.Consumed = true
-		r.Redraw = true
+		r.Draw = true
 		if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 {
 			if m.Msec-ui.prevB1Release.Msec < 400 {
 				s, e := expandSelection(ui.Text, ui.cursor0())
@@ -495,7 +495,7 @@ func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result
 	ui.Cursor1 = 1 + cursor0
 	ui.fixCursor()
 	r.Consumed = true
-	r.Redraw = true
+	r.Draw = true
 	if ui.Changed != nil && origText != ui.Text {
 		ui.Changed(ui.Text, &r)
 	}

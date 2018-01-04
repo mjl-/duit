@@ -161,7 +161,7 @@ func (ui *Scroll) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 	r.Hit = ui
 	if m.Point.In(ui.barR) {
 		r.Consumed = ui.scrollMouse(m, false)
-		r.Redraw = r.Consumed
+		r.Draw = r.Consumed
 		return
 	}
 	if m.Point.In(ui.r) {
@@ -172,7 +172,7 @@ func (ui *Scroll) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 		r = ui.Child.Mouse(env, nOrigM, nm)
 		if !r.Consumed {
 			r.Consumed = ui.scrollMouse(m, true)
-			r.Redraw = r.Redraw || r.Consumed
+			r.Draw = r.Draw || r.Consumed
 		}
 		return
 	}
@@ -183,14 +183,14 @@ func (ui *Scroll) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
 	if m.Point.In(ui.barR) {
 		consumed := ui.scrollKey(c)
 		redraw := consumed
-		return Result{Hit: ui, Consumed: consumed, Redraw: redraw}
+		return Result{Hit: ui, Consumed: consumed, Draw: redraw}
 	}
 	if m.Point.In(ui.r) {
 		m.Point = m.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
 		r := ui.Child.Key(env, orig.Add(image.Pt(ui.scrollbarSize, -ui.offset)), m, c)
 		if !r.Consumed {
 			r.Consumed = ui.scrollKey(c)
-			r.Redraw = r.Redraw || r.Consumed
+			r.Draw = r.Draw || r.Consumed
 		}
 		return r
 	}

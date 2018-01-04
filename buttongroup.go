@@ -114,7 +114,7 @@ func (ui *Buttongroup) findIndex(env *Env, m draw.Mouse) (int, int, int) {
 func (ui *Buttongroup) Mouse(env *Env, origM, m draw.Mouse) Result {
 	r := Result{Hit: ui}
 	if ui.m.Buttons&1 != m.Buttons&1 {
-		r.Redraw = true
+		r.Draw = true
 	}
 	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 && !ui.Disabled {
 		index, _, _ := ui.findIndex(env, m)
@@ -123,7 +123,7 @@ func (ui *Buttongroup) Mouse(env *Env, origM, m draw.Mouse) Result {
 			if ui.Changed != nil {
 				ui.Changed(ui.Selected, &r)
 			}
-			r.Redraw = true
+			r.Draw = true
 			r.Consumed = true
 		}
 	}
@@ -143,7 +143,7 @@ func (ui *Buttongroup) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r 
 			break
 		}
 		r.Consumed = true
-		r.Redraw = true
+		r.Draw = true
 		ui.Selected = index
 		if ui.Changed != nil {
 			ui.Changed(ui.Selected, &r)
@@ -158,7 +158,7 @@ func (ui *Buttongroup) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r 
 			p := orig.Add(image.Pt(end+BorderSize*2+ui.padding(env).X, m.Y))
 			r.Warp = &p
 			r.Consumed = true
-			r.Redraw = true
+			r.Draw = true
 		}
 	}
 	return

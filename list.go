@@ -75,7 +75,7 @@ func (ui *List) Mouse(env *Env, origM, m draw.Mouse) (result Result) {
 		if ui.Changed != nil {
 			ui.Changed(index, &result)
 		}
-		result.Redraw = true
+		result.Draw = true
 		result.Consumed = true
 	}
 	return
@@ -152,11 +152,11 @@ func (ui *List) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Re
 		}
 		if oindex >= 0 {
 			ui.Values[oindex].Selected = false
-			result.Redraw = true
+			result.Draw = true
 		}
 		if nindex >= 0 {
 			ui.Values[nindex].Selected = true
-			result.Redraw = true
+			result.Draw = true
 			if ui.Changed != nil {
 				ui.Changed(nindex, &result)
 			}

@@ -230,7 +230,7 @@ func main() {
 						r.Layout = true
 					} else {
 						selectName(colIndex, "")
-						r.Redraw = true
+						r.Draw = true
 					}
 				case draw.KeyRight:
 					elem := list.Values[index].Value.(string)
@@ -355,7 +355,7 @@ func main() {
 			dui.Event(e)
 
 		case <-redraw:
-			dui.Redraw()
+			dui.Draw()
 		case <-layout:
 			dui.Render()
 		}
