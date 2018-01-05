@@ -71,9 +71,9 @@ func (ui *Box) Layout(env *Env, size image.Point) image.Point {
 			switch ui.Valign {
 			case ValignTop:
 			case ValignMiddle:
-				k.r = k.r.Add(image.Pt(0, (lineY-k.r.Dy())/2))
+				k.R = k.R.Add(image.Pt(0, (lineY-k.R.Dy())/2))
 			case ValignBottom:
-				k.r = k.r.Add(image.Pt(0, lineY-k.r.Dy()))
+				k.R = k.R.Add(image.Pt(0, lineY-k.R.Dy()))
 			}
 		}
 	}
@@ -99,7 +99,7 @@ func (ui *Box) Layout(env *Env, size image.Point) image.Point {
 			cur.X = childSize.X + margin.X
 			lineY = childSize.Y
 		}
-		k.r = kr
+		k.R = kr
 		if xmax < cur.X {
 			xmax = cur.X
 		}
@@ -110,9 +110,9 @@ func (ui *Box) Layout(env *Env, size image.Point) image.Point {
 	if ui.Reverse {
 		bottomY := cur.Y + padding.Dy()
 		for _, k := range ui.Kids {
-			y1 := bottomY - k.r.Min.Y
-			y0 := y1 - k.r.Dy()
-			k.r = image.Rect(k.r.Min.X, y0, k.r.Max.X, y1)
+			y1 := bottomY - k.R.Min.Y
+			y0 := y1 - k.R.Dy()
+			k.R = image.Rect(k.R.Min.X, y0, k.R.Max.X, y1)
 		}
 	}
 

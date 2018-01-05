@@ -8,8 +8,7 @@ import (
 
 type Kid struct {
 	UI UI
-
-	r image.Rectangle
+	R  image.Rectangle
 }
 
 func NewKids(uis ...UI) []*Kid {
@@ -24,20 +23,20 @@ func kidsDraw(env *Env, kids []*Kid, uiSize image.Point, img *draw.Image, orig i
 	img.Draw(rect(uiSize).Add(orig), env.Background, nil, image.ZP)
 	for i, k := range kids {
 		if env.DebugKids {
-			img.Draw(k.r.Add(orig), env.debugColors[i%len(env.debugColors)], nil, image.ZP)
+			img.Draw(k.R.Add(orig), env.debugColors[i%len(env.debugColors)], nil, image.ZP)
 		}
 
 		mm := m
-		mm.Point = mm.Point.Sub(k.r.Min)
-		k.UI.Draw(env, img, orig.Add(k.r.Min), mm)
+		mm.Point = mm.Point.Sub(k.R.Min)
+		k.UI.Draw(env, img, orig.Add(k.R.Min), mm)
 	}
 }
 
 func kidsMouse(env *Env, kids []*Kid, origM, m draw.Mouse) Result {
 	for _, k := range kids {
-		if origM.Point.In(k.r) {
-			origM.Point = origM.Point.Sub(k.r.Min)
-			m.Point = m.Point.Sub(k.r.Min)
+		if origM.Point.In(k.R) {
+			origM.Point = origM.Point.Sub(k.R.Min)
+			m.Point = m.Point.Sub(k.R.Min)
 			return k.UI.Mouse(env, origM, m)
 		}
 	}
@@ -46,14 +45,14 @@ func kidsMouse(env *Env, kids []*Kid, origM, m draw.Mouse) Result {
 
 func kidsKey(env *Env, ui UI, kids []*Kid, orig image.Point, m draw.Mouse, c rune) Result {
 	for i, k := range kids {
-		if m.Point.In(k.r) {
-			m.Point = m.Point.Sub(k.r.Min)
-			r := k.UI.Key(env, orig.Add(k.r.Min), m, c)
+		if m.Point.In(k.R) {
+			m.Point = m.Point.Sub(k.R.Min)
+			r := k.UI.Key(env, orig.Add(k.R.Min), m, c)
 			if !r.Consumed && c == '\t' {
 				for next := i + 1; next < len(kids); next++ {
 					first := kids[next].UI.FirstFocus(env)
 					if first != nil {
-						kR := kids[next].r
+						kR := kids[next].R
 						p := first.Add(orig).Add(kR.Min)
 						r.Warp = &p
 						r.Consumed = true
@@ -74,7 +73,7 @@ func kidsFirstFocus(env *Env, kids []*Kid) *image.Point {
 	for _, k := range kids {
 		first := k.UI.FirstFocus(env)
 		if first != nil {
-			p := first.Add(k.r.Min)
+			p := first.Add(k.R.Min)
 			return &p
 		}
 	}
@@ -88,7 +87,7 @@ func kidsFocus(env *Env, kids []*Kid, ui UI) *image.Point {
 	for _, k := range kids {
 		p := k.UI.Focus(env, ui)
 		if p != nil {
-			pp := p.Add(k.r.Min)
+			pp := p.Add(k.R.Min)
 			return &pp
 		}
 	}
@@ -97,6 +96,6 @@ func kidsFocus(env *Env, kids []*Kid, ui UI) *image.Point {
 
 func kidsPrint(kids []*Kid, indent int) {
 	for _, k := range kids {
-		k.UI.Print(indent, k.r)
+		k.UI.Print(indent, k.R)
 	}
 }

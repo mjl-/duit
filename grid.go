@@ -102,7 +102,7 @@ func (ui *Grid) Layout(env *Env, size image.Point) image.Point {
 			k := ui.Kids[i+col]
 			childSize := k.UI.Layout(env, image.Pt(ui.widths[col]-space.Dx(), size.Y-y[row]-space.Dy()))
 			offset := image.Pt(x[col], y[row]).Add(space.Topleft())
-			k.r = rect(childSize).Add(offset) // aligned in top left, fixed for halign/valign later on
+			k.R = rect(childSize).Add(offset) // aligned in top left, fixed for halign/valign later on
 			if childSize.Y+space.Dy() > rowDy {
 				rowDy = childSize.Y + space.Dy()
 			}
@@ -130,19 +130,19 @@ func (ui *Grid) Layout(env *Env, size image.Point) image.Point {
 		switch halign {
 		case HalignLeft:
 		case HalignMiddle:
-			spaceX = (cellSize.X - k.r.Dx()) / 2
+			spaceX = (cellSize.X - k.R.Dx()) / 2
 		case HalignRight:
-			spaceX = cellSize.X - k.r.Dx()
+			spaceX = cellSize.X - k.R.Dx()
 		}
 		spaceY := 0
 		switch valign {
 		case ValignTop:
 		case ValignMiddle:
-			spaceY = (cellSize.Y - k.r.Dy()) / 2
+			spaceY = (cellSize.Y - k.R.Dy()) / 2
 		case ValignBottom:
-			spaceY = cellSize.Y - k.r.Dy()
+			spaceY = cellSize.Y - k.R.Dy()
 		}
-		k.r = k.r.Add(image.Pt(spaceX, spaceY))
+		k.R = k.R.Add(image.Pt(spaceX, spaceY))
 	}
 
 	ui.size = image.Pt(width, height)

@@ -25,10 +25,10 @@ func (ui *Horizontal) Layout(env *Env, size image.Point) image.Point {
 	for i, k := range ui.Kids {
 		childSize := k.UI.Layout(env, image.Pt(ui.widths[i], size.Y))
 		p := image.Pt(ui.size.X, 0)
-		k.r = image.Rectangle{p, p.Add(childSize)}
+		k.R = image.Rectangle{p, p.Add(childSize)}
 		ui.size.X += ui.widths[i]
-		if k.r.Dy() > ui.size.Y {
-			ui.size.Y = k.r.Dy()
+		if k.R.Dy() > ui.size.Y {
+			ui.size.Y = k.R.Dy()
 		}
 	}
 	return ui.size

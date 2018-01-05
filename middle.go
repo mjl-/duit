@@ -27,7 +27,7 @@ func (ui *Middle) ensure() {
 func (ui *Middle) Layout(env *Env, sizeAvail image.Point) (sizeTaken image.Point) {
 	size := ui.UI.Layout(env, sizeAvail)
 	left := sizeAvail.Sub(size)
-	ui.kids[0].r = rect(size).Add(image.Pt(maximum(0, left.X/2), maximum(0, left.Y/2)))
+	ui.kids[0].R = rect(size).Add(image.Pt(maximum(0, left.X/2), maximum(0, left.Y/2)))
 	ui.size = image.Pt(maximum(size.X, sizeAvail.X), maximum(size.Y, sizeAvail.Y))
 	return ui.size
 }

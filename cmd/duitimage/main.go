@@ -16,6 +16,7 @@ func check(err error, msg string) {
 }
 
 func main() {
+	log.SetFlags(0)
 	flag.Usage = func() {
 		log.Println("duitimage path")
 		flag.PrintDefaults()

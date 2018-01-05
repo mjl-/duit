@@ -25,7 +25,7 @@ func (ui *Vertical) Layout(env *Env, size image.Point) image.Point {
 	cur := image.ZP
 	for i, k := range ui.Kids {
 		childSize := k.UI.Layout(env, image.Pt(size.X, heights[i]))
-		k.r = rect(childSize).Add(cur)
+		k.R = rect(childSize).Add(cur)
 		cur.Y += heights[i]
 	}
 	ui.size = image.Pt(size.X, cur.Y)
