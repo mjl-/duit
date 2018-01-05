@@ -24,7 +24,7 @@ func main() {
 	check(err, "new dui")
 
 	readImagePath := func(path string) *draw.Image {
-		img, err := duit.ReadImagePath(dui.Display, path)
+		img, err := duit.ReadImagePath(dui.Env.Display, path)
 		check(err, "read image")
 		return img
 	}

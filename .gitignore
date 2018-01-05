@@ -1,6 +1,6 @@
-/cmd/duitex/duitex
 /cmd/duitfiles/duitfiles
-/cmd/duitsimple/duitsimple
-/cmd/duitsimple/duitgrid
-/cmd/duitsimple/duitvertical
+/examples/duitex/duitex
+/examples/duitsimple/duitsimple
+/examples/duitsimple/duitgrid
+/examples/duitsimple/duitvertical
 /local/

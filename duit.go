@@ -10,10 +10,11 @@ import (
 )
 
 const (
-	BorderSize = 1
+	BorderSize = 1 // regardless of lowDPI/hiDPI
 
 	ScrollbarSize = 10
 )
+
 const (
 	Button1 = 1 << iota
 	Button2
@@ -57,8 +58,8 @@ type EventType byte
 const (
 	EventMouse = EventType(iota)
 	EventKey
-	EventResize
 	EventFunc
+	EventResize
 )
 
 type Event struct {
@@ -69,11 +70,10 @@ type Event struct {
 }
 
 type DUI struct {
-	Display *draw.Display
-	Events  chan Event
-	Top     UI
-	Env     *Env
-	Call    chan func()
+	Events chan Event
+	Top    UI
+	Env    *Env
+	Call   chan func() // functions sent here will go through DUI.Events and run by DUI.Event() in the main event loop. for code that changes UI state.
 
 	stop        chan struct{}
 	mousectl    *draw.Mousectl
@@ -98,7 +98,6 @@ func NewDUI(name, dim string) (*DUI, error) {
 	if err != nil {
 		return nil, err
 	}
-	dui.Display = display
 
 	dui.mousectl = display.InitMouse()
 	dui.keyctl = display.InitKeyboard()
@@ -203,12 +202,12 @@ func (d *DUI) Render() {
 	if d.logTiming {
 		t0 = time.Now()
 	}
-	size := image.Pt(d.Display.ScreenImage.R.Dx(), d.Display.ScreenImage.R.Dy())
+	size := image.Pt(d.Env.Display.ScreenImage.R.Dx(), d.Env.Display.ScreenImage.R.Dy())
 	d.Top.Layout(d.Env, size)
 	if d.logTiming {
 		log.Printf("duit: time layout: %d µs\n", time.Now().Sub(t0)/time.Microsecond)
 	}
-	d.Display.ScreenImage.Draw(d.Display.ScreenImage.R, d.Display.White, nil, image.ZP)
+	d.Env.Display.ScreenImage.Draw(d.Env.Display.ScreenImage.R, d.Env.Display.White, nil, image.ZP)
 	d.Draw()
 }
 
@@ -217,12 +216,12 @@ func (d *DUI) Draw() {
 	if d.logTiming {
 		t0 = time.Now()
 	}
-	d.Display.ScreenImage.Draw(d.Display.ScreenImage.R, d.Env.Background, nil, image.ZP)
-	d.Top.Draw(d.Env, d.Display.ScreenImage, image.ZP, d.mouse)
+	d.Env.Display.ScreenImage.Draw(d.Env.Display.ScreenImage.R, d.Env.Background, nil, image.ZP)
+	d.Top.Draw(d.Env, d.Env.Display.ScreenImage, image.ZP, d.mouse)
 	if d.logTiming {
 		t1 = time.Now()
 	}
-	d.Display.Flush()
+	d.Env.Display.Flush()
 	if d.logTiming {
 		t2 := time.Now()
 		log.Printf("duit: time draw: draw %d µs flush %d µs\n", t1.Sub(t0)/time.Microsecond, t2.Sub(t1)/time.Microsecond)
@@ -250,7 +249,7 @@ func (d *DUI) Resize() {
 	if d.logEvents {
 		log.Printf("duit: resize")
 	}
-	check(d.Display.Attach(draw.Refmesg), "attach after resize")
+	check(d.Env.Display.Attach(draw.Refmesg), "attach after resize")
 	d.Render()
 }
 
@@ -266,10 +265,10 @@ func (d *DUI) Key(r rune) {
 		d.logTiming = !d.logTiming
 	}
 	if r == draw.KeyFn+3 {
-		d.Top.Print(0, d.Display.ScreenImage.R)
+		d.Top.Print(0, d.Env.Display.ScreenImage.R)
 	}
 	if r == draw.KeyFn+4 {
-		d.Display.SetDebug(true)
+		d.Env.Display.SetDebug(true)
 		log.Println("duit: drawdebug now on")
 	}
 	if r == draw.KeyFn+5 {
@@ -286,7 +285,7 @@ func (d *DUI) Key(r rune) {
 		}
 	}
 	if result.Warp != nil {
-		err := d.Display.MoveTo(*result.Warp)
+		err := d.Env.Display.MoveTo(*result.Warp)
 		if err != nil {
 			log.Printf("duit: move mouse to %v: %s\n", result.Warp, err)
 		}
@@ -309,7 +308,7 @@ func (d *DUI) Focus(ui UI) {
 	if p == nil {
 		return
 	}
-	err := d.Display.MoveTo(*p)
+	err := d.Env.Display.MoveTo(*p)
 	if err != nil {
 		log.Printf("duit: move mouse to %v: %v\n", *p, err)
 		return
@@ -342,7 +341,7 @@ func scalePt(d *draw.Display, p image.Point) image.Point {
 }
 
 func (d *DUI) Scale(n int) int {
-	return (d.Display.DPI / 100) * n
+	return (d.Env.Display.DPI / 100) * n
 }
 
 func (d *DUI) Event(e Event) {
@@ -360,5 +359,5 @@ func (d *DUI) Event(e Event) {
 
 func (d *DUI) Close() {
 	d.stop <- struct{}{}
-	d.Display.Close()
+	d.Env.Display.Close()
 }
