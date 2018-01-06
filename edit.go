@@ -704,6 +704,17 @@ func (ui *Edit) Cursor() int64 {
 	return ui.cursor
 }
 
+// SetCursor sets the new cursor or selection.
+// Current is the new cursor. start is the start of the selection.
+// If start < 0, it is set to current.
+func (ui *Edit) SetCursor(current, start int64) {
+	if start < 0 {
+		start = current
+	}
+	ui.cursor = current
+	ui.cursor0 = start
+}
+
 // ensure cursor is visible
 func (ui *Edit) scrollCursor(env *Env) {
 	nbr := ui.revReader(ui.cursor)
