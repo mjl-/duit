@@ -33,6 +33,7 @@ type Gridlist struct {
 	Click   func(index, buttons int, r *Result)
 	Keys    func(index int, m draw.Mouse, k rune, r *Result)
 
+	m                draw.Mouse
 	colWidths        []int // set the first time there are rows
 	size             image.Point
 	draggingColStart int         // x offset of column being dragged, so 1 means the first column is being dragged.
@@ -341,6 +342,8 @@ func (ui *Gridlist) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 
 func (ui *Gridlist) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 	r.Hit = ui
+	prevM := ui.m
+	ui.m = m
 	if !m.In(rect(ui.size)) {
 		return
 	}
@@ -400,10 +403,10 @@ func (ui *Gridlist) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 		return
 	}
 	index-- // adjust for header
-	if m.Buttons != 0 && ui.Click != nil {
+	if m.Buttons != 0 && prevM.Buttons^m.Buttons != 0 && ui.Click != nil {
 		ui.Click(index, m.Buttons, &r)
 	}
-	if !r.Consumed && m.Buttons == 1 {
+	if !r.Consumed && prevM.Buttons == 0 && m.Buttons == Button1 {
 		row := ui.Rows[index]
 		row.Selected = !row.Selected
 		if row.Selected && !ui.Multiple {
