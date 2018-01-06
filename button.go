@@ -8,6 +8,7 @@ import (
 
 type Button struct {
 	Text     string
+	Icon     Icon // drawn before text
 	Disabled bool
 	Primary  bool
 	Font     *draw.Font
@@ -31,13 +32,24 @@ func (ui *Button) padding(env *Env) image.Point {
 	return image.Pt(fontHeight/2, fontHeight/4)
 }
 
-func (ui *Button) Layout(env *Env, size image.Point) image.Point {
-	return ui.font(env).StringSize(ui.Text).Add(ui.space(env).Mul(2))
+func (ui *Button) Layout(env *Env, sizeAvail image.Point) (sizeTaken image.Point) {
+	sizeTaken = ui.font(env).StringSize(ui.Text).Add(ui.space(env).Mul(2))
+	if ui.Icon.Font != nil {
+		sizeTaken.X += ui.Icon.Font.StringSize(string(ui.Icon.Rune)).X
+		sizeTaken.X += ui.font(env).StringSize("  ").X
+	}
+	return sizeTaken
 }
 
 func (ui *Button) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	textSize := ui.font(env).StringSize(ui.Text)
-	r := rect(textSize.Add(ui.space(env).Mul(2)))
+	text := ui.Text
+	iconSize := image.ZP
+	if ui.Icon.Font != nil {
+		text = "  " + text
+		iconSize = ui.Icon.Font.StringSize(string(ui.Icon.Rune))
+	}
+	textSize := ui.font(env).StringSize(text)
+	r := rect(image.Pt(iconSize.X, 0).Add(textSize).Add(ui.space(env).Mul(2)))
 
 	hover := m.In(r)
 	colors := env.Normal
@@ -57,7 +69,13 @@ func (ui *Button) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse
 	if hover && !ui.Disabled && m.Buttons&1 == 1 {
 		hit = image.Pt(0, 1)
 	}
-	img.String(r.Min.Add(ui.space(env)).Add(hit), colors.Text, image.ZP, ui.font(env), ui.Text)
+	p := r.Min.Add(ui.space(env)).Add(hit)
+	if ui.Icon.Font != nil {
+		dy := (iconSize.Y - textSize.Y) / 2
+		img.String(p.Sub(image.Pt(0, dy)), colors.Text, image.ZP, ui.Icon.Font, string(ui.Icon.Rune))
+	}
+	p.X += iconSize.X
+	img.String(p, colors.Text, image.ZP, ui.font(env), text)
 }
 
 func (ui *Button) Mouse(env *Env, origM, m draw.Mouse) Result {
