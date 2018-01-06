@@ -366,7 +366,7 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 			p1 := p0
 			p1.Y += font.Height
 			thick := env.Scale(1)
-			if thick == 1 {
+			if thick > 1 {
 				thick = 0
 			}
 			img.Line(p0, p1, 0, 0, thick, env.Display.Black, image.ZP)
