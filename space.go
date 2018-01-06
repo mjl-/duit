@@ -35,3 +35,12 @@ func SpaceXY(x, y int) Space {
 func SpacePt(p image.Point) Space {
 	return Space{p.Y, p.X, p.Y, p.X}
 }
+
+// NSpace is a convenience function to create N identical spaces.
+func NSpace(n int, space Space) []Space {
+	l := make([]Space, n)
+	for i := 0; i < n; i++ {
+		l[i] = space
+	}
+	return l
+}

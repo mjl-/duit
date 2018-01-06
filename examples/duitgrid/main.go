@@ -20,11 +20,7 @@ func main() {
 		Columns: 3,
 		Valign:  []duit.Valign{duit.ValignTop, duit.ValignMiddle, duit.ValignBottom},
 		Halign:  []duit.Halign{duit.HalignLeft, duit.HalignMiddle, duit.HalignRight},
-		Padding: []duit.Space{
-			duit.SpaceXY(6, 4),
-			duit.SpaceXY(6, 4),
-			duit.SpaceXY(6, 4),
-		},
+		Padding: duit.NSpace(3, duit.SpaceXY(6, 4)),
 		Kids: duit.NewKids(
 			&duit.Label{Text: "label1 longer"},
 			&duit.Button{Text: "button 2"},
