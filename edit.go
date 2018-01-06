@@ -263,6 +263,12 @@ type ReaderReaderAt interface {
 	io.ReaderAt
 }
 
+func (ui *Edit) Text() string {
+	buf, err := ioutil.ReadAll(ui.Reader())
+	check(err, "read all text")
+	return string(buf)
+}
+
 // Reader from which contents of edit can be read.
 func (ui *Edit) Reader() ReaderReaderAt {
 	// xxx should make copy of ui.text
