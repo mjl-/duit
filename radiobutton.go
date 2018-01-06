@@ -18,23 +18,23 @@ type Radiobutton struct {
 
 var _ UI = &Radiobutton{}
 
-func (ui *Radiobutton) Layout(env *Env, size image.Point) image.Point {
+func (ui *Radiobutton) Layout(dui *DUI, size image.Point) image.Point {
 	hit := image.Point{0, 1}
-	return pt(2*BorderSize + 4*env.Display.DefaultFont.Height/5).Add(hit)
+	return pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5).Add(hit)
 }
 
-func (ui *Radiobutton) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	r := rect(pt(2*BorderSize + 4*env.Display.DefaultFont.Height/5))
+func (ui *Radiobutton) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
+	r := rect(pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5))
 	hover := m.In(r)
 	r = r.Add(orig)
 
-	colors := env.Normal
+	colors := dui.Normal
 	color := colors.Text
 	if ui.Disabled {
-		colors = env.Disabled
+		colors = dui.Disabled
 		color = colors.Border
 	} else if hover {
-		colors = env.Hover
+		colors = dui.Hover
 		color = colors.Border
 	}
 
@@ -49,7 +49,7 @@ func (ui *Radiobutton) Draw(env *Env, img *draw.Image, orig image.Point, m draw.
 	radius := r.Dx() / 2
 	img.Arc(r.Min.Add(pt(radius)), radius, radius, 0, color, image.ZP, 0, 360)
 
-	cr := r.Inset((4 * env.Display.DefaultFont.Height / 5) / 5).Add(hit)
+	cr := r.Inset((4 * dui.Display.DefaultFont.Height / 5) / 5).Add(hit)
 	if ui.Selected {
 		radius = cr.Dx() / 2
 		img.FillArc(cr.Min.Add(pt(radius)), radius, radius, 0, color, image.ZP, 0, 360)
@@ -68,12 +68,12 @@ func (ui *Radiobutton) check(r *Result) {
 	}
 }
 
-func (ui *Radiobutton) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
+func (ui *Radiobutton) Mouse(dui *DUI, origM, m draw.Mouse) (r Result) {
 	r.Hit = ui
 	if ui.Disabled {
 		return
 	}
-	rr := rect(pt(2*BorderSize + 4*env.Display.DefaultFont.Height/5))
+	rr := rect(pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5))
 	hover := m.In(rr)
 	if hover != ui.m.In(rr) {
 		r.Draw = true
@@ -89,7 +89,7 @@ func (ui *Radiobutton) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 	return
 }
 
-func (ui *Radiobutton) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result) {
+func (ui *Radiobutton) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result) {
 	r.Hit = ui
 	if k == ' ' {
 		r.Consumed = true
@@ -99,15 +99,15 @@ func (ui *Radiobutton) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r 
 	return
 }
 
-func (ui *Radiobutton) FirstFocus(env *Env) *image.Point {
+func (ui *Radiobutton) FirstFocus(dui *DUI) *image.Point {
 	return &image.ZP
 }
 
-func (ui *Radiobutton) Focus(env *Env, o UI) *image.Point {
+func (ui *Radiobutton) Focus(dui *DUI, o UI) *image.Point {
 	if o != ui {
 		return nil
 	}
-	return ui.FirstFocus(env)
+	return ui.FirstFocus(dui)
 }
 
 func (ui *Radiobutton) Print(indent int, r image.Rectangle) {

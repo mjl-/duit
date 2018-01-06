@@ -28,9 +28,9 @@ func NewScroll(ui UI) *Scroll {
 	return &Scroll{Child: ui}
 }
 
-func (ui *Scroll) Layout(env *Env, size image.Point) image.Point {
-	ui.scrollbarSize = scale(env.Display, ScrollbarSize)
-	scaledHeight := scale(env.Display, ui.Height)
+func (ui *Scroll) Layout(dui *DUI, size image.Point) image.Point {
+	ui.scrollbarSize = scale(dui.Display, ScrollbarSize)
+	scaledHeight := scale(dui.Display, ui.Height)
 	if scaledHeight > 0 && scaledHeight < size.Y {
 		size.Y = scaledHeight
 	}
@@ -39,7 +39,7 @@ func (ui *Scroll) Layout(env *Env, size image.Point) image.Point {
 	ui.barR.Max.X = ui.barR.Min.X + ui.scrollbarSize
 	ui.childR = ui.r
 	ui.childR.Min.X = ui.barR.Max.X
-	ui.childSize = ui.Child.Layout(env, image.Pt(ui.r.Dx()-ui.barR.Dx(), ui.r.Dy()))
+	ui.childSize = ui.Child.Layout(dui, image.Pt(ui.r.Dx()-ui.barR.Dx(), ui.r.Dy()))
 	if ui.r.Dy() > ui.childSize.Y && ui.Height == 0 {
 		ui.barR.Max.Y = ui.childSize.Y
 		ui.r.Max.Y = ui.childSize.Y
@@ -48,7 +48,7 @@ func (ui *Scroll) Layout(env *Env, size image.Point) image.Point {
 	return ui.r.Size()
 }
 
-func (ui *Scroll) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Scroll) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
 	if ui.r.Empty() {
 		return
 	}
@@ -56,11 +56,11 @@ func (ui *Scroll) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse
 	ui.scroll(0)
 	barHover := m.In(ui.barR)
 
-	bg := env.ScrollBGNormal
-	vis := env.ScrollVisibleNormal
+	bg := dui.ScrollBGNormal
+	vis := dui.ScrollVisibleNormal
 	if barHover {
-		bg = env.ScrollBGHover
-		vis = env.ScrollVisibleHover
+		bg = dui.ScrollBGHover
+		vis = dui.ScrollVisibleHover
 	}
 
 	h := ui.r.Dy()
@@ -86,13 +86,13 @@ func (ui *Scroll) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse
 			ui.img.Free()
 			ui.img = nil
 		}
-		ui.img, err = env.Display.AllocImage(rect(ui.childSize), draw.ARGB32, false, env.BackgroundColor)
+		ui.img, err = dui.Display.AllocImage(rect(ui.childSize), draw.ARGB32, false, dui.BackgroundColor)
 		check(err, "allocimage")
 	} else {
-		ui.img.Draw(ui.img.R, env.Background, nil, image.ZP)
+		ui.img.Draw(ui.img.R, dui.Background, nil, image.ZP)
 	}
 	m.Point = m.Point.Add(image.Pt(-ui.childR.Min.X, ui.offset))
-	ui.Child.Draw(env, ui.img, image.ZP, m)
+	ui.Child.Draw(dui, ui.img, image.ZP, m)
 	img.Draw(ui.childR.Add(orig), ui.img, nil, image.Pt(0, ui.offset))
 }
 
@@ -157,7 +157,7 @@ func (ui *Scroll) scrollMouse(m draw.Mouse, scrollOnly bool) (consumed bool) {
 	return false
 }
 
-func (ui *Scroll) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
+func (ui *Scroll) Mouse(dui *DUI, origM, m draw.Mouse) (r Result) {
 	r.Hit = ui
 	if m.Point.In(ui.barR) {
 		r.Consumed = ui.scrollMouse(m, false)
@@ -169,7 +169,7 @@ func (ui *Scroll) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 		nOrigM.Point = nOrigM.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
 		nm := m
 		nm.Point = nm.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
-		r = ui.Child.Mouse(env, nOrigM, nm)
+		r = ui.Child.Mouse(dui, nOrigM, nm)
 		if !r.Consumed {
 			r.Consumed = ui.scrollMouse(m, true)
 			r.Draw = r.Draw || r.Consumed
@@ -179,7 +179,7 @@ func (ui *Scroll) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 	return
 }
 
-func (ui *Scroll) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
+func (ui *Scroll) Key(dui *DUI, orig image.Point, m draw.Mouse, c rune) Result {
 	if m.Point.In(ui.barR) {
 		consumed := ui.scrollKey(c)
 		redraw := consumed
@@ -187,7 +187,7 @@ func (ui *Scroll) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
 	}
 	if m.Point.In(ui.r) {
 		m.Point = m.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
-		r := ui.Child.Key(env, orig.Add(image.Pt(ui.scrollbarSize, -ui.offset)), m, c)
+		r := ui.Child.Key(dui, orig.Add(image.Pt(ui.scrollbarSize, -ui.offset)), m, c)
 		if !r.Consumed {
 			r.Consumed = ui.scrollKey(c)
 			r.Draw = r.Draw || r.Consumed
@@ -197,8 +197,8 @@ func (ui *Scroll) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
 	return Result{}
 }
 
-func (ui *Scroll) FirstFocus(env *Env) *image.Point {
-	first := ui.Child.FirstFocus(env)
+func (ui *Scroll) FirstFocus(dui *DUI) *image.Point {
+	first := ui.Child.FirstFocus(dui)
 	if first == nil {
 		return nil
 	}
@@ -206,8 +206,8 @@ func (ui *Scroll) FirstFocus(env *Env) *image.Point {
 	return &p
 }
 
-func (ui *Scroll) Focus(env *Env, o UI) *image.Point {
-	p := ui.Child.Focus(env, o)
+func (ui *Scroll) Focus(dui *DUI, o UI) *image.Point {
+	p := ui.Child.Focus(dui, o)
 	if p == nil {
 		return nil
 	}

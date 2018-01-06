@@ -31,18 +31,18 @@ type Field struct {
 
 var _ UI = &Field{}
 
-func (ui *Field) font(env *Env) *draw.Font {
-	return env.Font(ui.Font)
+func (ui *Field) font(dui *DUI) *draw.Font {
+	return dui.Font(ui.Font)
 }
 
-func (ui *Field) padding(env *Env) image.Point {
-	fontHeight := ui.font(env).Height
+func (ui *Field) padding(dui *DUI) image.Point {
+	fontHeight := ui.font(dui).Height
 	return image.Pt(fontHeight/4, fontHeight/4)
 }
 
-func (ui *Field) space(env *Env) image.Point {
+func (ui *Field) space(dui *DUI) image.Point {
 	// padding + border
-	return ui.padding(env).Add(pt(1))
+	return ui.padding(dui).Add(pt(1))
 }
 
 // cursor adjusted to start at 0 index
@@ -76,12 +76,12 @@ func (ui *Field) removeSelection() {
 	ui.SelectionStart1 = 0
 }
 
-func (ui *Field) Layout(env *Env, size image.Point) image.Point {
-	ui.size = image.Point{size.X, ui.font(env).Height + 2*ui.space(env).Y}
+func (ui *Field) Layout(dui *DUI, size image.Point) image.Point {
+	ui.size = image.Point{size.X, ui.font(dui).Height + 2*ui.space(dui).Y}
 	return ui.size
 }
 
-func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Field) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
 	if ui.size.X <= 0 || ui.size.Y <= 0 {
 		return
 	}
@@ -91,22 +91,22 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 
 	ui.fixCursor()
 	s, e, sel := ui.selection0()
-	f := ui.font(env)
+	f := ui.font(dui)
 
-	colors := env.Normal
-	selColors := env.Selection
+	colors := dui.Normal
+	selColors := dui.Selection
 	if ui.Disabled {
-		colors = env.Disabled
+		colors = dui.Disabled
 	} else if hover {
-		colors = env.Hover
-		selColors = env.SelectionHover
+		colors = dui.Hover
+		selColors = dui.SelectionHover
 	}
 	text := ui.Text
 	c0 := ui.cursor0()
 	if text == "" {
 		text = ui.Placeholder
 		if !ui.Disabled {
-			colors = env.Placeholder
+			colors = dui.Placeholder
 		}
 	} else if ui.Password {
 		// ugh
@@ -147,7 +147,7 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 	img.Draw(r, colors.Background, nil, image.ZP)
 	drawRoundedBorder(img, r, colors.Border)
 
-	space := ui.space(env)
+	space := ui.space(dui)
 
 	drawString := func(i *draw.Image, p, cp image.Point) {
 		p = p.Add(space)
@@ -168,7 +168,7 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 			cp = cp.Add(space)
 			cp1 := cp
 			cp1.Y += f.Height
-			i.Line(cp, cp1, 1, 1, 0, env.Hover.Border, image.ZP)
+			i.Line(cp, cp1, 1, 1, 0, dui.Hover.Border, image.ZP)
 		}
 	}
 
@@ -179,7 +179,7 @@ func (ui *Field) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse)
 	} else {
 		if ui.img == nil || !ui.img.R.Size().Eq(ui.size) {
 			var err error
-			ui.img, err = env.Display.AllocImage(rect(ui.size), draw.ARGB32, false, draw.Transparent)
+			ui.img, err = dui.Display.AllocImage(rect(ui.size), draw.ARGB32, false, draw.Transparent)
 			check(err, "allocimage")
 		}
 		ui.img.Draw(ui.img.R, colors.Background, nil, image.ZP)
@@ -288,14 +288,14 @@ func expandSelection(t string, i int) (s, e int) {
 	return
 }
 
-func (ui *Field) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
+func (ui *Field) Mouse(dui *DUI, origM, m draw.Mouse) (r Result) {
 	if !origM.In(rect(ui.size)) {
 		return
 	}
 	r.Hit = ui
-	space := ui.space(env)
+	space := ui.space(dui)
 	locateCursor := func() int {
-		f := ui.font(env)
+		f := ui.font(dui)
 		mX := m.X - space.X - ui.prevTextOffset
 		x := 0
 		for i, c := range ui.Text {
@@ -349,7 +349,7 @@ func (ui *Field) fixCursor() {
 	}
 }
 
-func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result) {
+func (ui *Field) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result) {
 	if !m.In(rect(ui.size)) {
 		return
 	}
@@ -443,13 +443,13 @@ func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result
 	case draw.KeyCmd + 'c':
 		_, _, t := ui.selection0()
 		if t != "" {
-			env.Display.WriteSnarf([]byte(t))
+			dui.Display.WriteSnarf([]byte(t))
 		}
 
 	case draw.KeyCmd + 'x':
 		s, e, t := ui.selection0()
 		if t != "" {
-			env.Display.WriteSnarf([]byte(t))
+			dui.Display.WriteSnarf([]byte(t))
 			ui.Text = ui.Text[:s] + ui.Text[e:]
 			cursor0 = s
 			ui.SelectionStart1 = 0
@@ -458,7 +458,7 @@ func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result
 	case draw.KeyCmd + 'v':
 		cursor0 = removeSelection()
 		buf := make([]byte, 128)
-		have, total, err := env.Display.ReadSnarf(buf)
+		have, total, err := dui.Display.ReadSnarf(buf)
 		if err != nil {
 			log.Printf("duit: readsnarf: %s\n", err)
 			break
@@ -468,7 +468,7 @@ func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result
 			t = string(buf[:have])
 		} else {
 			buf = make([]byte, total)
-			have, _, err = env.Display.ReadSnarf(buf)
+			have, _, err = dui.Display.ReadSnarf(buf)
 			if err != nil {
 				log.Printf("duit: readsnarf entire buffer: %s\n", err)
 			}
@@ -502,15 +502,15 @@ func (ui *Field) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result
 	return
 }
 
-func (ui *Field) FirstFocus(env *Env) *image.Point {
+func (ui *Field) FirstFocus(dui *DUI) *image.Point {
 	return &image.ZP
 }
 
-func (ui *Field) Focus(env *Env, o UI) *image.Point {
+func (ui *Field) Focus(dui *DUI, o UI) *image.Point {
 	if o != ui {
 		return nil
 	}
-	return ui.FirstFocus(env)
+	return ui.FirstFocus(dui)
 }
 
 func (ui *Field) Print(indent int, r image.Rectangle) {

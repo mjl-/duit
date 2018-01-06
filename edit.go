@@ -302,23 +302,23 @@ func (ui *Edit) orderedCursor() (int64, int64) {
 	return ui.cursor, ui.cursor0
 }
 
-func (ui *Edit) font(env *Env) *draw.Font {
-	return env.Font(ui.Font)
+func (ui *Edit) font(dui *DUI) *draw.Font {
+	return dui.Font(ui.Font)
 }
 
-func (ui *Edit) Layout(env *Env, sizeAvail image.Point) (sizeTaken image.Point) {
+func (ui *Edit) Layout(dui *DUI, sizeAvail image.Point) (sizeTaken image.Point) {
 	ui.ensureInit()
 	ui.r = rect(sizeAvail)
 	ui.barR = ui.r
-	ui.barR.Max.X = ui.barR.Min.X + env.Scale(ScrollbarSize)
+	ui.barR.Max.X = ui.barR.Min.X + dui.Scale(ScrollbarSize)
 	ui.barActiveR = ui.barR // Y's are filled in during draw
 	ui.textR = ui.r
 	ui.textR.Min.X = ui.barR.Max.X
-	ui.textR = ui.textR.Inset(env.Scale(4))
+	ui.textR = ui.textR.Inset(dui.Scale(4))
 	return sizeAvail
 }
 
-func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Edit) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
 	ui.ensureInit()
 	if ui.r.Empty() {
 		return
@@ -327,13 +327,13 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 	switch ui.mode {
 	case ModeInsert:
 	case ModeCommand:
-		img.Draw(ui.textR.Add(orig).Inset(env.Scale(-4)), env.CommandMode, nil, image.ZP)
+		img.Draw(ui.textR.Add(orig).Inset(dui.Scale(-4)), dui.CommandMode, nil, image.ZP)
 	case ModeVisual, ModeVisualLine:
-		img.Draw(ui.textR.Add(orig).Inset(env.Scale(-4)), env.VisualMode, nil, image.ZP)
+		img.Draw(ui.textR.Add(orig).Inset(dui.Scale(-4)), dui.VisualMode, nil, image.ZP)
 	}
-	img.Draw(ui.textR.Add(orig), env.Normal.Background, nil, image.ZP)
+	img.Draw(ui.textR.Add(orig), dui.Normal.Background, nil, image.ZP)
 
-	font := ui.font(env)
+	font := ui.font(dui)
 	s := ""
 	sdx := 0
 	lineWidth := ui.textR.Dx()
@@ -365,18 +365,18 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 			p0 := p
 			p1 := p0
 			p1.Y += font.Height
-			thick := env.Scale(1)
+			thick := dui.Scale(1)
 			if thick > 1 {
 				thick = 0
 			}
-			img.Line(p0, p1, 0, 0, thick, env.Display.Black, image.ZP)
+			img.Line(p0, p1, 0, 0, thick, dui.Display.Black, image.ZP)
 		}
 
 		// we draw text before selection
 		if offset < c0 {
 			nn := minimum64(int64(n), c0-offset)
 			// log.Printf("drawing %d before selection\n", nn)
-			pp := img.String(p, env.Normal.Text, image.ZP, font, dropNewline(s[:nn]))
+			pp := img.String(p, dui.Normal.Text, image.ZP, font, dropNewline(s[:nn]))
 			p.X = pp.X
 			s = s[nn:]
 			offset += nn
@@ -401,8 +401,8 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 			if toEnd {
 				selR.Max.X = ui.textR.Max.X
 			}
-			img.Draw(selR, env.Inverse.Background, nil, image.ZP)
-			pp := img.String(p, env.Inverse.Text, image.ZP, font, sels)
+			img.Draw(selR, dui.Inverse.Background, nil, image.ZP)
+			pp := img.String(p, dui.Inverse.Text, image.ZP, font, sels)
 			p.X = pp.X
 			s = s[nn:]
 			offset += nn
@@ -416,7 +416,7 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 		if offset >= c1 && offsetEnd > offset {
 			nn := int(offsetEnd - offset)
 			// log.Printf("drawing %d after selection\n", nn)
-			pp := img.String(p, env.Normal.Text, image.ZP, font, dropNewline(s))
+			pp := img.String(p, dui.Normal.Text, image.ZP, font, dropNewline(s))
 			p.X = pp.X
 			s = s[nn:]
 			offset += int64(nn)
@@ -453,11 +453,11 @@ func (ui *Edit) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 	}
 
 	barHover := m.In(ui.barR)
-	bg := env.ScrollBGNormal
-	vis := env.ScrollVisibleNormal
+	bg := dui.ScrollBGNormal
+	vis := dui.ScrollVisibleNormal
 	if barHover {
-		bg = env.ScrollBGHover
-		vis = env.ScrollVisibleHover
+		bg = dui.ScrollBGHover
+		vis = dui.ScrollVisibleHover
 	}
 
 	if size == 0 {
@@ -563,9 +563,9 @@ func (ui *Edit) expand(offset int64, fr, br *reader) (int64, int64) {
 	return offset - br.n, offset + fr.n
 }
 
-func (ui *Edit) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
+func (ui *Edit) Mouse(dui *DUI, origM, m draw.Mouse) (r Result) {
 	ui.ensureInit()
-	font := ui.font(env)
+	font := ui.font(dui)
 	scrollLines := func(y int) int {
 		lines := ui.textR.Dy() / font.Height
 		n := lines * y / ui.textR.Dy()
@@ -615,7 +615,7 @@ func (ui *Edit) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 	default:
 		if m.Buttons == Button1 {
 			rrd := ui.revReader(ui.offset)
-			line := m.Y / ui.font(env).Height
+			line := m.Y / ui.font(dui).Height
 			eof := false
 			for ; line < 0 && !eof; line++ {
 				_, eof = rrd.RevLine()
@@ -642,7 +642,7 @@ func (ui *Edit) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 				xchars++
 			}
 			ui.cursor = rd.Offset()
-			ui.scrollCursor(env)
+			ui.scrollCursor(dui)
 			if om.Buttons == 0 {
 				if m.Msec-ui.prevTextB1.Msec < 300 {
 					if xchars == 0 {
@@ -716,7 +716,7 @@ func (ui *Edit) SetCursor(current, start int64) {
 }
 
 // ensure cursor is visible
-func (ui *Edit) scrollCursor(env *Env) {
+func (ui *Edit) scrollCursor(dui *DUI) {
 	nbr := ui.revReader(ui.cursor)
 	if ui.cursor < ui.offset {
 		nbr.Line(false)
@@ -725,7 +725,7 @@ func (ui *Edit) scrollCursor(env *Env) {
 	}
 
 	nbr.Line(false)
-	for lines := ui.textR.Dy() / ui.font(env).Height; lines > 1; lines-- {
+	for lines := ui.textR.Dy() / ui.font(dui).Height; lines > 1; lines-- {
 		if nbr.Offset() <= ui.offset {
 			return
 		}
@@ -735,9 +735,9 @@ func (ui *Edit) scrollCursor(env *Env) {
 	ui.offset = nbr.Offset()
 }
 
-func (ui *Edit) readSnarf(env *Env) ([]byte, bool) {
+func (ui *Edit) readSnarf(dui *DUI) ([]byte, bool) {
 	buf := make([]byte, 128)
-	have, total, err := env.Display.ReadSnarf(buf)
+	have, total, err := dui.Display.ReadSnarf(buf)
 	if err != nil {
 		log.Printf("duit: readsnarf: %s\n", err)
 		return nil, false
@@ -746,7 +746,7 @@ func (ui *Edit) readSnarf(env *Env) ([]byte, bool) {
 		return buf[:have], true
 	}
 	buf = make([]byte, total)
-	have, _, err = env.Display.ReadSnarf(buf)
+	have, _, err = dui.Display.ReadSnarf(buf)
 	if err != nil {
 		log.Printf("duit: readsnarf entire buffer: %s\n", err)
 		return nil, false
@@ -754,8 +754,8 @@ func (ui *Edit) readSnarf(env *Env) ([]byte, bool) {
 	return buf[:have], true
 }
 
-func (ui *Edit) writeSnarf(env *Env, buf []byte) {
-	err := env.Display.WriteSnarf(buf)
+func (ui *Edit) writeSnarf(dui *DUI, buf []byte) {
+	err := dui.Display.WriteSnarf(buf)
 	if err != nil {
 		log.Printf("duit: writesnarf: %s\n", err)
 	}
@@ -791,7 +791,7 @@ func (ui *Edit) unindent(c0, c1 int64) int64 {
 	return int64(len(ns))
 }
 
-func (ui *Edit) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result) {
+func (ui *Edit) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result) {
 	ui.ensureInit()
 	r.Hit = ui
 	if m.In(ui.barR) {
@@ -814,20 +814,20 @@ func (ui *Edit) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result)
 
 	switch ui.mode {
 	case ModeCommand:
-		ui.commandKey(env, k, &r)
+		ui.commandKey(dui, k, &r)
 		return
 	case ModeVisual:
-		ui.visualKey(env, k, false, &r)
+		ui.visualKey(dui, k, false, &r)
 		return
 	case ModeVisualLine:
-		ui.visualKey(env, k, true, &r)
+		ui.visualKey(dui, k, true, &r)
 		return
 	}
 
 	c0, c1 := ui.orderedCursor()
 	fr := ui.reader(c1, ui.text.Size())
 	br := ui.revReader(c0)
-	font := ui.font(env)
+	font := ui.font(dui)
 	lines := ui.textR.Dy() / font.Height
 	const Ctrl = 0x1f
 
@@ -844,61 +844,61 @@ func (ui *Edit) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result)
 		br.TryGet()
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(env)
+		ui.scrollCursor(dui)
 	case draw.KeyRight:
 		fr.TryGet()
 		ui.cursor = fr.Offset()
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(env)
+		ui.scrollCursor(dui)
 	case Ctrl & 'a':
 		br.Line(false)
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(env)
+		ui.scrollCursor(dui)
 	case Ctrl & 'e':
 		fr.Line(false)
 		ui.cursor = fr.Offset()
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(env)
+		ui.scrollCursor(dui)
 	case Ctrl & 'h':
 		br.TryGet()
 		ui.text.Replace(br.Offset(), fr.Offset(), nil)
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(env)
+		ui.scrollCursor(dui)
 	case Ctrl & 'w':
 		br.Whitespace()
 		br.Nonwhitespace()
 		ui.text.Replace(br.Offset(), fr.Offset(), nil)
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(env)
+		ui.scrollCursor(dui)
 	case Ctrl & 'u':
 		br.Line(false)
 		ui.text.Replace(br.Offset(), fr.Offset(), nil)
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(env)
+		ui.scrollCursor(dui)
 	case Ctrl & 'k':
 		fr.Line(false)
 		ui.text.Replace(br.Offset(), fr.Offset(), nil)
-		ui.scrollCursor(env)
+		ui.scrollCursor(dui)
 	case draw.KeyDelete:
 		fr.TryGet()
 		ui.text.Replace(br.Offset(), fr.Offset(), nil)
-		ui.scrollCursor(env)
+		ui.scrollCursor(dui)
 	case draw.KeyCmd + 'a':
 		ui.cursor = 0
 		ui.cursor0 = ui.text.Size()
 	case draw.KeyCmd + 'n':
 		ui.cursor0 = ui.cursor
 	case draw.KeyCmd + 'c':
-		ui.writeSnarf(env, []byte(ui.selectionText()))
+		ui.writeSnarf(dui, []byte(ui.selectionText()))
 	case draw.KeyCmd + 'x':
-		ui.writeSnarf(env, []byte(ui.selectionText()))
+		ui.writeSnarf(dui, []byte(ui.selectionText()))
 		ui.text.Replace(c0, c1, nil)
 	case draw.KeyCmd + 'v':
-		buf, ok := ui.readSnarf(env)
+		buf, ok := ui.readSnarf(dui)
 		if ok {
 			ui.text.Replace(c0, c1, buf)
 		}
@@ -928,21 +928,21 @@ func (ui *Edit) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result)
 		ui.text.Replace(c0, c1, []byte(string(k)))
 		ui.cursor = c0 + int64(len(string(k)))
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(env)
+		ui.scrollCursor(dui)
 	}
 
 	return
 }
 
-func (ui *Edit) FirstFocus(env *Env) (warp *image.Point) {
+func (ui *Edit) FirstFocus(dui *DUI) (warp *image.Point) {
 	return &ui.textR.Min
 }
 
-func (ui *Edit) Focus(env *Env, o UI) (warp *image.Point) {
+func (ui *Edit) Focus(dui *DUI, o UI) (warp *image.Point) {
 	if o != ui {
 		return nil
 	}
-	return ui.FirstFocus(env)
+	return ui.FirstFocus(dui)
 }
 
 func (ui *Edit) Print(indent int, r image.Rectangle) {

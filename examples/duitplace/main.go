@@ -36,7 +36,7 @@ func main() {
 	check(err, "new dui")
 
 	readImagePath := func(path string) *draw.Image {
-		img, err := duit.ReadImagePath(dui.Env.Display, path)
+		img, err := duit.ReadImagePath(dui.Display, path)
 		check(err, "read image")
 		return img
 	}
@@ -44,9 +44,9 @@ func main() {
 	var place *duit.Place
 	place = &duit.Place{
 		Place: func(sizeAvail image.Point) image.Point {
-			imageSize := place.Kids[0].UI.Layout(dui.Env, sizeAvail)
+			imageSize := place.Kids[0].UI.Layout(dui, sizeAvail)
 			place.Kids[0].R = rect(imageSize)
-			buttonSize := place.Kids[1].UI.Layout(dui.Env, sizeAvail)
+			buttonSize := place.Kids[1].UI.Layout(dui, sizeAvail)
 			place.Kids[1].R = rect(buttonSize).Add(sizeAvail.Sub(buttonSize).Div(2))
 			return imageSize
 		},

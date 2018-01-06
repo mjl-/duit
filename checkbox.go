@@ -16,23 +16,23 @@ type Checkbox struct {
 
 var _ UI = &Checkbox{}
 
-func (ui *Checkbox) Layout(env *Env, size image.Point) image.Point {
+func (ui *Checkbox) Layout(dui *DUI, size image.Point) image.Point {
 	hit := image.Point{0, 1}
-	return pt(2*BorderSize + 4*env.Display.DefaultFont.Height/5).Add(hit)
+	return pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5).Add(hit)
 }
 
-func (ui *Checkbox) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	r := rect(pt(2*BorderSize + 4*env.Display.DefaultFont.Height/5))
+func (ui *Checkbox) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
+	r := rect(pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5))
 	hover := m.In(r)
 	r = r.Add(orig)
 
-	colors := env.Normal
+	colors := dui.Normal
 	color := colors.Text
 	if ui.Disabled {
-		colors = env.Disabled
+		colors = dui.Disabled
 		color = colors.Border
 	} else if hover {
-		colors = env.Hover
+		colors = dui.Hover
 		color = colors.Border
 	}
 
@@ -45,7 +45,7 @@ func (ui *Checkbox) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 	r = r.Add(hit)
 	drawRoundedBorder(img, r, color)
 
-	cr := r.Inset((4 * env.Display.DefaultFont.Height / 5) / 5)
+	cr := r.Inset((4 * dui.Display.DefaultFont.Height / 5) / 5)
 	if ui.Checked {
 		p0 := image.Pt(cr.Min.X, cr.Min.Y+2*cr.Dy()/3)
 		p1 := image.Pt(cr.Min.X+1*cr.Dx()/3, cr.Max.Y)
@@ -55,12 +55,12 @@ func (ui *Checkbox) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 	}
 }
 
-func (ui *Checkbox) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
+func (ui *Checkbox) Mouse(dui *DUI, origM, m draw.Mouse) (r Result) {
 	r.Hit = ui
 	if ui.Disabled {
 		return
 	}
-	rr := rect(pt(2*BorderSize + 4*env.Display.DefaultFont.Height/5))
+	rr := rect(pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5))
 	hover := m.In(rr)
 	if hover != ui.m.In(rr) {
 		r.Draw = true
@@ -79,7 +79,7 @@ func (ui *Checkbox) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 	return
 }
 
-func (ui *Checkbox) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result) {
+func (ui *Checkbox) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result) {
 	r.Hit = ui
 	if k == ' ' {
 		r.Consumed = true
@@ -92,15 +92,15 @@ func (ui *Checkbox) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Res
 	return
 }
 
-func (ui *Checkbox) FirstFocus(env *Env) *image.Point {
+func (ui *Checkbox) FirstFocus(dui *DUI) *image.Point {
 	return &image.ZP
 }
 
-func (ui *Checkbox) Focus(env *Env, o UI) *image.Point {
+func (ui *Checkbox) Focus(dui *DUI, o UI) *image.Point {
 	if o != ui {
 		return nil
 	}
-	return ui.FirstFocus(env)
+	return ui.FirstFocus(dui)
 }
 
 func (ui *Checkbox) Print(indent int, r image.Rectangle) {

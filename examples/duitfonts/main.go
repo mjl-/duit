@@ -40,7 +40,7 @@ a b c d e f g h i j k l m n o p q r s t u v w x y z`))
 			lv := fontList.Values[index]
 			// xxx todo should free font, but that seems to hang draw
 			if lv.Selected {
-				font, err := dui.Env.Display.OpenFont("/mnt/font/" + lv.Text + "15a/font")
+				font, err := dui.Display.OpenFont("/mnt/font/" + lv.Text + "15a/font")
 				check(err, "open font")
 				edit.Font = font
 			} else {

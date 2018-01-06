@@ -42,18 +42,18 @@ type Gridlist struct {
 
 var _ UI = &Gridlist{}
 
-func (ui *Gridlist) font(env *Env) *draw.Font {
-	return env.Font(ui.Font)
+func (ui *Gridlist) font(dui *DUI) *draw.Font {
+	return dui.Font(ui.Font)
 }
 
 // rowHeight without separator
-func (ui *Gridlist) rowHeight(env *Env) int {
-	return ui.font(env).Height + env.ScaleSpace(ui.Padding).Dy()
+func (ui *Gridlist) rowHeight(dui *DUI) int {
+	return ui.font(dui).Height + dui.ScaleSpace(ui.Padding).Dy()
 }
 
-func (ui *Gridlist) makeWidthOffsets(env *Env, widths []int) []int {
+func (ui *Gridlist) makeWidthOffsets(dui *DUI, widths []int) []int {
 	offsets := make([]int, len(widths))
-	pad := env.ScaleSpace(ui.Padding)
+	pad := dui.ScaleSpace(ui.Padding)
 	for i := range widths {
 		if i > 0 {
 			offsets[i] = offsets[i-1] + widths[i-1] + pad.Dx() + separatorWidth
@@ -62,7 +62,7 @@ func (ui *Gridlist) makeWidthOffsets(env *Env, widths []int) []int {
 	return offsets
 }
 
-func (ui *Gridlist) columnWidths(env *Env, width int) []int {
+func (ui *Gridlist) columnWidths(dui *DUI, width int) []int {
 	if ui.colWidths != nil {
 		if width == ui.size.X {
 			return ui.colWidths
@@ -71,7 +71,7 @@ func (ui *Gridlist) columnWidths(env *Env, width int) []int {
 
 		// reassign sizes, same relative size, just new absolute widths
 		ncol := len(ui.Header.Values)
-		pad := env.ScaleSpace(ui.Padding)
+		pad := dui.ScaleSpace(ui.Padding)
 		avail := width - ncol*pad.Dx() - (ncol-1)*separatorWidth
 		prevTotal := 0
 		for _, v := range ui.colWidths {
@@ -92,7 +92,7 @@ func (ui *Gridlist) columnWidths(env *Env, width int) []int {
 		if len(rows) > 50 {
 			rows = rows[:50]
 		}
-		font := ui.font(env)
+		font := ui.font(dui)
 		ncol := len(rows[0].Values)
 		max := make([]int, ncol)
 		avg := make([]int, ncol)
@@ -116,7 +116,7 @@ func (ui *Gridlist) columnWidths(env *Env, width int) []int {
 		// log.Printf("making widths, ncol %d, max %v, avg %v, maxTotal %d, width avail %d\n", ncol, max, avg, maxTotal, width)
 
 		// give out minimum width to all cols
-		pad := env.ScaleSpace(ui.Padding)
+		pad := dui.ScaleSpace(ui.Padding)
 		minWidth := font.StringWidth("mmm")
 
 		widths := make([]int, ncol)
@@ -230,18 +230,18 @@ func (ui *Gridlist) columnWidths(env *Env, width int) []int {
 	return ui.colWidths
 }
 
-func (ui *Gridlist) Layout(env *Env, sizeAvail image.Point) (sizeTaken image.Point) {
+func (ui *Gridlist) Layout(dui *DUI, sizeAvail image.Point) (sizeTaken image.Point) {
 	if ui.Halign != nil && len(ui.Halign) != len(ui.Header.Values) {
 		panic(fmt.Sprintf("len(halign) = %d, should be len(ui.Header.Values) = %d", len(ui.Halign), len(ui.Header.Values)))
 	}
 
 	n := 1 + len(ui.Rows)
-	ui.columnWidths(env, sizeAvail.X) // calculate widths, possibly remembering
-	ui.size = image.Pt(sizeAvail.X, n*ui.rowHeight(env)+(n-1)*separatorHeight)
+	ui.columnWidths(dui, sizeAvail.X) // calculate widths, possibly remembering
+	ui.size = image.Pt(sizeAvail.X, n*ui.rowHeight(dui)+(n-1)*separatorHeight)
 	return ui.size
 }
 
-func (ui *Gridlist) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Gridlist) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
 	ncol := len(ui.Header.Values)
 	if ncol == 0 {
 		return
@@ -249,13 +249,13 @@ func (ui *Gridlist) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 
 	r := rect(ui.size).Add(orig)
 
-	rowHeight := ui.rowHeight(env)
-	pad := env.ScaleSpace(ui.Padding)
+	rowHeight := ui.rowHeight(dui)
+	pad := dui.ScaleSpace(ui.Padding)
 
-	widths := ui.columnWidths(env, ui.size.X) // widths, excluding separator and padding
-	x := ui.makeWidthOffsets(env, widths)
+	widths := ui.columnWidths(dui, ui.size.X) // widths, excluding separator and padding
+	x := ui.makeWidthOffsets(dui, widths)
 
-	font := ui.font(env)
+	font := ui.font(dui)
 	rowSize := image.Pt(r.Dx(), rowHeight)
 	lineR := rect(rowSize).Add(orig)
 
@@ -273,7 +273,7 @@ func (ui *Gridlist) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 			}
 		}
 		var err error
-		ui.cellImage, err = env.Display.AllocImage(rect(image.Pt(maxDx, size.Y)), draw.ARGB32, false, draw.Transparent)
+		ui.cellImage, err = dui.Display.AllocImage(rect(image.Pt(maxDx, size.Y)), draw.ARGB32, false, draw.Transparent)
 		check(err, "allocimage")
 		return ui.cellImage
 	}
@@ -282,12 +282,12 @@ func (ui *Gridlist) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 		if len(row.Values) != ncol {
 			panic(fmt.Sprintf("row with wrong number of values, expect %d, saw %d", ncol, len(row.Values)))
 		}
-		colors := env.Normal
+		colors := dui.Normal
 		if row.Selected {
-			colors = env.Inverse
+			colors = dui.Inverse
 			img.Draw(lineR, colors.Background, nil, image.ZP)
 		} else if odd && ui.Striped {
-			colors = env.Striped
+			colors = dui.Striped
 			img.Draw(lineR, colors.Background, nil, image.ZP)
 		}
 		for i, s := range row.Values {
@@ -328,26 +328,26 @@ func (ui *Gridlist) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mou
 		p0 := image.Pt(x[i], 0).Add(orig).Add(image.Pt(0, pad.Top))
 		p1 := p0
 		p1.Y += rowHeight - pad.Dy()
-		img.Line(p0, p1, 0, 0, 0, env.Normal.Border, image.ZP)
+		img.Line(p0, p1, 0, 0, 0, dui.Normal.Border, image.ZP)
 	}
 	lp0 := lineR.Min.Sub(image.Pt(0, separatorHeight))
 	lp1 := lp0
 	lp1.X += r.Dx()
-	img.Line(lp0, lp1, 0, 0, 0, env.Normal.Border, image.ZP)
+	img.Line(lp0, lp1, 0, 0, 0, dui.Normal.Border, image.ZP)
 
 	for i, row := range ui.Rows {
 		drawRow(row, i%2 == 1)
 	}
 }
 
-func (ui *Gridlist) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
+func (ui *Gridlist) Mouse(dui *DUI, origM, m draw.Mouse) (r Result) {
 	r.Hit = ui
 	prevM := ui.m
 	ui.m = m
 	if !m.In(rect(ui.size)) {
 		return
 	}
-	rowHeight := ui.rowHeight(env)
+	rowHeight := ui.rowHeight(dui)
 	index := m.Y / (rowHeight + separatorHeight)
 	if ui.draggingColStart > 0 || index == 0 {
 		// xxx todo: on double click, max column before fit (but at most twice as large)
@@ -358,8 +358,8 @@ func (ui *Gridlist) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 			ui.draggingColStart = 0
 			return
 		}
-		widths := ui.columnWidths(env, ui.size.X)
-		offsets := ui.makeWidthOffsets(env, widths)
+		widths := ui.columnWidths(dui, ui.size.X)
+		offsets := ui.makeWidthOffsets(dui, widths)
 		if ui.draggingColStart > 0 {
 			// user was dragging, move the grid sizes
 			dx := m.X - offsets[ui.draggingColStart]
@@ -390,7 +390,7 @@ func (ui *Gridlist) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
 		}
 
 		// start dragging, find the column if any
-		slack := ui.font(env).StringWidth("x")
+		slack := ui.font(dui).StringWidth("x")
 		for i, x := range offsets {
 			x -= m.X
 			if x >= -slack && x <= slack {
@@ -438,7 +438,7 @@ func (ui *Gridlist) Selected() (indices []int) {
 	return ui.selectedIndices()
 }
 
-func (ui *Gridlist) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result) {
+func (ui *Gridlist) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result) {
 	r.Hit = ui
 	if !m.In(rect(ui.size)) {
 		return
@@ -480,7 +480,7 @@ func (ui *Gridlist) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Res
 			s += strings.Join(row.Values, "\t") + "\n"
 		}
 		if s != "" {
-			env.Display.WriteSnarf([]byte(s))
+			dui.Display.WriteSnarf([]byte(s))
 			r.Consumed = true
 			r.Draw = true
 		}
@@ -515,9 +515,9 @@ func (ui *Gridlist) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Res
 			r.Draw = true
 		}
 		if nindex >= 0 {
-			font := ui.font(env)
-			rowHeight := ui.rowHeight(env)
-			pad := env.ScaleSpace(ui.Padding)
+			font := ui.font(dui)
+			rowHeight := ui.rowHeight(dui)
+			pad := dui.ScaleSpace(ui.Padding)
 
 			ui.Rows[nindex].Selected = true
 			r.Draw = true
@@ -532,15 +532,15 @@ func (ui *Gridlist) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Res
 	return
 }
 
-func (ui *Gridlist) FirstFocus(env *Env) (warp *image.Point) {
+func (ui *Gridlist) FirstFocus(dui *DUI) (warp *image.Point) {
 	return &image.ZP
 }
 
-func (ui *Gridlist) Focus(env *Env, o UI) (warp *image.Point) {
+func (ui *Gridlist) Focus(dui *DUI, o UI) (warp *image.Point) {
 	if o != ui {
 		return nil
 	}
-	return ui.FirstFocus(env)
+	return ui.FirstFocus(dui)
 }
 
 func (ui *Gridlist) Print(indent int, r image.Rectangle) {

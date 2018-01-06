@@ -24,32 +24,32 @@ func (ui *Middle) ensure() {
 	}
 }
 
-func (ui *Middle) Layout(env *Env, sizeAvail image.Point) (sizeTaken image.Point) {
-	size := ui.UI.Layout(env, sizeAvail)
+func (ui *Middle) Layout(dui *DUI, sizeAvail image.Point) (sizeTaken image.Point) {
+	size := ui.UI.Layout(dui, sizeAvail)
 	left := sizeAvail.Sub(size)
 	ui.kids[0].R = rect(size).Add(image.Pt(maximum(0, left.X/2), maximum(0, left.Y/2)))
 	ui.size = image.Pt(maximum(size.X, sizeAvail.X), maximum(size.Y, sizeAvail.Y))
 	return ui.size
 }
 
-func (ui *Middle) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	kidsDraw(env, ui.kids, ui.size, img, orig, m)
+func (ui *Middle) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
+	kidsDraw(dui, ui.kids, ui.size, img, orig, m)
 }
 
-func (ui *Middle) Mouse(env *Env, origM, m draw.Mouse) (r Result) {
-	return kidsMouse(env, ui.kids, origM, m)
+func (ui *Middle) Mouse(dui *DUI, origM, m draw.Mouse) (r Result) {
+	return kidsMouse(dui, ui.kids, origM, m)
 }
 
-func (ui *Middle) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result) {
-	return kidsKey(env, ui, ui.kids, orig, m, k)
+func (ui *Middle) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result) {
+	return kidsKey(dui, ui, ui.kids, orig, m, k)
 }
 
-func (ui *Middle) FirstFocus(env *Env) (warp *image.Point) {
-	return kidsFirstFocus(env, ui.kids)
+func (ui *Middle) FirstFocus(dui *DUI) (warp *image.Point) {
+	return kidsFirstFocus(dui, ui.kids)
 }
 
-func (ui *Middle) Focus(env *Env, o UI) (warp *image.Point) {
-	return kidsFocus(env, ui.kids, o)
+func (ui *Middle) Focus(dui *DUI, o UI) (warp *image.Point) {
+	return kidsFocus(dui, ui.kids, o)
 }
 
 func (ui *Middle) Print(indent int, r image.Rectangle) {

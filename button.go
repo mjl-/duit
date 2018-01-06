@@ -19,46 +19,46 @@ type Button struct {
 
 var _ UI = &Button{}
 
-func (ui *Button) font(env *Env) *draw.Font {
-	return env.Font(ui.Font)
+func (ui *Button) font(dui *DUI) *draw.Font {
+	return dui.Font(ui.Font)
 }
 
-func (ui *Button) space(env *Env) image.Point {
-	return ui.padding(env).Add(pt(BorderSize))
+func (ui *Button) space(dui *DUI) image.Point {
+	return ui.padding(dui).Add(pt(BorderSize))
 }
 
-func (ui *Button) padding(env *Env) image.Point {
-	fontHeight := ui.font(env).Height
+func (ui *Button) padding(dui *DUI) image.Point {
+	fontHeight := ui.font(dui).Height
 	return image.Pt(fontHeight/2, fontHeight/4)
 }
 
-func (ui *Button) Layout(env *Env, sizeAvail image.Point) (sizeTaken image.Point) {
-	sizeTaken = ui.font(env).StringSize(ui.Text).Add(ui.space(env).Mul(2))
+func (ui *Button) Layout(dui *DUI, sizeAvail image.Point) (sizeTaken image.Point) {
+	sizeTaken = ui.font(dui).StringSize(ui.Text).Add(ui.space(dui).Mul(2))
 	if ui.Icon.Font != nil {
 		sizeTaken.X += ui.Icon.Font.StringSize(string(ui.Icon.Rune)).X
-		sizeTaken.X += ui.font(env).StringSize("  ").X
+		sizeTaken.X += ui.font(dui).StringSize("  ").X
 	}
 	return sizeTaken
 }
 
-func (ui *Button) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Button) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
 	text := ui.Text
 	iconSize := image.ZP
 	if ui.Icon.Font != nil {
 		text = "  " + text
 		iconSize = ui.Icon.Font.StringSize(string(ui.Icon.Rune))
 	}
-	textSize := ui.font(env).StringSize(text)
-	r := rect(image.Pt(iconSize.X, 0).Add(textSize).Add(ui.space(env).Mul(2)))
+	textSize := ui.font(dui).StringSize(text)
+	r := rect(image.Pt(iconSize.X, 0).Add(textSize).Add(ui.space(dui).Mul(2)))
 
 	hover := m.In(r)
-	colors := env.Normal
+	colors := dui.Normal
 	if ui.Disabled {
-		colors = env.Disabled
+		colors = dui.Disabled
 	} else if ui.Primary {
-		colors = env.Primary
+		colors = dui.Primary
 	} else if hover {
-		colors = env.Hover
+		colors = dui.Hover
 	}
 
 	r = r.Add(orig)
@@ -69,28 +69,28 @@ func (ui *Button) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse
 	if hover && !ui.Disabled && m.Buttons&1 == 1 {
 		hit = image.Pt(0, 1)
 	}
-	p := r.Min.Add(ui.space(env)).Add(hit)
+	p := r.Min.Add(ui.space(dui)).Add(hit)
 	if ui.Icon.Font != nil {
 		dy := (iconSize.Y - textSize.Y) / 2
 		img.String(p.Sub(image.Pt(0, dy)), colors.Text, image.ZP, ui.Icon.Font, string(ui.Icon.Rune))
 	}
 	p.X += iconSize.X
-	img.String(p, colors.Text, image.ZP, ui.font(env), text)
+	img.String(p, colors.Text, image.ZP, ui.font(dui), text)
 }
 
-func (ui *Button) Mouse(env *Env, origM, m draw.Mouse) Result {
+func (ui *Button) Mouse(dui *DUI, origM, m draw.Mouse) Result {
 	r := Result{Hit: ui}
 	if ui.m.Buttons&1 != m.Buttons&1 {
 		r.Draw = true
 	}
-	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 && ui.Click != nil && !ui.Disabled && m.Point.In(rect(ui.Layout(env, image.ZP))) {
+	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 && ui.Click != nil && !ui.Disabled && m.Point.In(rect(ui.Layout(dui, image.ZP))) {
 		ui.Click(&r)
 	}
 	ui.m = m
 	return r
 }
 
-func (ui *Button) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result) {
+func (ui *Button) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result) {
 	r.Hit = ui
 	if !ui.Disabled && (k == ' ' || k == '\n') {
 		r.Consumed = true
@@ -101,16 +101,16 @@ func (ui *Button) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Resul
 	return
 }
 
-func (ui *Button) FirstFocus(env *Env) *image.Point {
-	p := ui.space(env)
+func (ui *Button) FirstFocus(dui *DUI) *image.Point {
+	p := ui.space(dui)
 	return &p
 }
 
-func (ui *Button) Focus(env *Env, o UI) *image.Point {
+func (ui *Button) Focus(dui *DUI, o UI) *image.Point {
 	if o != ui {
 		return nil
 	}
-	return ui.FirstFocus(env)
+	return ui.FirstFocus(dui)
 }
 
 func (ui *Button) Print(indent int, r image.Rectangle) {

@@ -31,9 +31,9 @@ func (ui *Tabs) ensure() {
 	}
 }
 
-func (ui *Tabs) Layout(env *Env, sizeAvail image.Point) image.Point {
+func (ui *Tabs) Layout(dui *DUI, sizeAvail image.Point) image.Point {
 	ui.ensure()
-	return ui.Box.Layout(env, sizeAvail)
+	return ui.Box.Layout(dui, sizeAvail)
 }
 
 func (ui *Tabs) Print(indent int, r image.Rectangle) {

@@ -38,23 +38,23 @@ type Box struct {
 
 var _ UI = &Box{}
 
-func (ui *Box) Layout(env *Env, size image.Point) image.Point {
+func (ui *Box) Layout(dui *DUI, size image.Point) image.Point {
 	if ui.Width < 0 && ui.MaxWidth > 0 {
 		panic("combination ui.Width < 0 and ui.MaxWidth > 0 invalid")
 	}
 
 	osize := size
-	if ui.Width > 0 && scale(env.Display, ui.Width) < size.X {
-		size.X = scale(env.Display, ui.Width)
-	} else if ui.MaxWidth > 0 && scale(env.Display, ui.MaxWidth) < size.X {
+	if ui.Width > 0 && scale(dui.Display, ui.Width) < size.X {
+		size.X = scale(dui.Display, ui.Width)
+	} else if ui.MaxWidth > 0 && scale(dui.Display, ui.MaxWidth) < size.X {
 		// note: ui.Width is currently the same as MaxWidth, but that might change when we don't mind extending beyong given X, eg with horizontal scroll
-		size.X = scale(env.Display, ui.MaxWidth)
+		size.X = scale(dui.Display, ui.MaxWidth)
 	}
 	if ui.Height > 0 {
-		size.Y = scale(env.Display, ui.Height)
+		size.Y = scale(dui.Display, ui.Height)
 	}
-	padding := env.ScaleSpace(ui.Padding)
-	margin := scalePt(env.Display, ui.Margin)
+	padding := dui.ScaleSpace(ui.Padding)
+	margin := scalePt(dui.Display, ui.Margin)
 	size = size.Sub(padding.Size())
 	nx := 0 // number on current line
 
@@ -79,7 +79,7 @@ func (ui *Box) Layout(env *Env, size image.Point) image.Point {
 	}
 
 	for i, k := range ui.Kids {
-		childSize := k.UI.Layout(env, size.Sub(image.Pt(0, cur.Y+lineY)))
+		childSize := k.UI.Layout(dui, size.Sub(image.Pt(0, cur.Y+lineY)))
 		var kr image.Rectangle
 		if nx == 0 || cur.X+childSize.X <= size.X {
 			kr = rect(childSize).Add(cur).Add(padding.Topleft())
@@ -126,16 +126,16 @@ func (ui *Box) Layout(env *Env, size image.Point) image.Point {
 	return ui.size
 }
 
-func (ui *Box) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	kidsDraw(env, ui.Kids, ui.size, img, orig, m)
+func (ui *Box) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
+	kidsDraw(dui, ui.Kids, ui.size, img, orig, m)
 }
 
-func (ui *Box) Mouse(env *Env, origM, m draw.Mouse) Result {
-	return kidsMouse(env, ui.Kids, origM, m)
+func (ui *Box) Mouse(dui *DUI, origM, m draw.Mouse) Result {
+	return kidsMouse(dui, ui.Kids, origM, m)
 }
 
-func (ui *Box) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
-	return kidsKey(env, ui, ui.orderedKids(), orig, m, c)
+func (ui *Box) Key(dui *DUI, orig image.Point, m draw.Mouse, c rune) Result {
+	return kidsKey(dui, ui, ui.orderedKids(), orig, m, c)
 }
 
 func (ui *Box) orderedKids() []*Kid {
@@ -150,12 +150,12 @@ func (ui *Box) orderedKids() []*Kid {
 	return kids
 }
 
-func (ui *Box) FirstFocus(env *Env) *image.Point {
-	return kidsFirstFocus(env, ui.orderedKids())
+func (ui *Box) FirstFocus(dui *DUI) *image.Point {
+	return kidsFirstFocus(dui, ui.orderedKids())
 }
 
-func (ui *Box) Focus(env *Env, o UI) *image.Point {
-	return kidsFocus(env, ui.Kids, o)
+func (ui *Box) Focus(dui *DUI, o UI) *image.Point {
+	return kidsFocus(dui, ui.Kids, o)
 }
 
 func (ui *Box) Print(indent int, r image.Rectangle) {

@@ -13,31 +13,31 @@ type Label struct {
 
 var _ UI = &Label{}
 
-func (ui *Label) font(env *Env) *draw.Font {
-	return env.Font(ui.Font)
+func (ui *Label) font(dui *DUI) *draw.Font {
+	return dui.Font(ui.Font)
 }
 
-func (ui *Label) Layout(env *Env, size image.Point) image.Point {
-	return ui.font(env).StringSize(ui.Text)
+func (ui *Label) Layout(dui *DUI, size image.Point) image.Point {
+	return ui.font(dui).StringSize(ui.Text)
 }
 
-func (ui *Label) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	img.String(orig, env.Normal.Text, image.ZP, ui.font(env), ui.Text)
+func (ui *Label) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
+	img.String(orig, dui.Normal.Text, image.ZP, ui.font(dui), ui.Text)
 }
 
-func (ui *Label) Mouse(env *Env, origM, m draw.Mouse) Result {
+func (ui *Label) Mouse(dui *DUI, origM, m draw.Mouse) Result {
 	return Result{Hit: ui}
 }
 
-func (ui *Label) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
+func (ui *Label) Key(dui *DUI, orig image.Point, m draw.Mouse, c rune) Result {
 	return Result{Hit: ui}
 }
 
-func (ui *Label) FirstFocus(env *Env) *image.Point {
+func (ui *Label) FirstFocus(dui *DUI) *image.Point {
 	return nil
 }
 
-func (ui *Label) Focus(env *Env, o UI) *image.Point {
+func (ui *Label) Focus(dui *DUI, o UI) *image.Point {
 	if ui != o {
 		return nil
 	}

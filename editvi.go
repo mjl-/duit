@@ -77,7 +77,7 @@ func (c *cmd) Times(fn func()) {
 
 // commandMove returns new file offset after applying moves.
 // it panics with cmd* errors on invalid/incomplete.
-func (ui *Edit) commandMove(env *Env, cmd *cmd, br, fr *reader, endLineChar rune) int64 {
+func (ui *Edit) commandMove(dui *DUI, cmd *cmd, br, fr *reader, endLineChar rune) int64 {
 	r := cmd.Get()
 	// log.Printf("commandMove, number %d, r %c\n", cmd.number, r)
 	switch r {
@@ -223,7 +223,7 @@ func (ui *Edit) commandMove(env *Env, cmd *cmd, br, fr *reader, endLineChar rune
 	panic(cmdBadMove)
 }
 
-func (ui *Edit) visualKey(env *Env, k rune, line bool, result *Result) {
+func (ui *Edit) visualKey(dui *DUI, k rune, line bool, result *Result) {
 	ui.visual += string(k)
 	defer func() {
 		err := recover()
@@ -261,9 +261,9 @@ func (ui *Edit) visualKey(env *Env, k rune, line bool, result *Result) {
 		ui.cursor = c0
 	case 'y':
 		s := ui.readText(c0, c1)
-		ui.writeSnarf(env, []byte(s))
+		ui.writeSnarf(dui, []byte(s))
 	case 'p':
-		buf, ok := ui.readSnarf(env)
+		buf, ok := ui.readSnarf(dui)
 		if ok {
 			ui.text.Replace(c0, c1, buf)
 			ui.cursor0 = c0
@@ -307,7 +307,7 @@ func (ui *Edit) visualKey(env *Env, k rune, line bool, result *Result) {
 		ui.cursor, ui.cursor0 = ui.cursor0, ui.cursor
 	default:
 		cmd.Number()
-		offset := ui.commandMove(env, cmd, br, fr, -1)
+		offset := ui.commandMove(dui, cmd, br, fr, -1)
 		if line {
 			if offset < ui.cursor {
 				r := ui.revReader(offset)
@@ -327,7 +327,7 @@ func (ui *Edit) visualKey(env *Env, k rune, line bool, result *Result) {
 	ui.visual = ""
 }
 
-func (ui *Edit) commandKey(env *Env, k rune, result *Result) {
+func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 	ui.command += string(k)
 
 	defer func() {
@@ -353,7 +353,7 @@ func (ui *Edit) commandKey(env *Env, k rune, result *Result) {
 	cursor := func(offset int64) {
 		ui.cursor = offset
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(env)
+		ui.scrollCursor(dui)
 	}
 
 	order := func(c0, c1 int64) (int64, int64) {
@@ -415,14 +415,14 @@ func (ui *Edit) commandKey(env *Env, k rune, result *Result) {
 		// delete movement
 		cmd.Get()
 		cmd.Number()
-		c0, c1 := order(ui.cursor, ui.commandMove(env, cmd, br, fr, 'd'))
+		c0, c1 := order(ui.cursor, ui.commandMove(dui, cmd, br, fr, 'd'))
 		ui.text.Replace(c0, c1, nil)
 		cursor(br.Offset())
 	case 'c':
 		// replace movement
 		cmd.Get()
 		cmd.Number()
-		c0, c1 := order(ui.cursor, ui.commandMove(env, cmd, br, fr, 'c'))
+		c0, c1 := order(ui.cursor, ui.commandMove(dui, cmd, br, fr, 'c'))
 		ui.text.Replace(c0, c1, nil)
 		ui.mode = ModeInsert
 	case 'x':
@@ -444,8 +444,8 @@ func (ui *Edit) commandKey(env *Env, k rune, result *Result) {
 		// yank
 		cmd.Get()
 		cmd.Number()
-		c0, c1 := order(ui.cursor, ui.commandMove(env, cmd, br, fr, 'y'))
-		ui.writeSnarf(env, []byte(ui.readText(c0, c1)))
+		c0, c1 := order(ui.cursor, ui.commandMove(dui, cmd, br, fr, 'y'))
+		ui.writeSnarf(dui, []byte(ui.readText(c0, c1)))
 	case 'Y':
 		// whole lines
 		cmd.Get()
@@ -453,18 +453,18 @@ func (ui *Edit) commandKey(env *Env, k rune, result *Result) {
 		cmd.Times(func() {
 			fr.Line(true)
 		})
-		ui.writeSnarf(env, []byte(ui.readText(br.Offset(), fr.Offset())))
+		ui.writeSnarf(dui, []byte(ui.readText(br.Offset(), fr.Offset())))
 	case 'p':
 		// paste
 		cmd.Get()
-		buf, ok := ui.readSnarf(env)
+		buf, ok := ui.readSnarf(dui)
 		if ok {
 			ui.text.Replace(ui.cursor, ui.cursor, buf)
 		}
 	case 'P':
 		// paste before
 		cmd.Get()
-		buf, ok := ui.readSnarf(env)
+		buf, ok := ui.readSnarf(dui)
 		if ok {
 			br.TryGet()
 			ui.text.Replace(br.Offset(), br.Offset(), buf)
@@ -475,7 +475,7 @@ func (ui *Edit) commandKey(env *Env, k rune, result *Result) {
 		cmd.Get()
 		cmd.Number()
 		br.Line(false)
-		c0, c1 := order(ui.cursor, ui.commandMove(env, cmd, br, fr, '<'))
+		c0, c1 := order(ui.cursor, ui.commandMove(dui, cmd, br, fr, '<'))
 		ui.unindent(c0, c1)
 		cursor(br.Offset())
 	case '>':
@@ -483,7 +483,7 @@ func (ui *Edit) commandKey(env *Env, k rune, result *Result) {
 		cmd.Get()
 		cmd.Number()
 		br.Line(false)
-		c0, c1 := order(ui.cursor, ui.commandMove(env, cmd, br, fr, '>'))
+		c0, c1 := order(ui.cursor, ui.commandMove(dui, cmd, br, fr, '>'))
 		ui.indent(c0, c1)
 		cursor(br.Offset())
 	case 'J':
@@ -536,7 +536,7 @@ func (ui *Edit) commandKey(env *Env, k rune, result *Result) {
 		// xxx todo: show location status in bar
 
 	default:
-		cursor(ui.commandMove(env, cmd, br, fr, -1))
+		cursor(ui.commandMove(dui, cmd, br, fr, -1))
 	}
 	ui.command = ""
 }

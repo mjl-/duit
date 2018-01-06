@@ -26,26 +26,26 @@ type List struct {
 
 var _ UI = &List{}
 
-func (ui *List) font(env *Env) *draw.Font {
-	return env.Font(ui.Font)
+func (ui *List) font(dui *DUI) *draw.Font {
+	return dui.Font(ui.Font)
 }
 
-func (ui *List) Layout(env *Env, size image.Point) image.Point {
-	ui.size = image.Pt(size.X, len(ui.Values)*(4*ui.font(env).Height/3))
+func (ui *List) Layout(dui *DUI, size image.Point) image.Point {
+	ui.size = image.Pt(size.X, len(ui.Values)*(4*ui.font(dui).Height/3))
 	return ui.size
 }
 
-func (ui *List) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
-	font := ui.font(env)
+func (ui *List) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
+	font := ui.font(dui)
 	r := rect(ui.size).Add(orig)
-	img.Draw(r, env.Background, nil, image.ZP)
+	img.Draw(r, dui.Background, nil, image.ZP)
 	lineR := r
 	lineR.Max.Y = lineR.Min.Y + 4*font.Height/3
 
 	for _, v := range ui.Values {
-		colors := env.Normal
+		colors := dui.Normal
 		if v.Selected {
-			colors = env.Inverse
+			colors = dui.Inverse
 			img.Draw(lineR, colors.Background, nil, image.ZP)
 		}
 		img.String(lineR.Min.Add(pt(font.Height/4)), colors.Text, image.ZP, font, v.Text)
@@ -53,14 +53,14 @@ func (ui *List) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 	}
 }
 
-func (ui *List) Mouse(env *Env, origM, m draw.Mouse) (result Result) {
+func (ui *List) Mouse(dui *DUI, origM, m draw.Mouse) (result Result) {
 	result.Hit = ui
 	prevM := ui.m
 	ui.m = m
 	if !m.In(rect(ui.size)) {
 		return
 	}
-	font := ui.font(env)
+	font := ui.font(dui)
 	index := m.Y / (4 * font.Height / 3)
 	if m.Buttons != 0 && prevM.Buttons^m.Buttons != 0 && ui.Click != nil {
 		ui.Click(index, m.Buttons, &result)
@@ -110,7 +110,7 @@ func (ui *List) Unselect(indices []int) {
 	}
 }
 
-func (ui *List) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Result) {
+func (ui *List) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (result Result) {
 	result.Hit = ui
 	if !m.In(rect(ui.size)) {
 		return
@@ -164,7 +164,7 @@ func (ui *List) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Re
 				ui.Changed(nindex, &result)
 			}
 			// xxx orig probably should not be a part in this...
-			font := ui.font(env)
+			font := ui.font(dui)
 			p := orig.Add(image.Pt(m.X, nindex*(4*font.Height/3)+font.Height/2))
 			result.Warp = &p
 		}
@@ -172,15 +172,15 @@ func (ui *List) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (result Re
 	return
 }
 
-func (ui *List) FirstFocus(env *Env) *image.Point {
+func (ui *List) FirstFocus(dui *DUI) *image.Point {
 	return &image.ZP
 }
 
-func (ui *List) Focus(env *Env, o UI) *image.Point {
+func (ui *List) Focus(dui *DUI, o UI) *image.Point {
 	if o != ui {
 		return nil
 	}
-	return ui.FirstFocus(env)
+	return ui.FirstFocus(dui)
 }
 
 func (ui *List) Print(indent int, r image.Rectangle) {

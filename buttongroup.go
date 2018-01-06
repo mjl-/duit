@@ -19,20 +19,20 @@ type Buttongroup struct {
 
 var _ UI = &Buttongroup{}
 
-func (ui *Buttongroup) font(env *Env) *draw.Font {
-	return env.Font(ui.Font)
+func (ui *Buttongroup) font(dui *DUI) *draw.Font {
+	return dui.Font(ui.Font)
 }
 
-func (ui *Buttongroup) padding(env *Env) image.Point {
-	fontHeight := ui.font(env).Height
+func (ui *Buttongroup) padding(dui *DUI) image.Point {
+	fontHeight := ui.font(dui).Height
 	return image.Pt(fontHeight/2, fontHeight/4)
 }
 
-func (ui *Buttongroup) Layout(env *Env, sizeAvail image.Point) (size image.Point) {
-	pad2 := ui.padding(env).Mul(2)
+func (ui *Buttongroup) Layout(dui *DUI, sizeAvail image.Point) (size image.Point) {
+	pad2 := ui.padding(dui).Mul(2)
 	size = pt(BorderSize).Mul(2)
-	size.Y = pad2.Y + ui.font(env).Height
-	font := ui.font(env)
+	size.Y = pad2.Y + ui.font(dui).Height
+	font := ui.font(dui)
 	for i, t := range ui.Texts {
 		size.X += font.StringSize(t).X + pad2.X
 		if i > 0 {
@@ -50,7 +50,7 @@ func (ui *Buttongroup) selected() int {
 	return ui.Selected
 }
 
-func (ui *Buttongroup) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Buttongroup) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
 	if len(ui.Texts) == 0 {
 		return
 	}
@@ -58,11 +58,11 @@ func (ui *Buttongroup) Draw(env *Env, img *draw.Image, orig image.Point, m draw.
 	r := rect(ui.size)
 
 	hover := m.In(r)
-	colors := env.Normal
+	colors := dui.Normal
 	if ui.Disabled {
-		colors = env.Disabled
+		colors = dui.Disabled
 	} else if hover {
-		colors = env.Hover
+		colors = dui.Hover
 	}
 
 	r = r.Add(orig)
@@ -74,14 +74,14 @@ func (ui *Buttongroup) Draw(env *Env, img *draw.Image, orig image.Point, m draw.
 	}
 
 	sel := ui.selected()
-	font := ui.font(env)
-	pad := ui.padding(env)
+	font := ui.font(dui)
+	pad := ui.padding(dui)
 	pad2 := pad.Mul(2)
 	p := r.Min.Add(pad).Add(pt(BorderSize)).Add(hit)
 	for i, t := range ui.Texts {
 		col := colors
 		if i == sel {
-			col = env.Primary
+			col = dui.Primary
 			dx := font.StringWidth(t)
 			selR := image.Rect(p.X-pad.X, r.Min.Y+BorderSize, p.X+dx+pad.X+BorderSize, r.Max.Y-BorderSize)
 			img.Draw(selR, col.Background, nil, image.ZP)
@@ -97,10 +97,10 @@ func (ui *Buttongroup) Draw(env *Env, img *draw.Image, orig image.Point, m draw.
 }
 
 // findIndex returns the index of the text under the mouse, and the start and end X of the text
-func (ui *Buttongroup) findIndex(env *Env, m draw.Mouse) (int, int, int) {
+func (ui *Buttongroup) findIndex(dui *DUI, m draw.Mouse) (int, int, int) {
 	offset := 0
-	pad2 := ui.padding(env).Mul(2)
-	font := ui.font(env)
+	pad2 := ui.padding(dui).Mul(2)
+	font := ui.font(dui)
 	for i, t := range ui.Texts {
 		end := offset + font.StringSize(t).X + pad2.X + BorderSize
 		if m.X >= offset && m.X < end {
@@ -111,13 +111,13 @@ func (ui *Buttongroup) findIndex(env *Env, m draw.Mouse) (int, int, int) {
 	return -1, 0, 0
 }
 
-func (ui *Buttongroup) Mouse(env *Env, origM, m draw.Mouse) Result {
+func (ui *Buttongroup) Mouse(dui *DUI, origM, m draw.Mouse) Result {
 	r := Result{Hit: ui}
 	if ui.m.Buttons&1 != m.Buttons&1 {
 		r.Draw = true
 	}
 	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 && !ui.Disabled {
-		index, _, _ := ui.findIndex(env, m)
+		index, _, _ := ui.findIndex(dui, m)
 		if index >= 0 {
 			ui.Selected = index
 			if ui.Changed != nil {
@@ -131,14 +131,14 @@ func (ui *Buttongroup) Mouse(env *Env, origM, m draw.Mouse) Result {
 	return r
 }
 
-func (ui *Buttongroup) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r Result) {
+func (ui *Buttongroup) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result) {
 	r.Hit = ui
 	if ui.Disabled {
 		return
 	}
 	switch k {
 	case ' ', '\n':
-		index, _, _ := ui.findIndex(env, m)
+		index, _, _ := ui.findIndex(dui, m)
 		if index < 0 {
 			break
 		}
@@ -149,13 +149,13 @@ func (ui *Buttongroup) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r 
 			ui.Changed(ui.Selected, &r)
 		}
 	case '\t':
-		index, _, end := ui.findIndex(env, m)
+		index, _, end := ui.findIndex(dui, m)
 		if index < 0 {
 			break
 		}
 		index++
 		if index < len(ui.Texts) {
-			p := orig.Add(image.Pt(end+BorderSize*2+ui.padding(env).X, m.Y))
+			p := orig.Add(image.Pt(end+BorderSize*2+ui.padding(dui).X, m.Y))
 			r.Warp = &p
 			r.Consumed = true
 			r.Draw = true
@@ -164,16 +164,16 @@ func (ui *Buttongroup) Key(env *Env, orig image.Point, m draw.Mouse, k rune) (r 
 	return
 }
 
-func (ui *Buttongroup) FirstFocus(env *Env) *image.Point {
-	p := ui.padding(env)
+func (ui *Buttongroup) FirstFocus(dui *DUI) *image.Point {
+	p := ui.padding(dui)
 	return &p
 }
 
-func (ui *Buttongroup) Focus(env *Env, o UI) *image.Point {
+func (ui *Buttongroup) Focus(dui *DUI, o UI) *image.Point {
 	if o != ui {
 		return nil
 	}
-	return ui.FirstFocus(env)
+	return ui.FirstFocus(dui)
 }
 
 func (ui *Buttongroup) Print(indent int, r image.Rectangle) {

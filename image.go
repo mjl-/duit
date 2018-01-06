@@ -12,33 +12,33 @@ type Image struct {
 
 var _ UI = &Image{}
 
-func (ui *Image) Layout(env *Env, size image.Point) image.Point {
+func (ui *Image) Layout(dui *DUI, size image.Point) image.Point {
 	if ui.Image == nil {
 		return image.ZP
 	}
 	return ui.Image.R.Size()
 }
 
-func (ui *Image) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Image) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
 	if ui.Image == nil {
 		return
 	}
 	img.Draw(image.Rectangle{orig, orig.Add(ui.Image.R.Size())}, ui.Image, nil, image.ZP)
 }
 
-func (ui *Image) Mouse(env *Env, origM, m draw.Mouse) Result {
+func (ui *Image) Mouse(dui *DUI, origM, m draw.Mouse) Result {
 	return Result{Hit: ui}
 }
 
-func (ui *Image) Key(env *Env, orig image.Point, m draw.Mouse, c rune) Result {
+func (ui *Image) Key(dui *DUI, orig image.Point, m draw.Mouse, c rune) Result {
 	return Result{Hit: ui}
 }
 
-func (ui *Image) FirstFocus(env *Env) *image.Point {
+func (ui *Image) FirstFocus(dui *DUI) *image.Point {
 	return nil
 }
 
-func (ui *Image) Focus(env *Env, o UI) *image.Point {
+func (ui *Image) Focus(dui *DUI, o UI) *image.Point {
 	if ui != o {
 		return nil
 	}
