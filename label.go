@@ -27,6 +27,7 @@ func (ui *Label) Layout(dui *DUI, sizeAvail image.Point) (sizeTaken image.Point)
 	xmax := 0
 	for i, c := range ui.Text {
 		if c == '\n' {
+			xmax = maximum(xmax, x)
 			ui.lines = append(ui.lines, ui.Text[s:i])
 			s = i + 1
 			x = 0
@@ -44,6 +45,7 @@ func (ui *Label) Layout(dui *DUI, sizeAvail image.Point) (sizeTaken image.Point)
 	}
 	if s < len(ui.Text) || s == 0 {
 		ui.lines = append(ui.lines, ui.Text[s:])
+		xmax = maximum(xmax, x)
 	}
 	sizeTaken = image.Pt(xmax, len(ui.lines)*font.Height)
 	return
