@@ -43,7 +43,7 @@ func (ui *List) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) 
 	lineR.Max.Y = lineR.Min.Y + 4*font.Height/3
 
 	for _, v := range ui.Values {
-		colors := dui.Normal
+		colors := dui.Regular.Normal
 		if v.Selected {
 			colors = dui.Inverse
 			img.Draw(lineR, colors.Background, nil, image.ZP)

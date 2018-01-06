@@ -58,11 +58,11 @@ func (ui *Buttongroup) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.
 	r := rect(ui.size)
 
 	hover := m.In(r)
-	colors := dui.Normal
+	colors := dui.Regular.Normal
 	if ui.Disabled {
 		colors = dui.Disabled
 	} else if hover {
-		colors = dui.Hover
+		colors = dui.Regular.Hover
 	}
 
 	r = r.Add(orig)
@@ -81,7 +81,7 @@ func (ui *Buttongroup) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.
 	for i, t := range ui.Texts {
 		col := colors
 		if i == sel {
-			col = dui.Primary
+			col = dui.Primary.Normal
 			dx := font.StringWidth(t)
 			selR := image.Rect(p.X-pad.X, r.Min.Y+BorderSize, p.X+dx+pad.X+BorderSize, r.Max.Y-BorderSize)
 			img.Draw(selR, col.Background, nil, image.ZP)

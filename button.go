@@ -10,7 +10,7 @@ type Button struct {
 	Text     string
 	Icon     Icon // drawn before text
 	Disabled bool
-	Primary  bool
+	Colorset *Colorset
 	Font     *draw.Font
 	Click    func(r *Result)
 
@@ -52,13 +52,18 @@ func (ui *Button) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse
 	r := rect(image.Pt(iconSize.X, 0).Add(textSize).Add(ui.space(dui).Mul(2)))
 
 	hover := m.In(r)
-	colors := dui.Normal
+	var colors Colors
 	if ui.Disabled {
 		colors = dui.Disabled
-	} else if ui.Primary {
-		colors = dui.Primary
-	} else if hover {
-		colors = dui.Hover
+	} else {
+		cs := ui.Colorset
+		if cs == nil {
+			cs = &dui.Regular
+		}
+		colors = cs.Normal
+		if hover {
+			colors = cs.Hover
+		}
 	}
 
 	r = r.Add(orig)

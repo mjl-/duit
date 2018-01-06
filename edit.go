@@ -331,7 +331,7 @@ func (ui *Edit) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) 
 	case ModeVisual, ModeVisualLine:
 		img.Draw(ui.textR.Add(orig).Inset(dui.Scale(-4)), dui.VisualMode, nil, image.ZP)
 	}
-	img.Draw(ui.textR.Add(orig), dui.Normal.Background, nil, image.ZP)
+	img.Draw(ui.textR.Add(orig), dui.Regular.Normal.Background, nil, image.ZP)
 
 	font := ui.font(dui)
 	s := ""
@@ -376,7 +376,7 @@ func (ui *Edit) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) 
 		if offset < c0 {
 			nn := minimum64(int64(n), c0-offset)
 			// log.Printf("drawing %d before selection\n", nn)
-			pp := img.String(p, dui.Normal.Text, image.ZP, font, dropNewline(s[:nn]))
+			pp := img.String(p, dui.Regular.Normal.Text, image.ZP, font, dropNewline(s[:nn]))
 			p.X = pp.X
 			s = s[nn:]
 			offset += nn
@@ -416,7 +416,7 @@ func (ui *Edit) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) 
 		if offset >= c1 && offsetEnd > offset {
 			nn := int(offsetEnd - offset)
 			// log.Printf("drawing %d after selection\n", nn)
-			pp := img.String(p, dui.Normal.Text, image.ZP, font, dropNewline(s))
+			pp := img.String(p, dui.Regular.Normal.Text, image.ZP, font, dropNewline(s))
 			p.X = pp.X
 			s = s[nn:]
 			offset += int64(nn)

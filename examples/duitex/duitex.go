@@ -109,8 +109,8 @@ func main() {
 							&duit.Label{Text: "counter:"},
 							counter,
 							&duit.Button{
-								Text:    "button1",
-								Primary: true,
+								Text:     "button1",
+								Colorset: &dui.Primary,
 								Click: func(r *duit.Result) {
 									log.Printf("button clicked")
 								},

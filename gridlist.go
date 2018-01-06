@@ -282,7 +282,7 @@ func (ui *Gridlist) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mou
 		if len(row.Values) != ncol {
 			panic(fmt.Sprintf("row with wrong number of values, expect %d, saw %d", ncol, len(row.Values)))
 		}
-		colors := dui.Normal
+		colors := dui.Regular.Normal
 		if row.Selected {
 			colors = dui.Inverse
 			img.Draw(lineR, colors.Background, nil, image.ZP)
@@ -328,12 +328,12 @@ func (ui *Gridlist) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mou
 		p0 := image.Pt(x[i], 0).Add(orig).Add(image.Pt(0, pad.Top))
 		p1 := p0
 		p1.Y += rowHeight - pad.Dy()
-		img.Line(p0, p1, 0, 0, 0, dui.Normal.Border, image.ZP)
+		img.Line(p0, p1, 0, 0, 0, dui.Regular.Normal.Border, image.ZP)
 	}
 	lp0 := lineR.Min.Sub(image.Pt(0, separatorHeight))
 	lp1 := lp0
 	lp1.X += r.Dx()
-	img.Line(lp0, lp1, 0, 0, 0, dui.Normal.Border, image.ZP)
+	img.Line(lp0, lp1, 0, 0, 0, dui.Regular.Normal.Border, image.ZP)
 
 	for i, row := range ui.Rows {
 		drawRow(row, i%2 == 1)

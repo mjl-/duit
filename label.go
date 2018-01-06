@@ -22,7 +22,7 @@ func (ui *Label) Layout(dui *DUI, size image.Point) image.Point {
 }
 
 func (ui *Label) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
-	img.String(orig, dui.Normal.Text, image.ZP, ui.font(dui), ui.Text)
+	img.String(orig, dui.Regular.Normal.Text, image.ZP, ui.font(dui), ui.Text)
 }
 
 func (ui *Label) Mouse(dui *DUI, origM, m draw.Mouse) Result {

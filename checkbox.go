@@ -26,13 +26,13 @@ func (ui *Checkbox) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mou
 	hover := m.In(r)
 	r = r.Add(orig)
 
-	colors := dui.Normal
+	colors := dui.Regular.Normal
 	color := colors.Text
 	if ui.Disabled {
 		colors = dui.Disabled
 		color = colors.Border
 	} else if hover {
-		colors = dui.Hover
+		colors = dui.Regular.Hover
 		color = colors.Border
 	}
 

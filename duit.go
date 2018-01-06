@@ -53,6 +53,10 @@ type Colors struct {
 	Border *draw.Image
 }
 
+type Colorset struct {
+	Normal, Hover Colors
+}
+
 type EventType byte
 
 const (
@@ -75,20 +79,24 @@ type DUI struct {
 	Call    chan func() // functions sent here will go through DUI.Events and run by DUI.Event() in the main event loop. for code that changes UI state.
 	Display *draw.Display
 
-	// color for text
-	Normal,
-	Hover,
+	// colors
 	Disabled,
 	Inverse,
 	Selection,
 	SelectionHover,
 	Placeholder,
-	Striped,
-	Primary Colors
+	Striped Colors
+
+	// colors including hover-variants
+	Regular,
+	Primary,
+	Secondary,
+	Success,
+	Danger Colorset
 
 	BackgroundColor draw.Color
+	Background      *draw.Image
 
-	Background,
 	CommandMode,
 	VisualMode,
 	ScrollBGNormal,
@@ -137,21 +145,6 @@ func NewDUI(name, dim string) (*DUI, error) {
 
 		Display: display,
 
-		Normal: Colors{
-			Text:       makeColor(0x333333ff),
-			Background: makeColor(0xf8f8f8ff),
-			Border:     makeColor(0xbbbbbbff),
-		},
-		Placeholder: Colors{
-			Text:       makeColor(0xaaaaaaff),
-			Background: makeColor(0xf8f8f8ff),
-			Border:     makeColor(0xbbbbbbff),
-		},
-		Hover: Colors{
-			Text:       makeColor(0x222222ff),
-			Background: makeColor(0xfafafaff),
-			Border:     makeColor(0x3272dcff),
-		},
 		Disabled: Colors{
 			Text:       makeColor(0x888888ff),
 			Background: makeColor(0xf0f0f0ff),
@@ -172,15 +165,76 @@ func NewDUI(name, dim string) (*DUI, error) {
 			Background: makeColor(0x3272dcff),
 			Border:     makeColor(0x666666ff),
 		},
+		Placeholder: Colors{
+			Text:       makeColor(0xaaaaaaff),
+			Background: makeColor(0xf8f8f8ff),
+			Border:     makeColor(0xbbbbbbff),
+		},
 		Striped: Colors{
 			Text:       makeColor(0x333333ff),
 			Background: makeColor(0xf2f2f2ff),
 			Border:     makeColor(0xbbbbbbff),
 		},
-		Primary: Colors{
-			Text:       makeColor(0xffffffff),
-			Background: makeColor(0x3272dcff),
-			Border:     makeColor(0x3272dcff),
+
+		Regular: Colorset{
+			Normal: Colors{
+				Text:       makeColor(0x333333ff),
+				Background: makeColor(0xf8f8f8ff),
+				Border:     makeColor(0xbbbbbbff),
+			},
+			Hover: Colors{
+				Text:       makeColor(0x222222ff),
+				Background: makeColor(0xfafafaff),
+				Border:     makeColor(0x3272dcff),
+			},
+		},
+		Primary: Colorset{
+			Normal: Colors{
+				Text:       makeColor(0xffffffff),
+				Background: makeColor(0x007bffff),
+				Border:     makeColor(0x007bffff),
+			},
+			Hover: Colors{
+				Text:       makeColor(0xffffffff),
+				Background: makeColor(0x0062ccff),
+				Border:     makeColor(0x0062ccff),
+			},
+		},
+		Secondary: Colorset{
+			Normal: Colors{
+				Text:       makeColor(0xffffffff),
+				Background: makeColor(0x868e96ff),
+				Border:     makeColor(0x868e96ff),
+			},
+			Hover: Colors{
+				Text:       makeColor(0xffffffff),
+				Background: makeColor(0x727b84ff),
+				Border:     makeColor(0x6c757dff),
+			},
+		},
+		Success: Colorset{
+			Normal: Colors{
+				Text:       makeColor(0xffffffff),
+				Background: makeColor(0x28a745ff),
+				Border:     makeColor(0x28a745ff),
+			},
+			Hover: Colors{
+				Text:       makeColor(0xffffffff),
+				Background: makeColor(0x218838ff),
+				Border:     makeColor(0x1e7e34ff),
+			},
+		},
+		Danger: Colorset{
+			Normal: Colors{
+				Text:       makeColor(0xffffffff),
+				Background: makeColor(0xdc3545ff),
+				Border:     makeColor(0xdc3545ff),
+			},
+			Hover: Colors{
+				Text:       makeColor(0xffffffff),
+				Background: makeColor(0xc82333ff),
+				Border:     makeColor(0xbd2130ff),
+			},
 		},
 
 		BackgroundColor: draw.Color(0xfcfcfcff),

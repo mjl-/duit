@@ -93,12 +93,12 @@ func (ui *Field) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse)
 	s, e, sel := ui.selection0()
 	f := ui.font(dui)
 
-	colors := dui.Normal
+	colors := dui.Regular.Normal
 	selColors := dui.Selection
 	if ui.Disabled {
 		colors = dui.Disabled
 	} else if hover {
-		colors = dui.Hover
+		colors = dui.Regular.Hover
 		selColors = dui.SelectionHover
 	}
 	text := ui.Text
@@ -168,7 +168,7 @@ func (ui *Field) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse)
 			cp = cp.Add(space)
 			cp1 := cp
 			cp1.Y += f.Height
-			i.Line(cp, cp1, 1, 1, 0, dui.Hover.Border, image.ZP)
+			i.Line(cp, cp1, 1, 1, 0, dui.Regular.Hover.Border, image.ZP)
 		}
 	}
 
