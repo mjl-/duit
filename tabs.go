@@ -22,7 +22,7 @@ func (ui *Tabs) ensure() {
 		if len(ui.UIs) != len(ui.Buttongroup.Texts) {
 			panic(fmt.Sprintf("bad Tabs, len(UIs) = %d must be equal to len(ui.Buttongroup.Texts) %d", len(ui.UIs), len(ui.Buttongroup.Texts)))
 		}
-		ui.Box.Kids = NewKids(CenterUI(ui.Buttongroup, SpaceXY(4, 4)), ui.UIs[ui.Buttongroup.Selected])
+		ui.Box.Kids = NewKids(CenterUI(SpaceXY(4, 4), ui.Buttongroup), ui.UIs[ui.Buttongroup.Selected])
 		ui.Buttongroup.Changed = func(index int, r *Result) {
 			ui.Box.Kids[1] = &Kid{UI: ui.UIs[index]}
 			r.Consumed = true

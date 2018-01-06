@@ -1,6 +1,6 @@
 package duit
 
-func CenterUI(ui UI, space Space) *Grid {
+func CenterUI(space Space, ui UI) *Grid {
 	return &Grid{
 		Columns: 1,
 		Padding: []Space{space},
