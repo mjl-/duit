@@ -20,6 +20,7 @@ type List struct {
 	Click    func(index, buttons int, r *Result)
 	Keys     func(index int, m draw.Mouse, k rune, r *Result)
 
+	m    draw.Mouse
 	size image.Point
 }
 
@@ -54,15 +55,17 @@ func (ui *List) Draw(env *Env, img *draw.Image, orig image.Point, m draw.Mouse) 
 
 func (ui *List) Mouse(env *Env, origM, m draw.Mouse) (result Result) {
 	result.Hit = ui
+	prevM := ui.m
+	ui.m = m
 	if !m.In(rect(ui.size)) {
 		return
 	}
 	font := ui.font(env)
 	index := m.Y / (4 * font.Height / 3)
-	if m.Buttons != 0 && ui.Click != nil {
+	if m.Buttons != 0 && prevM.Buttons^m.Buttons != 0 && ui.Click != nil {
 		ui.Click(index, m.Buttons, &result)
 	}
-	if !result.Consumed && m.Buttons == 1 {
+	if !result.Consumed && prevM.Buttons == 0 && m.Buttons == Button1 {
 		v := ui.Values[index]
 		v.Selected = !v.Selected
 		if v.Selected && !ui.Multiple {
