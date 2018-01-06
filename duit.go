@@ -3,6 +3,7 @@ package duit
 import (
 	"fmt"
 	"image"
+	"io"
 	"log"
 	"time"
 
@@ -64,6 +65,7 @@ const (
 	EventKey
 	EventFunc
 	EventResize
+	EventError
 )
 
 type Event struct {
@@ -71,12 +73,14 @@ type Event struct {
 	Mouse draw.Mouse
 	Key   rune
 	Func  func()
+	Error error
 }
 
 type DUI struct {
 	Events  chan Event
 	Top     UI
-	Call    chan func() // functions sent here will go through DUI.Events and run by DUI.Event() in the main event loop. for code that changes UI state.
+	Call    chan func()   // functions sent here will go through DUI.Events and run by DUI.Event() in the main event loop. for code that changes UI state.
+	Done    chan struct{} // closed when window is closed
 	Display *draw.Display
 
 	// colors
@@ -125,7 +129,8 @@ func check(err error, msg string) {
 }
 
 func NewDUI(name, dim string) (*DUI, error) {
-	display, err := draw.Init(nil, "", name, dim)
+	errch := make(chan error, 1)
+	display, err := draw.Init(errch, "", name, dim)
 	if err != nil {
 		return nil, err
 	}
@@ -139,9 +144,10 @@ func NewDUI(name, dim string) (*DUI, error) {
 	dui := &DUI{
 		mousectl: display.InitMouse(),
 		keyctl:   display.InitKeyboard(),
-		stop:     make(chan struct{}),
+		stop:     make(chan struct{}, 1),
 		Events:   make(chan Event, 1),
 		Call:     make(chan func(), 1),
+		Done:     make(chan struct{}, 1),
 
 		Display: display,
 
@@ -268,6 +274,14 @@ func NewDUI(name, dim string) (*DUI, error) {
 				dui.Events <- Event{Type: EventFunc, Func: fn}
 			case <-dui.stop:
 				return
+			case e := <-errch:
+				if e == io.EOF {
+					// devdraw disappeared, typically because window was closed (either by user, or by duit)
+					close(dui.Done)
+					return
+				} else {
+					dui.Events <- Event{Type: EventError, Error: e}
+				}
 			}
 		}
 	}()
@@ -355,11 +369,18 @@ func (d *DUI) Key(r rune) {
 		layout = true
 	}
 	result := d.Top.Key(d, image.ZP, d.mouse, r)
-	if !result.Consumed && r == '\t' {
-		first := d.Top.FirstFocus(d)
-		if first != nil {
-			result.Warp = first
-			result.Consumed = true
+	if !result.Consumed {
+		switch r {
+		case '\t':
+			first := d.Top.FirstFocus(d)
+			if first != nil {
+				result.Warp = first
+				result.Consumed = true
+			}
+		case draw.KeyCmd + 'w':
+			d.Close()
+			d.Done <- struct{}{}
+			return
 		}
 	}
 	if result.Warp != nil {
@@ -432,6 +453,8 @@ func (d *DUI) Event(e Event) {
 		d.Resize()
 	case EventFunc:
 		e.Func()
+	case EventError:
+		log.Fatalf("error from devdraw: %s\n", e.Error)
 	}
 }
 
