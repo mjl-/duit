@@ -37,7 +37,7 @@ func (ui *Field) font(env *Env) *draw.Font {
 
 func (ui *Field) padding(env *Env) image.Point {
 	fontHeight := ui.font(env).Height
-	return image.Pt(fontHeight/2, fontHeight/4)
+	return image.Pt(fontHeight/4, fontHeight/4)
 }
 
 func (ui *Field) space(env *Env) image.Point {
