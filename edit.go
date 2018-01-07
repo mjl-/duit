@@ -252,7 +252,7 @@ func (ui *Edit) ensureInit() {
 	}
 }
 
-type TextReader interface {
+type EditReader interface {
 	Peek() (rune, bool)
 	Get() rune
 	Offset() int64
@@ -276,13 +276,13 @@ func (ui *Edit) Reader() ReaderReaderAt {
 }
 
 // Reader from which contents of edit can be read, starting at offset.
-func (ui *Edit) TextReader(offset int64) TextReader {
+func (ui *Edit) EditReader(offset int64) EditReader {
 	// xxx should make copy of ui.text
 	return ui.reader(offset, ui.text.Size())
 }
 
 // Reader from which contents of edit can be read in reverse (whole utf-8 characters), starting at offset, to 0.
-func (ui *Edit) ReverseTextReader(offset int64) TextReader {
+func (ui *Edit) ReverseEditReader(offset int64) EditReader {
 	// xxx should make copy of ui.text
 	return ui.revReader(offset)
 }
