@@ -30,7 +30,7 @@ type Gridlist struct {
 	Font     *draw.Font
 
 	Changed func(index int, r *Result)
-	Click   func(index, buttons int, r *Result)
+	Click   func(index int, m draw.Mouse, r *Result)
 	Keys    func(index int, k rune, m draw.Mouse, r *Result)
 
 	m                draw.Mouse
@@ -404,7 +404,7 @@ func (ui *Gridlist) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
 	}
 	index-- // adjust for header
 	if m.Buttons != 0 && prevM.Buttons^m.Buttons != 0 && ui.Click != nil {
-		ui.Click(index, m.Buttons, &r)
+		ui.Click(index, m, &r)
 	}
 	if !r.Consumed && prevM.Buttons == 0 && m.Buttons == Button1 {
 		row := ui.Rows[index]

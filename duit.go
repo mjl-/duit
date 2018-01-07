@@ -101,8 +101,6 @@ type DUI struct {
 	BackgroundColor draw.Color
 	Background      *draw.Image
 
-	CommandMode,
-	VisualMode,
 	ScrollBGNormal,
 	ScrollBGHover,
 	ScrollVisibleNormal,
@@ -110,6 +108,10 @@ type DUI struct {
 
 	DebugKids   bool // whether to print distinct backgrounds in kids* functions
 	debugColors []*draw.Image
+
+	// for edit.  we might need a map where other UIs can store images (like colors) for caching purposes in the future...
+	commandMode,
+	visualMode *draw.Image
 
 	stop        chan struct{}
 	mousectl    *draw.Mousectl
@@ -246,13 +248,13 @@ func NewDUI(name, dim string) (*DUI, error) {
 		BackgroundColor: draw.Color(0xfcfcfcff),
 		Background:      makeColor(0xfcfcfcff),
 
-		CommandMode: makeColor(0x3272dcff),
-		VisualMode:  makeColor(0x5cb85cff),
-
 		ScrollBGNormal:      makeColor(0xf4f4f4ff),
 		ScrollBGHover:       makeColor(0xf0f0f0ff),
 		ScrollVisibleNormal: makeColor(0xbbbbbbff),
 		ScrollVisibleHover:  makeColor(0x999999ff),
+
+		commandMode: makeColor(0x3272dcff),
+		visualMode:  makeColor(0x5cb85cff),
 
 		debugColors: []*draw.Image{
 			makeColor(0x40000040),

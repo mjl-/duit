@@ -249,14 +249,14 @@ func (ui *Edit) visualKey(dui *DUI, k rune, line bool, result *Result) {
 
 	switch k {
 	case 'i':
-		ui.mode = ModeInsert
+		ui.mode = modeInsert
 	case 'd':
 		ui.text.Replace(c0, c1, nil)
 		ui.cursor0 = c0
 		ui.cursor = c0
 	case 's':
 		ui.text.Replace(c0, c1, nil)
-		ui.mode = ModeInsert
+		ui.mode = modeInsert
 		ui.cursor0 = c0
 		ui.cursor = c0
 	case 'y':
@@ -369,43 +369,43 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 	r, _ := cmd.get(true)
 	switch r {
 	case 'i':
-		ui.mode = ModeInsert
+		ui.mode = modeInsert
 	case 'I':
 		br.Line(false)
 		cursor(br.Offset())
-		ui.mode = ModeInsert
+		ui.mode = modeInsert
 	case 'a':
 		fr.TryGet()
 		cursor(fr.Offset())
-		ui.mode = ModeInsert
+		ui.mode = modeInsert
 	case 'A':
 		fr.Line(false)
 		cursor(fr.Offset())
-		ui.mode = ModeInsert
+		ui.mode = modeInsert
 	case 'o':
 		fr.Line(true)
 		ui.text.Replace(fr.Offset(), fr.Offset(), []byte("\n"))
 		cursor(fr.Offset())
-		ui.mode = ModeInsert
+		ui.mode = modeInsert
 	case 'O':
 		br.Line(false)
 		ui.text.Replace(br.Offset(), br.Offset(), []byte("\n"))
 		cursor(br.Offset())
-		ui.mode = ModeInsert
+		ui.mode = modeInsert
 	case 's':
 		cmd.Times(func() {
 			fr.TryGet()
 		})
 		ui.text.Replace(br.Offset(), fr.Offset(), nil)
 		cursor(fr.Offset())
-		ui.mode = ModeInsert
+		ui.mode = modeInsert
 	case 'S':
 		cmd.Times(func() {
 			fr.Line(true)
 		})
 		ui.text.Replace(br.Offset(), fr.Offset(), []byte("\n"))
 		cursor(fr.Offset())
-		ui.mode = ModeInsert
+		ui.mode = modeInsert
 	// case 'R': // replace, not sure if this is a useful enough
 	case 'D':
 		// delete to end of line
@@ -424,7 +424,7 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 		cmd.Number()
 		c0, c1 := order(ui.cursor, ui.commandMove(dui, cmd, br, fr, 'c'))
 		ui.text.Replace(c0, c1, nil)
-		ui.mode = ModeInsert
+		ui.mode = modeInsert
 	case 'x':
 		// delete
 		cmd.Get()
@@ -514,13 +514,13 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 		// repeat last modification at current cursor
 		// xxx todo: need to keep track of changes
 	case 'v':
-		ui.mode = ModeVisual
+		ui.mode = modeVisual
 	case 'V':
 		br.Line(false)
 		fr.Line(false)
 		ui.cursor0 = br.Offset()
 		ui.cursor = fr.Offset()
-		ui.mode = ModeVisualLine
+		ui.mode = modeVisual
 	case 'u':
 		// xxx todo: undo
 	case Ctrl & 'e':

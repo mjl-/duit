@@ -205,8 +205,8 @@ func main() {
 					selectName(colIndex, "")
 				}
 			},
-			Click: func(index, buttons int, r *duit.Result) {
-				if buttons != 1<<2 {
+			Click: func(index int, m draw.Mouse, r *duit.Result) {
+				if m.Buttons != 1<<2 {
 					return
 				}
 				path := composePath(colIndex, list.Values[index].Value.(string))

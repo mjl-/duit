@@ -20,13 +20,13 @@ type SeekReaderAt interface {
 	io.ReaderAt
 }
 
-type EditMode int
+type editMode int
 
 const (
-	ModeInsert     = EditMode(iota) // regular editing
-	ModeCommand                     // vi commands, after escape without selection
-	ModeVisual                      // vi visual mode, after 'v' in command mode, or escape with selection
-	ModeVisualLine                  // vi visual line mode, after 'V' in command mode
+	modeInsert     = editMode(iota) // regular editing
+	modeCommand                     // vi commands, after escape without selection
+	modeVisual                      // vi visual mode, after 'v' in command mode, or escape with selection
+	modeVisualLine                  // vi visual line mode, after 'V' in command mode
 )
 
 type Edit struct {
@@ -38,7 +38,7 @@ type Edit struct {
 	cursor  int64 // cursor and end of selection
 	cursor0 int64 // start of selection
 
-	mode    EditMode
+	mode    editMode
 	command string // vi command so far
 	visual  string // vi visual command so far
 
@@ -325,11 +325,11 @@ func (ui *Edit) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) 
 	}
 
 	switch ui.mode {
-	case ModeInsert:
-	case ModeCommand:
-		img.Draw(ui.textR.Add(orig).Inset(dui.Scale(-4)), dui.CommandMode, nil, image.ZP)
-	case ModeVisual, ModeVisualLine:
-		img.Draw(ui.textR.Add(orig).Inset(dui.Scale(-4)), dui.VisualMode, nil, image.ZP)
+	case modeInsert:
+	case modeCommand:
+		img.Draw(ui.textR.Add(orig).Inset(dui.Scale(-4)), dui.commandMode, nil, image.ZP)
+	case modeVisual, modeVisualLine:
+		img.Draw(ui.textR.Add(orig).Inset(dui.Scale(-4)), dui.visualMode, nil, image.ZP)
 	}
 	img.Draw(ui.textR.Add(orig), dui.Regular.Normal.Background, nil, image.ZP)
 
@@ -813,13 +813,13 @@ func (ui *Edit) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result)
 	r.Draw = true
 
 	switch ui.mode {
-	case ModeCommand:
+	case modeCommand:
 		ui.commandKey(dui, k, &r)
 		return
-	case ModeVisual:
+	case modeVisual:
 		ui.visualKey(dui, k, false, &r)
 		return
-	case ModeVisualLine:
+	case modeVisualLine:
 		ui.visualKey(dui, k, true, &r)
 		return
 	}
@@ -919,9 +919,9 @@ func (ui *Edit) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result)
 	case draw.KeyEscape:
 		// oh yeah
 		if ui.cursor == ui.cursor0 {
-			ui.mode = ModeCommand
+			ui.mode = modeCommand
 		} else {
-			ui.mode = ModeVisual
+			ui.mode = modeVisual
 		}
 
 	default:

@@ -17,7 +17,7 @@ type List struct {
 	Multiple bool
 	Font     *draw.Font
 	Changed  func(index int, result *Result)
-	Click    func(index, buttons int, r *Result)
+	Click    func(index int, m draw.Mouse, r *Result)
 	Keys     func(index int, k rune, m draw.Mouse, r *Result)
 
 	m    draw.Mouse
@@ -63,7 +63,7 @@ func (ui *List) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (result Result) 
 	font := ui.font(dui)
 	index := m.Y / (4 * font.Height / 3)
 	if m.Buttons != 0 && prevM.Buttons^m.Buttons != 0 && ui.Click != nil {
-		ui.Click(index, m.Buttons, &result)
+		ui.Click(index, m, &result)
 	}
 	if !result.Consumed && prevM.Buttons == 0 && m.Buttons == Button1 {
 		v := ui.Values[index]
