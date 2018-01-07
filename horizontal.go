@@ -7,8 +7,8 @@ import (
 )
 
 type Horizontal struct {
-	Kids  []*Kid
 	Split func(width int) (widths []int)
+	Kids  []*Kid
 
 	size   image.Point
 	widths []int

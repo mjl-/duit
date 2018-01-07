@@ -7,8 +7,8 @@ import (
 )
 
 type Vertical struct {
-	Kids  []*Kid
 	Split func(height int) (heights []int)
+	Kids  []*Kid
 
 	size    image.Point
 	heights []int
