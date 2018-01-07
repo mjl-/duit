@@ -58,7 +58,7 @@ func main() {
 			Click: func(index, buttons int, r *duit.Result) {
 				log.Printf("gridlist, click, index %d, buttons %d\n", index, buttons)
 			},
-			Keys: func(index int, m draw.Mouse, k rune, r *duit.Result) {
+			Keys: func(index int, k rune, m draw.Mouse, r *duit.Result) {
 				log.Printf("gridlist, key %c at index %d, mouse %v\n", k, index, m)
 			},
 		},

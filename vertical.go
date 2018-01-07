@@ -36,12 +36,12 @@ func (ui *Vertical) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mou
 	kidsDraw(dui, ui.Kids, ui.size, img, orig, m)
 }
 
-func (ui *Vertical) Mouse(dui *DUI, origM, m draw.Mouse) (result Result) {
-	return kidsMouse(dui, ui.Kids, origM, m)
+func (ui *Vertical) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
+	return kidsMouse(dui, ui.Kids, m, origM)
 }
 
-func (ui *Vertical) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (result Result) {
-	return kidsKey(dui, ui, ui.Kids, orig, m, k)
+func (ui *Vertical) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
+	return kidsKey(dui, ui, ui.Kids, k, m, orig)
 }
 
 func (ui *Vertical) FirstFocus(dui *DUI) *image.Point {

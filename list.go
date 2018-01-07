@@ -18,7 +18,7 @@ type List struct {
 	Font     *draw.Font
 	Changed  func(index int, result *Result)
 	Click    func(index, buttons int, r *Result)
-	Keys     func(index int, m draw.Mouse, k rune, r *Result)
+	Keys     func(index int, k rune, m draw.Mouse, r *Result)
 
 	m    draw.Mouse
 	size image.Point
@@ -53,7 +53,7 @@ func (ui *List) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) 
 	}
 }
 
-func (ui *List) Mouse(dui *DUI, origM, m draw.Mouse) (result Result) {
+func (ui *List) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (result Result) {
 	result.Hit = ui
 	prevM := ui.m
 	ui.m = m
@@ -110,8 +110,8 @@ func (ui *List) Unselect(indices []int) {
 	}
 }
 
-func (ui *List) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (result Result) {
-	result.Hit = ui
+func (ui *List) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
+	r.Hit = ui
 	if !m.In(rect(ui.size)) {
 		return
 	}
@@ -122,8 +122,8 @@ func (ui *List) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (result Re
 		if len(sel) == 1 {
 			index = sel[0]
 		}
-		ui.Keys(index, m, k, &result)
-		if result.Consumed {
+		ui.Keys(index, k, m, &r)
+		if r.Consumed {
 			return
 		}
 	}
@@ -137,7 +137,7 @@ func (ui *List) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (result Re
 		nindex := -1
 		switch k {
 		case draw.KeyUp:
-			result.Consumed = true
+			r.Consumed = true
 			if len(sel) == 0 {
 				nindex = len(ui.Values) - 1
 			} else {
@@ -145,7 +145,7 @@ func (ui *List) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (result Re
 				nindex = (sel[0] - 1 + len(ui.Values)) % len(ui.Values)
 			}
 		case draw.KeyDown:
-			result.Consumed = true
+			r.Consumed = true
 			if len(sel) == 0 {
 				nindex = 0
 			} else {
@@ -155,18 +155,18 @@ func (ui *List) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (result Re
 		}
 		if oindex >= 0 {
 			ui.Values[oindex].Selected = false
-			result.Draw = true
+			r.Draw = true
 		}
 		if nindex >= 0 {
 			ui.Values[nindex].Selected = true
-			result.Draw = true
+			r.Draw = true
 			if ui.Changed != nil {
-				ui.Changed(nindex, &result)
+				ui.Changed(nindex, &r)
 			}
 			// xxx orig probably should not be a part in this...
 			font := ui.font(dui)
 			p := orig.Add(image.Pt(m.X, nindex*(4*font.Height/3)+font.Height/2))
-			result.Warp = &p
+			r.Warp = &p
 		}
 	}
 	return

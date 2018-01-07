@@ -68,7 +68,7 @@ func (ui *Radiobutton) check(r *Result) {
 	}
 }
 
-func (ui *Radiobutton) Mouse(dui *DUI, origM, m draw.Mouse) (r Result) {
+func (ui *Radiobutton) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
 	r.Hit = ui
 	if ui.Disabled {
 		return
@@ -89,7 +89,7 @@ func (ui *Radiobutton) Mouse(dui *DUI, origM, m draw.Mouse) (r Result) {
 	return
 }
 
-func (ui *Radiobutton) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result) {
+func (ui *Radiobutton) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
 	r.Hit = ui
 	if k == ' ' {
 		r.Consumed = true

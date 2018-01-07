@@ -20,7 +20,7 @@ type Field struct {
 	Font            *draw.Font
 	Password        bool                                  // if true, text is rendered as bullet items to hide the password (but not the length of the password)
 	Changed         func(string, *Result)                 // called after contents of field have changed
-	Keys            func(m draw.Mouse, k rune, r *Result) // called before handling key. if you consume the event, Changed will not be called
+	Keys            func(k rune, m draw.Mouse, r *Result) // called before handling key. if you consume the event, Changed will not be called
 
 	size           image.Point // including space
 	m              draw.Mouse
@@ -288,7 +288,7 @@ func expandSelection(t string, i int) (s, e int) {
 	return
 }
 
-func (ui *Field) Mouse(dui *DUI, origM, m draw.Mouse) (r Result) {
+func (ui *Field) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
 	if !origM.In(rect(ui.size)) {
 		return
 	}
@@ -349,7 +349,7 @@ func (ui *Field) fixCursor() {
 	}
 }
 
-func (ui *Field) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result) {
+func (ui *Field) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
 	if !m.In(rect(ui.size)) {
 		return
 	}
@@ -359,7 +359,7 @@ func (ui *Field) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result
 	}
 
 	if ui.Keys != nil {
-		ui.Keys(m, k, &r)
+		ui.Keys(k, m, &r)
 		if r.Consumed {
 			return
 		}

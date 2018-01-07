@@ -31,7 +31,7 @@ type Gridlist struct {
 
 	Changed func(index int, r *Result)
 	Click   func(index, buttons int, r *Result)
-	Keys    func(index int, m draw.Mouse, k rune, r *Result)
+	Keys    func(index int, k rune, m draw.Mouse, r *Result)
 
 	m                draw.Mouse
 	colWidths        []int // set the first time there are rows
@@ -340,7 +340,7 @@ func (ui *Gridlist) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mou
 	}
 }
 
-func (ui *Gridlist) Mouse(dui *DUI, origM, m draw.Mouse) (r Result) {
+func (ui *Gridlist) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
 	r.Hit = ui
 	prevM := ui.m
 	ui.m = m
@@ -438,7 +438,7 @@ func (ui *Gridlist) Selected() (indices []int) {
 	return ui.selectedIndices()
 }
 
-func (ui *Gridlist) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result) {
+func (ui *Gridlist) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
 	r.Hit = ui
 	if !m.In(rect(ui.size)) {
 		return
@@ -450,7 +450,7 @@ func (ui *Gridlist) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Res
 		if len(sel) == 1 {
 			index = sel[0]
 		}
-		ui.Keys(index, m, k, &r)
+		ui.Keys(index, k, m, &r)
 		if r.Consumed {
 			return
 		}

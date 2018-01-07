@@ -23,10 +23,10 @@ type UI interface {
 	// OrigM is the mouse of first button down change, to facilitate tracking dragging. If no button is down, origM is the same as m.
 	// It can also be called when the mouse moved out of the UI. This facilitates redrawing after leaving the UI element, to draw it in non-hovered form. The UI is responsible for determining if the mouse is over the UI or not.
 	// Result is used to tell the caller whether the event was consumed, and whether UI's need to be redrawn, etc.
-	Mouse(dui *DUI, origM, m draw.Mouse) (r Result)
+	Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result)
 
 	// Key tells the UI about a key press over it.
-	Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result)
+	Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result)
 
 	// FirstFocus returns the top-left corner where the focus should go next when "tab" is hit, if anything.
 	FirstFocus(dui *DUI) (warp *image.Point)

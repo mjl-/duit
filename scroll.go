@@ -112,8 +112,8 @@ func (ui *Scroll) scroll(delta int) bool {
 	return o != ui.offset
 }
 
-func (ui *Scroll) scrollKey(c rune) (consumed bool) {
-	switch c {
+func (ui *Scroll) scrollKey(k rune) (consumed bool) {
+	switch k {
 	case draw.KeyUp:
 		return ui.scroll(-50)
 	case draw.KeyDown:
@@ -157,7 +157,7 @@ func (ui *Scroll) scrollMouse(m draw.Mouse, scrollOnly bool) (consumed bool) {
 	return false
 }
 
-func (ui *Scroll) Mouse(dui *DUI, origM, m draw.Mouse) (r Result) {
+func (ui *Scroll) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
 	r.Hit = ui
 	if m.Point.In(ui.barR) {
 		r.Consumed = ui.scrollMouse(m, false)
@@ -169,7 +169,7 @@ func (ui *Scroll) Mouse(dui *DUI, origM, m draw.Mouse) (r Result) {
 		nOrigM.Point = nOrigM.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
 		nm := m
 		nm.Point = nm.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
-		r = ui.Child.Mouse(dui, nOrigM, nm)
+		r = ui.Child.Mouse(dui, nm, nOrigM)
 		if !r.Consumed {
 			r.Consumed = ui.scrollMouse(m, true)
 			r.Draw = r.Draw || r.Consumed
@@ -179,17 +179,17 @@ func (ui *Scroll) Mouse(dui *DUI, origM, m draw.Mouse) (r Result) {
 	return
 }
 
-func (ui *Scroll) Key(dui *DUI, orig image.Point, m draw.Mouse, c rune) Result {
+func (ui *Scroll) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) Result {
 	if m.Point.In(ui.barR) {
-		consumed := ui.scrollKey(c)
+		consumed := ui.scrollKey(k)
 		redraw := consumed
 		return Result{Hit: ui, Consumed: consumed, Draw: redraw}
 	}
 	if m.Point.In(ui.r) {
 		m.Point = m.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
-		r := ui.Child.Key(dui, orig.Add(image.Pt(ui.scrollbarSize, -ui.offset)), m, c)
+		r := ui.Child.Key(dui, k, m, orig.Add(image.Pt(ui.scrollbarSize, -ui.offset)))
 		if !r.Consumed {
-			r.Consumed = ui.scrollKey(c)
+			r.Consumed = ui.scrollKey(k)
 			r.Draw = r.Draw || r.Consumed
 		}
 		return r

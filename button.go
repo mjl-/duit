@@ -83,7 +83,7 @@ func (ui *Button) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse
 	img.String(p, colors.Text, image.ZP, ui.font(dui), text)
 }
 
-func (ui *Button) Mouse(dui *DUI, origM, m draw.Mouse) Result {
+func (ui *Button) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) Result {
 	r := Result{Hit: ui}
 	if ui.m.Buttons&1 != m.Buttons&1 {
 		r.Draw = true
@@ -95,7 +95,7 @@ func (ui *Button) Mouse(dui *DUI, origM, m draw.Mouse) Result {
 	return r
 }
 
-func (ui *Button) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result) {
+func (ui *Button) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
 	r.Hit = ui
 	if !ui.Disabled && (k == ' ' || k == '\n') {
 		r.Consumed = true

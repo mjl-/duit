@@ -26,11 +26,11 @@ func (ui *Image) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse)
 	img.Draw(image.Rectangle{orig, orig.Add(ui.Image.R.Size())}, ui.Image, nil, image.ZP)
 }
 
-func (ui *Image) Mouse(dui *DUI, origM, m draw.Mouse) Result {
+func (ui *Image) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) Result {
 	return Result{Hit: ui}
 }
 
-func (ui *Image) Key(dui *DUI, orig image.Point, m draw.Mouse, c rune) Result {
+func (ui *Image) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) Result {
 	return Result{Hit: ui}
 }
 

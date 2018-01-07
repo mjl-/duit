@@ -213,7 +213,7 @@ func main() {
 				open(path)
 				r.Consumed = true
 			},
-			Keys: func(index int, m draw.Mouse, k rune, r *duit.Result) {
+			Keys: func(index int, k rune, m draw.Mouse, r *duit.Result) {
 				log.Printf("list.keys, k %x %c %v\n", k, k, k)
 				switch k {
 				case '\n':

@@ -111,7 +111,7 @@ func (ui *Buttongroup) findIndex(dui *DUI, m draw.Mouse) (int, int, int) {
 	return -1, 0, 0
 }
 
-func (ui *Buttongroup) Mouse(dui *DUI, origM, m draw.Mouse) Result {
+func (ui *Buttongroup) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) Result {
 	r := Result{Hit: ui}
 	if ui.m.Buttons&1 != m.Buttons&1 {
 		r.Draw = true
@@ -131,7 +131,7 @@ func (ui *Buttongroup) Mouse(dui *DUI, origM, m draw.Mouse) Result {
 	return r
 }
 
-func (ui *Buttongroup) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result) {
+func (ui *Buttongroup) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
 	r.Hit = ui
 	if ui.Disabled {
 		return

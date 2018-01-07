@@ -328,7 +328,7 @@ func (d *DUI) Mouse(m draw.Mouse) {
 	if d.logEvents {
 		log.Printf("duit: mouse %v, %b\n", m, m.Buttons)
 	}
-	r := d.Top.Mouse(d, d.origMouse, m)
+	r := d.Top.Mouse(d, m, d.origMouse)
 	if r.Layout {
 		d.Render()
 	} else if r.Hit != d.lastMouseUI || r.Draw {
@@ -345,37 +345,37 @@ func (d *DUI) Resize() {
 	d.Render()
 }
 
-func (d *DUI) Key(r rune) {
+func (d *DUI) Key(k rune) {
 	if d.logEvents {
-		log.Printf("duit: key %c, %x\n", r, r)
+		log.Printf("duit: key %c, %x\n", k, k)
 	}
 	layout := false
-	if r == draw.KeyFn+1 {
+	if k == draw.KeyFn+1 {
 		d.logEvents = !d.logEvents
 	}
-	if r == draw.KeyFn+2 {
+	if k == draw.KeyFn+2 {
 		d.logTiming = !d.logTiming
 	}
-	if r == draw.KeyFn+3 {
+	if k == draw.KeyFn+3 {
 		d.Top.Print(0, d.Display.ScreenImage.R)
 	}
-	if r == draw.KeyFn+4 {
+	if k == draw.KeyFn+4 {
 		d.Display.SetDebug(true)
 		log.Println("duit: drawdebug now on")
 	}
-	if r == draw.KeyFn+5 {
+	if k == draw.KeyFn+5 {
 		d.DebugKids = !d.DebugKids
 		log.Println("duit: debugKids now", d.DebugKids)
 		layout = true
 	}
-	result := d.Top.Key(d, image.ZP, d.mouse, r)
-	if !result.Consumed {
-		switch r {
+	r := d.Top.Key(d, k, d.mouse, image.ZP)
+	if !r.Consumed {
+		switch k {
 		case '\t':
 			first := d.Top.FirstFocus(d)
 			if first != nil {
-				result.Warp = first
-				result.Consumed = true
+				r.Warp = first
+				r.Consumed = true
 			}
 		case draw.KeyCmd + 'w':
 			d.Close()
@@ -383,21 +383,21 @@ func (d *DUI) Key(r rune) {
 			return
 		}
 	}
-	if result.Warp != nil {
-		err := d.Display.MoveTo(*result.Warp)
+	if r.Warp != nil {
+		err := d.Display.MoveTo(*r.Warp)
 		if err != nil {
-			log.Printf("duit: move mouse to %v: %s\n", result.Warp, err)
+			log.Printf("duit: move mouse to %v: %s\n", r.Warp, err)
 		}
-		d.mouse.Point = *result.Warp
-		d.origMouse.Point = *result.Warp
-		result2 := d.Top.Mouse(d, d.origMouse, d.mouse)
-		result.Draw = result.Draw || result2.Draw || true
-		result.Layout = result.Layout || result2.Layout
-		d.lastMouseUI = result2.Hit
+		d.mouse.Point = *r.Warp
+		d.origMouse.Point = *r.Warp
+		r2 := d.Top.Mouse(d, d.mouse, d.origMouse)
+		r.Draw = r.Draw || r2.Draw || true
+		r.Layout = r.Layout || r2.Layout
+		d.lastMouseUI = r2.Hit
 	}
-	if result.Layout || layout {
+	if r.Layout || layout {
 		d.Render()
-	} else if result.Draw {
+	} else if r.Draw {
 		d.Draw()
 	}
 }
@@ -414,7 +414,7 @@ func (d *DUI) Focus(ui UI) {
 	}
 	d.mouse.Point = *p
 	d.origMouse.Point = *p
-	r := d.Top.Mouse(d, d.origMouse, d.mouse)
+	r := d.Top.Mouse(d, d.mouse, d.origMouse)
 	d.lastMouseUI = r.Hit
 	if r.Layout {
 		d.Render()

@@ -31,7 +31,7 @@ const (
 
 type Edit struct {
 	Font *draw.Font
-	Keys func(m draw.Mouse, k rune, result *Result)
+	Keys func(k rune, m draw.Mouse, result *Result)
 
 	text    *text // what we are rendering.  offset & cursors index into this text
 	offset  int64 // byte offset of first line we draw
@@ -563,7 +563,7 @@ func (ui *Edit) expand(offset int64, fr, br *reader) (int64, int64) {
 	return offset - br.n, offset + fr.n
 }
 
-func (ui *Edit) Mouse(dui *DUI, origM, m draw.Mouse) (r Result) {
+func (ui *Edit) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
 	ui.ensureInit()
 	font := ui.font(dui)
 	scrollLines := func(y int) int {
@@ -791,7 +791,7 @@ func (ui *Edit) unindent(c0, c1 int64) int64 {
 	return int64(len(ns))
 }
 
-func (ui *Edit) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result) {
+func (ui *Edit) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
 	ui.ensureInit()
 	r.Hit = ui
 	if m.In(ui.barR) {
@@ -803,7 +803,7 @@ func (ui *Edit) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result)
 	}
 
 	if ui.Keys != nil {
-		ui.Keys(m, k, &r)
+		ui.Keys(k, m, &r)
 		if r.Consumed {
 			return
 		}

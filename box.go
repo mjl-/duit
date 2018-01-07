@@ -130,12 +130,12 @@ func (ui *Box) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
 	kidsDraw(dui, ui.Kids, ui.size, img, orig, m)
 }
 
-func (ui *Box) Mouse(dui *DUI, origM, m draw.Mouse) Result {
-	return kidsMouse(dui, ui.Kids, origM, m)
+func (ui *Box) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) Result {
+	return kidsMouse(dui, ui.Kids, m, origM)
 }
 
-func (ui *Box) Key(dui *DUI, orig image.Point, m draw.Mouse, c rune) Result {
-	return kidsKey(dui, ui, ui.orderedKids(), orig, m, c)
+func (ui *Box) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) Result {
+	return kidsKey(dui, ui, ui.orderedKids(), k, m, orig)
 }
 
 func (ui *Box) orderedKids() []*Kid {

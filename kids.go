@@ -32,23 +32,23 @@ func kidsDraw(dui *DUI, kids []*Kid, uiSize image.Point, img *draw.Image, orig i
 	}
 }
 
-func kidsMouse(dui *DUI, kids []*Kid, origM, m draw.Mouse) Result {
+func kidsMouse(dui *DUI, kids []*Kid, m draw.Mouse, origM draw.Mouse) Result {
 	for _, k := range kids {
 		if origM.Point.In(k.R) {
 			origM.Point = origM.Point.Sub(k.R.Min)
 			m.Point = m.Point.Sub(k.R.Min)
-			return k.UI.Mouse(dui, origM, m)
+			return k.UI.Mouse(dui, m, origM)
 		}
 	}
 	return Result{}
 }
 
-func kidsKey(dui *DUI, ui UI, kids []*Kid, orig image.Point, m draw.Mouse, c rune) Result {
+func kidsKey(dui *DUI, ui UI, kids []*Kid, key rune, m draw.Mouse, orig image.Point) Result {
 	for i, k := range kids {
 		if m.Point.In(k.R) {
 			m.Point = m.Point.Sub(k.R.Min)
-			r := k.UI.Key(dui, orig.Add(k.R.Min), m, c)
-			if !r.Consumed && c == '\t' {
+			r := k.UI.Key(dui, key, m, orig.Add(k.R.Min))
+			if !r.Consumed && key == '\t' {
 				for next := i + 1; next < len(kids); next++ {
 					first := kids[next].UI.FirstFocus(dui)
 					if first != nil {

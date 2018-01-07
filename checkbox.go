@@ -55,7 +55,7 @@ func (ui *Checkbox) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mou
 	}
 }
 
-func (ui *Checkbox) Mouse(dui *DUI, origM, m draw.Mouse) (r Result) {
+func (ui *Checkbox) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
 	r.Hit = ui
 	if ui.Disabled {
 		return
@@ -79,7 +79,7 @@ func (ui *Checkbox) Mouse(dui *DUI, origM, m draw.Mouse) (r Result) {
 	return
 }
 
-func (ui *Checkbox) Key(dui *DUI, orig image.Point, m draw.Mouse, k rune) (r Result) {
+func (ui *Checkbox) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
 	r.Hit = ui
 	if k == ' ' {
 		r.Consumed = true
