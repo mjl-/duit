@@ -89,7 +89,7 @@ func main() {
 							{UI: &duit.Label{Text: "Checkbox"}},
 							{UI: &duit.Checkbox{
 								Checked: true,
-								Changed: func(r *duit.Result) {
+								Changed: func(e *duit.Event) {
 									log.Println("checkbox value changed")
 								},
 							}},
@@ -111,14 +111,14 @@ func main() {
 							&duit.Button{
 								Text:     "button1",
 								Colorset: &dui.Primary,
-								Click: func(r *duit.Result, draw, layout *duit.State) {
+								Click: func(e *duit.Event) {
 									log.Printf("button clicked")
 								},
 							},
 							&duit.Button{
 								Text:     "button2",
 								Disabled: true,
-								Click: func(r *duit.Result, draw, layout *duit.State) {
+								Click: func(e *duit.Event) {
 								},
 							},
 							&duit.List{

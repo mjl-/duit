@@ -9,7 +9,7 @@ import (
 type Checkbox struct {
 	Checked  bool
 	Disabled bool
-	Changed  func(r *Result)
+	Changed  func(e *Event)
 
 	m draw.Mouse
 }
@@ -75,7 +75,9 @@ func (ui *Checkbox) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, o
 			r.Consumed = true
 			ui.Checked = !ui.Checked
 			if ui.Changed != nil {
-				ui.Changed(&r)
+				var e Event
+				ui.Changed(&e)
+				propagateEvent(self, &r, e)
 			}
 		}
 	}
@@ -92,7 +94,9 @@ func (ui *Checkbox) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 		self.Draw = StateSelf
 		ui.Checked = !ui.Checked
 		if ui.Changed != nil {
-			ui.Changed(&r)
+			var e Event
+			ui.Changed(&e)
+			propagateEvent(self, &r, e)
 		}
 	}
 	return

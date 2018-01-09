@@ -38,7 +38,7 @@ func main() {
 
 	print := &duit.Button{
 		Text: "print",
-		Click: func(r *duit.Result, _, _ *duit.State) {
+		Click: func(e *duit.Event) {
 			rd := edit.Reader()
 			n, err := io.Copy(os.Stdout, rd)
 			if err != nil {

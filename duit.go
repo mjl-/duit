@@ -40,6 +40,12 @@ const (
 	ValignBottom
 )
 
+type Event struct {
+	Consumed   bool // whether event was consumed, and should not be further handled by upper UI's
+	NeedLayout bool // whether UI now needs a layout
+	NeedDraw   bool // whether UI now needs a draw
+}
+
 type Result struct {
 	Hit      UI           // the UI where the event ended up
 	Consumed bool         // whether event was consumed, and should not be further handled by upper UI's

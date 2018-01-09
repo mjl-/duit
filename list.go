@@ -16,9 +16,9 @@ type List struct {
 	Values   []*ListValue
 	Multiple bool
 	Font     *draw.Font
-	Changed  func(index int, result *Result, draw, layout *State)
-	Click    func(index int, m draw.Mouse, r *Result, draw, layout *State)
-	Keys     func(index int, k rune, m draw.Mouse, r *Result, draw, layout *State)
+	Changed  func(index int, e *Event)
+	Click    func(index int, m draw.Mouse, e *Event)
+	Keys     func(index int, k rune, m draw.Mouse, e *Event)
 
 	m    draw.Mouse
 	size image.Point
@@ -65,7 +65,9 @@ func (ui *List) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 	font := ui.font(dui)
 	index := m.Y / (4 * font.Height / 3)
 	if m.Buttons != 0 && prevM.Buttons^m.Buttons != 0 && ui.Click != nil {
-		ui.Click(index, m, &r, &self.Draw, &self.Layout)
+		var e Event
+		ui.Click(index, m, &e)
+		propagateEvent(self, &r, e)
 	}
 	if !r.Consumed && prevM.Buttons == 0 && m.Buttons == Button1 {
 		v := ui.Values[index]
@@ -78,7 +80,9 @@ func (ui *List) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 			}
 		}
 		if ui.Changed != nil {
-			ui.Changed(index, &r, &self.Draw, &self.Layout)
+			var e Event
+			ui.Changed(index, &e)
+			propagateEvent(self, &r, e)
 		}
 		self.Draw = StateSelf
 		r.Consumed = true
@@ -123,7 +127,9 @@ func (ui *List) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		if len(sel) == 1 {
 			index = sel[0]
 		}
-		ui.Keys(index, k, m, &r, &self.Draw, &self.Layout)
+		var e Event
+		ui.Keys(index, k, m, &e)
+		propagateEvent(self, &r, e)
 		if r.Consumed {
 			return
 		}
@@ -162,7 +168,9 @@ func (ui *List) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 			ui.Values[nindex].Selected = true
 			self.Draw = StateSelf
 			if ui.Changed != nil {
-				ui.Changed(nindex, &r, &self.Draw, &self.Layout)
+				var e Event
+				ui.Changed(nindex, &e)
+				propagateEvent(self, &r, e)
 			}
 			// xxx orig probably should not be a part in this...
 			font := ui.font(dui)

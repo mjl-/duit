@@ -23,11 +23,11 @@ func (ui *Tabs) ensure(dui *DUI) {
 			panic(fmt.Sprintf("bad Tabs, len(UIs) = %d must be equal to len(ui.Buttongroup.Texts) %d", len(ui.UIs), len(ui.Buttongroup.Texts)))
 		}
 		ui.Box.Kids = NewKids(CenterUI(SpaceXY(4, 4), ui.Buttongroup), ui.UIs[ui.Buttongroup.Selected])
-		ui.Buttongroup.Changed = func(index int, r *Result, draw, layout *State) {
+		ui.Buttongroup.Changed = func(index int, e *Event) {
 			k := ui.Box.Kids[1]
 			k.UI = ui.UIs[index]
-			r.Consumed = true
-			*layout = StateSelf
+			e.Consumed = true
+			e.NeedLayout = true
 			dui.Mark(k.UI, true, StateSelf)
 		}
 	}

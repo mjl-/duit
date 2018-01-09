@@ -18,9 +18,9 @@ type Field struct {
 	Cursor1         int // index in string of cursor in bytes, start at 1. 0 means end of string.
 	SelectionStart1 int // if > 0, 1 beyond the start of the selection in bytes, with Cursor being the end.
 	Font            *draw.Font
-	Password        bool                                                       // if true, text is rendered as bullet items to hide the password (but not the length of the password)
-	Changed         func(text string, r *Result, draw, layout *State)          // called after contents of field have changed
-	Keys            func(k rune, m draw.Mouse, r *Result, draw, layout *State) // called before handling key. if you consume the event, Changed will not be called
+	Password        bool                                 // if true, text is rendered as bullet items to hide the password (but not the length of the password)
+	Changed         func(text string, e *Event)          // called after contents of field have changed
+	Keys            func(k rune, m draw.Mouse, e *Event) // called before handling key. if you consume the event, Changed will not be called
 
 	size           image.Point // including space
 	m              draw.Mouse
@@ -365,7 +365,9 @@ func (ui *Field) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point
 	}
 
 	if ui.Keys != nil {
-		ui.Keys(k, m, &r, &self.Draw, &self.Layout)
+		var e Event
+		ui.Keys(k, m, &e)
+		propagateEvent(self, &r, e)
 		if r.Consumed {
 			return
 		}
@@ -503,7 +505,9 @@ func (ui *Field) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point
 	r.Consumed = true
 	self.Draw = StateSelf
 	if ui.Changed != nil && origText != ui.Text {
-		ui.Changed(ui.Text, &r, &self.Draw, &self.Layout)
+		var e Event
+		ui.Changed(ui.Text, &e)
+		propagateEvent(self, &r, e)
 	}
 	return
 }

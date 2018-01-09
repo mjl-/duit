@@ -52,13 +52,13 @@ func main() {
 				duit.HalignRight,
 				duit.HalignLeft,
 			},
-			Changed: func(index int, result *duit.Result, draw, layout *duit.State) {
+			Changed: func(index int, e *duit.Event) {
 				log.Printf("gridlist, index %d changed\n", index)
 			},
-			Click: func(index int, m draw.Mouse, r *duit.Result, draw, layout *duit.State) {
+			Click: func(index int, m draw.Mouse, e *duit.Event) {
 				log.Printf("gridlist, click, index %d, m %d\n", index, m)
 			},
-			Keys: func(index int, k rune, m draw.Mouse, r *duit.Result, draw, layout *duit.State) {
+			Keys: func(index int, k rune, m draw.Mouse, e *duit.Event) {
 				log.Printf("gridlist, key %c at index %d, mouse %v\n", k, index, m)
 			},
 		},

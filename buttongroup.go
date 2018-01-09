@@ -11,7 +11,7 @@ type Buttongroup struct {
 	Selected int
 	Disabled bool
 	Font     *draw.Font
-	Changed  func(index int, r *Result, draw, layout *State)
+	Changed  func(index int, e *Event)
 
 	m    draw.Mouse
 	size image.Point
@@ -124,7 +124,9 @@ func (ui *Buttongroup) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse
 		if index >= 0 {
 			ui.Selected = index
 			if ui.Changed != nil {
-				ui.Changed(ui.Selected, &r, &self.Draw, &self.Layout)
+				var e Event
+				ui.Changed(ui.Selected, &e)
+				propagateEvent(self, &r, e)
 			}
 			self.Draw = StateSelf
 			r.Consumed = true
@@ -148,7 +150,9 @@ func (ui *Buttongroup) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image
 		self.Draw = StateSelf
 		ui.Selected = index
 		if ui.Changed != nil {
-			ui.Changed(ui.Selected, &r, &self.Draw, &self.Layout)
+			var e Event
+			ui.Changed(ui.Selected, &e)
+			propagateEvent(self, &r, e)
 		}
 	case '\t':
 		index, _, end := ui.findIndex(dui, m)

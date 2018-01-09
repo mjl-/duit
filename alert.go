@@ -22,7 +22,7 @@ func Alert(s string) {
 					&Button{
 						Colorset: &dui.Primary,
 						Text:     "OK",
-						Click: func(_ *Result, _, _ *State) {
+						Click: func(e *Event) {
 							stop <- struct{}{}
 						},
 					},

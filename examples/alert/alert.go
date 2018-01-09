@@ -29,7 +29,7 @@ func main() {
 			field,
 			&duit.Button{
 				Text: "click me to create an alert",
-				Click: func(r *duit.Result, _, _ *duit.State) {
+				Click: func(e *duit.Event) {
 					go func() {
 						duit.Alert(field.Text)
 						log.Printf("alert is done\n")

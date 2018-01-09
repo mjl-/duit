@@ -36,7 +36,7 @@ a b c d e f g h i j k l m n o p q r s t u v w x y z`))
 	var fontList *duit.List
 	fontList = &duit.List{
 		Values: fontValues,
-		Changed: func(index int, r *duit.Result, draw, layout *duit.State) {
+		Changed: func(index int, e *duit.Event) {
 			lv := fontList.Values[index]
 			// xxx todo should free font, but that seems to hang draw
 			if lv.Selected {
@@ -52,13 +52,13 @@ a b c d e f g h i j k l m n o p q r s t u v w x y z`))
 			} else {
 				edit.Font = nil
 			}
-			*draw = duit.StateSelf
+			e.NeedDraw = true
 		},
 	}
 
 	search := &duit.Field{
 		Placeholder: "search...",
-		Changed: func(s string, r *duit.Result, draw, layout *duit.State) {
+		Changed: func(s string, e *duit.Event) {
 			s = strings.ToLower(s)
 			nl := []*duit.ListValue{}
 			for _, lv := range fontValues {
@@ -67,7 +67,7 @@ a b c d e f g h i j k l m n o p q r s t u v w x y z`))
 				}
 			}
 			fontList.Values = nl
-			*draw = duit.StateSelf
+			e.NeedDraw = true
 		},
 	}
 

@@ -29,9 +29,9 @@ type Gridlist struct {
 	Striped  bool
 	Font     *draw.Font
 
-	Changed func(index int, r *Result, draw, layout *State)
-	Click   func(index int, m draw.Mouse, r *Result, draw, layout *State)
-	Keys    func(index int, k rune, m draw.Mouse, r *Result, draw, layout *State)
+	Changed func(index int, e *Event)
+	Click   func(index int, m draw.Mouse, e *Event)
+	Keys    func(index int, k rune, m draw.Mouse, e *Event)
 
 	m                draw.Mouse
 	colWidths        []int // set the first time there are rows
@@ -407,7 +407,9 @@ func (ui *Gridlist) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, o
 	}
 	index-- // adjust for header
 	if m.Buttons != 0 && prevM.Buttons^m.Buttons != 0 && ui.Click != nil {
-		ui.Click(index, m, &r, &self.Draw, &self.Layout)
+		var e Event
+		ui.Click(index, m, &e)
+		propagateEvent(self, &r, e)
 	}
 	if !r.Consumed && prevM.Buttons == 0 && m.Buttons == Button1 {
 		row := ui.Rows[index]
@@ -420,7 +422,9 @@ func (ui *Gridlist) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, o
 			}
 		}
 		if ui.Changed != nil {
-			ui.Changed(index, &r, &self.Draw, &self.Layout)
+			var e Event
+			ui.Changed(index, &e)
+			propagateEvent(self, &r, e)
 		}
 		self.Draw = StateSelf
 		r.Consumed = true
@@ -452,7 +456,9 @@ func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 		if len(sel) == 1 {
 			index = sel[0]
 		}
-		ui.Keys(index, k, m, &r, &self.Draw, &self.Layout)
+		var e Event
+		ui.Keys(index, k, m, &e)
+		propagateEvent(self, &r, e)
 		if r.Consumed {
 			return
 		}
@@ -524,7 +530,9 @@ func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 			ui.Rows[nindex].Selected = true
 			self.Draw = StateSelf
 			if ui.Changed != nil {
-				ui.Changed(nindex, &r, &self.Draw, &self.Layout)
+				var e Event
+				ui.Changed(nindex, &e)
+				propagateEvent(self, &r, e)
 			}
 			// xxx orig probably should not be a part in this...
 			p := orig.Add(image.Pt(m.X, (1+nindex)*(rowHeight+separatorHeight)+(font.Height+pad.Dy())/2))

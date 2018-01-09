@@ -13,7 +13,7 @@ type Button struct {
 	Disabled bool
 	Colorset *Colorset
 	Font     *draw.Font
-	Click    func(r *Result, draw, layout *State)
+	Click    func(e *Event)
 
 	m    draw.Mouse
 	size image.Point
@@ -102,7 +102,9 @@ func (ui *Button) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, ori
 		self.Draw = StateSelf
 	}
 	if hover && ui.m.Buttons&Button1 == Button1 && m.Buttons&Button1 == 0 && ui.Click != nil {
-		ui.Click(&r, &self.Draw, &self.Layout)
+		var e Event
+		ui.Click(&e)
+		propagateEvent(self, &r, e)
 	}
 	ui.m = m
 	return r
@@ -112,7 +114,9 @@ func (ui *Button) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Poin
 	if !ui.Disabled && (k == ' ' || k == '\n') {
 		r.Consumed = true
 		if ui.Click != nil {
-			ui.Click(&r, &self.Draw, &self.Layout)
+			var e Event
+			ui.Click(&e)
+			propagateEvent(self, &r, e)
 		}
 	}
 	return

@@ -24,9 +24,9 @@ func main() {
 		Kids: duit.NewKids(
 			&duit.Button{
 				Text: "click me",
-				Click: func(r *duit.Result, draw, layout *duit.State) {
+				Click: func(e *duit.Event) {
 					log.Printf("clicked\n")
-					// *draw = duit.StateSelf
+					// e.NeedDraw = true
 				},
 			},
 		),

@@ -18,7 +18,7 @@ func main() {
 
 	dui.Top.UI = &duit.Button{
 		Text: "click me",
-		Click: func(r *duit.Result, draw, layout *duit.State) {
+		Click: func(e *duit.Event) {
 			log.Printf("clicked\n")
 		},
 	}

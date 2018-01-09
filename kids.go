@@ -225,3 +225,13 @@ func kidsPrint(kids []*Kid, indent int) {
 		k.UI.Print(k, indent)
 	}
 }
+
+func propagateEvent(self *Kid, r *Result, e Event) {
+	if e.NeedLayout {
+		self.Layout = StateSelf
+	}
+	if e.NeedDraw {
+		self.Draw = StateSelf
+	}
+	r.Consumed = e.Consumed || r.Consumed
+}
