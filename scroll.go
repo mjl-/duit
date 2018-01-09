@@ -30,12 +30,12 @@ func NewScroll(ui UI) *Scroll {
 func (ui *Scroll) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	dui.debugLayout("Scroll", self)
 
-	if self.Layout == StateClean && !force {
+	if self.Layout == Clean && !force {
 		return
 	}
-	self.Layout = StateClean
-	self.Draw = StateSelf
-	// todo: be smarter about StateKid
+	self.Layout = Clean
+	self.Draw = Dirty
+	// todo: be smarter about DirtyKid
 
 	ui.scrollbarSize = scale(dui.Display, ScrollbarSize)
 	scaledHeight := scale(dui.Display, ui.Height)
@@ -50,8 +50,8 @@ func (ui *Scroll) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool)
 
 	// todo: only force when sizeAvail or childR changed?
 	ui.Kid.UI.Layout(dui, &ui.Kid, image.Pt(ui.r.Dx()-ui.barR.Dx(), ui.r.Dy()), force)
-	ui.Kid.Layout = StateClean
-	ui.Kid.Draw = StateSelf
+	ui.Kid.Layout = Clean
+	ui.Kid.Draw = Dirty
 
 	kY := ui.Kid.R.Dy()
 	if ui.r.Dy() > kY && ui.Height == 0 {
@@ -65,10 +65,10 @@ func (ui *Scroll) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool)
 func (ui *Scroll) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
 	dui.debugDraw("Scroll", self)
 
-	if self.Draw == StateClean {
+	if self.Draw == Clean {
 		return
 	}
-	self.Draw = StateClean
+	self.Draw = Clean
 
 	if ui.r.Empty() {
 		return
@@ -109,17 +109,17 @@ func (ui *Scroll) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m
 		}
 		ui.img, err = dui.Display.AllocImage(ui.Kid.R, draw.ARGB32, false, dui.BackgroundColor)
 		check(err, "allocimage")
-		ui.Kid.Draw = StateSelf
-	} else if ui.Kid.Draw == StateSelf {
+		ui.Kid.Draw = Dirty
+	} else if ui.Kid.Draw == Dirty {
 		ui.img.Draw(ui.img.R, dui.Background, nil, image.ZP)
 	}
 	m.Point = m.Point.Add(image.Pt(-ui.childR.Min.X, ui.offset))
-	if ui.Kid.Draw != StateClean {
+	if ui.Kid.Draw != Clean {
 		if force {
-			ui.Kid.Draw = StateSelf
+			ui.Kid.Draw = Dirty
 		}
-		ui.Kid.UI.Draw(dui, &ui.Kid, ui.img, image.ZP, m, ui.Kid.Draw == StateSelf)
-		ui.Kid.Draw = StateClean
+		ui.Kid.UI.Draw(dui, &ui.Kid, ui.img, image.ZP, m, ui.Kid.Draw == Dirty)
+		ui.Kid.Draw = Clean
 	}
 	img.Draw(ui.childR.Add(orig), ui.img, nil, image.Pt(0, ui.offset))
 }
@@ -186,13 +186,13 @@ func (ui *Scroll) scrollMouse(m draw.Mouse, scrollOnly bool) (consumed bool) {
 }
 
 func (ui *Scroll) result(dui *DUI, self *Kid, r *Result, scrolled bool) {
-	if ui.Kid.Layout != StateClean {
+	if ui.Kid.Layout != Clean {
 		ui.Kid.UI.Layout(dui, &ui.Kid, ui.childR.Size(), false)
-		ui.Kid.Layout = StateClean
-		ui.Kid.Draw = StateSelf
-		self.Draw = StateSelf
-	} else if ui.Kid.Draw != StateClean || scrolled {
-		self.Draw = StateSelf
+		ui.Kid.Layout = Clean
+		ui.Kid.Draw = Dirty
+		self.Draw = Dirty
+	} else if ui.Kid.Draw != Clean || scrolled {
+		self.Draw = Dirty
 	}
 }
 
@@ -200,7 +200,7 @@ func (ui *Scroll) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, ori
 	if m.Point.In(ui.barR) {
 		r.Hit = ui
 		r.Consumed = ui.scrollMouse(m, false)
-		self.Draw = StateSelf
+		self.Draw = Dirty
 		return
 	}
 	if m.Point.In(ui.childR) {
@@ -224,7 +224,7 @@ func (ui *Scroll) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Poin
 		r.Hit = ui
 		r.Consumed = ui.scrollKey(k)
 		if r.Consumed {
-			self.Draw = StateSelf
+			self.Draw = Dirty
 		}
 	}
 	if m.Point.In(ui.childR) {
@@ -265,12 +265,12 @@ func (ui *Scroll) Mark(self *Kid, o UI, forLayout bool, state State) (marked boo
 	marked = ui.Kid.UI.Mark(&ui.Kid, o, forLayout, state)
 	if marked {
 		if forLayout {
-			if self.Layout == StateClean {
-				self.Layout = StateKid
+			if self.Layout == Clean {
+				self.Layout = DirtyKid
 			}
 		} else {
-			if self.Layout == StateClean {
-				self.Draw = StateKid
+			if self.Layout == Clean {
+				self.Draw = DirtyKid
 			}
 		}
 	}

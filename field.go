@@ -322,12 +322,12 @@ func (ui *Field) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig
 		ui.Cursor1 = 1 + locateCursor()
 		ui.SelectionStart1 = ui.Cursor1
 		r.Consumed = true
-		self.Draw = StateSelf
+		self.Draw = Dirty
 	} else if ui.m.Buttons&1 == 1 || m.Buttons&1 == 1 {
 		// continue selection
 		ui.Cursor1 = 1 + locateCursor()
 		r.Consumed = true
-		self.Draw = StateSelf
+		self.Draw = Dirty
 		if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 {
 			if m.Msec-ui.prevB1Release.Msec < 400 {
 				s, e := expandSelection(ui.Text, ui.cursor0())
@@ -503,7 +503,7 @@ func (ui *Field) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point
 	ui.Cursor1 = 1 + cursor0
 	ui.fixCursor()
 	r.Consumed = true
-	self.Draw = StateSelf
+	self.Draw = Dirty
 	if ui.Changed != nil && origText != ui.Text {
 		var e Event
 		ui.Changed(ui.Text, &e)

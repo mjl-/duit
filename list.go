@@ -84,7 +84,7 @@ func (ui *List) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 			ui.Changed(index, &e)
 			propagateEvent(self, &r, e)
 		}
-		self.Draw = StateSelf
+		self.Draw = Dirty
 		r.Consumed = true
 	}
 	return
@@ -162,11 +162,11 @@ func (ui *List) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		}
 		if oindex >= 0 {
 			ui.Values[oindex].Selected = false
-			self.Draw = StateSelf
+			self.Draw = Dirty
 		}
 		if nindex >= 0 {
 			ui.Values[nindex].Selected = true
-			self.Draw = StateSelf
+			self.Draw = Dirty
 			if ui.Changed != nil {
 				var e Event
 				ui.Changed(nindex, &e)

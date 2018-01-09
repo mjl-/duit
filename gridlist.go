@@ -388,7 +388,7 @@ func (ui *Gridlist) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, o
 
 			ui.colWidths = widths // note: this sets colWidths even if it wasn't set before
 			r.Consumed = true
-			self.Draw = StateSelf
+			self.Draw = Dirty
 			return
 		}
 
@@ -426,7 +426,7 @@ func (ui *Gridlist) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, o
 			ui.Changed(index, &e)
 			propagateEvent(self, &r, e)
 		}
-		self.Draw = StateSelf
+		self.Draw = Dirty
 		r.Consumed = true
 	}
 	return
@@ -470,14 +470,14 @@ func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 			row.Selected = false
 		}
 		r.Consumed = true
-		self.Draw = StateSelf
+		self.Draw = Dirty
 	case draw.KeyCmd + 'a':
 		// select all
 		for _, row := range ui.Rows {
 			row.Selected = true
 		}
 		r.Consumed = true
-		self.Draw = StateSelf
+		self.Draw = Dirty
 	case draw.KeyCmd + 'c':
 		// snarf selection
 		s := ""
@@ -490,7 +490,7 @@ func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 		if s != "" {
 			dui.Display.WriteSnarf([]byte(s))
 			r.Consumed = true
-			self.Draw = StateSelf
+			self.Draw = Dirty
 		}
 
 	case draw.KeyUp, draw.KeyDown:
@@ -520,7 +520,7 @@ func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 		}
 		if oindex >= 0 {
 			ui.Rows[oindex].Selected = false
-			self.Draw = StateSelf
+			self.Draw = Dirty
 		}
 		if nindex >= 0 {
 			font := ui.font(dui)
@@ -528,7 +528,7 @@ func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 			pad := dui.ScaleSpace(ui.Padding)
 
 			ui.Rows[nindex].Selected = true
-			self.Draw = StateSelf
+			self.Draw = Dirty
 			if ui.Changed != nil {
 				var e Event
 				ui.Changed(nindex, &e)

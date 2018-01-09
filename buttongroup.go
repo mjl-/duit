@@ -117,7 +117,7 @@ func (ui *Buttongroup) findIndex(dui *DUI, m draw.Mouse) (int, int, int) {
 
 func (ui *Buttongroup) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
 	if ui.m.Buttons&1 != m.Buttons&1 {
-		self.Draw = StateSelf
+		self.Draw = Dirty
 	}
 	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 && !ui.Disabled {
 		index, _, _ := ui.findIndex(dui, m)
@@ -128,7 +128,7 @@ func (ui *Buttongroup) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse
 				ui.Changed(ui.Selected, &e)
 				propagateEvent(self, &r, e)
 			}
-			self.Draw = StateSelf
+			self.Draw = Dirty
 			r.Consumed = true
 		}
 	}
@@ -147,7 +147,7 @@ func (ui *Buttongroup) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image
 			break
 		}
 		r.Consumed = true
-		self.Draw = StateSelf
+		self.Draw = Dirty
 		ui.Selected = index
 		if ui.Changed != nil {
 			var e Event
@@ -164,7 +164,7 @@ func (ui *Buttongroup) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image
 			p := orig.Add(image.Pt(end+BorderSize*2+ui.padding(dui).X, m.Y))
 			r.Warp = &p
 			r.Consumed = true
-			self.Draw = StateSelf
+			self.Draw = Dirty
 		}
 	}
 	return

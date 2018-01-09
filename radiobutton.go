@@ -80,10 +80,10 @@ func (ui *Radiobutton) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse
 	rr := rect(pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5))
 	hover := m.In(rr)
 	if hover != ui.m.In(rr) {
-		self.Draw = StateSelf
+		self.Draw = Dirty
 	}
 	if hover && ui.m.Buttons&1 != m.Buttons&1 {
-		self.Draw = StateSelf
+		self.Draw = Dirty
 		if m.Buttons&1 == 0 {
 			r.Consumed = true
 			ui.check(&r)
@@ -96,7 +96,7 @@ func (ui *Radiobutton) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse
 func (ui *Radiobutton) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
 	if k == ' ' {
 		r.Consumed = true
-		self.Draw = StateSelf
+		self.Draw = Dirty
 		ui.check(&r)
 	}
 	return

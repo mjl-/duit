@@ -14,7 +14,7 @@ type UI interface {
 	// Layout asks the UI to layout itself in `availSize`.
 	// Layout must check `self.Layout` and `force`.
 	// If force is set, it must layout itself and its kids, and pass on force.
-	// Else, if self.Layout is StateKid, it only needs to call Layout on its kids (common for layout UIs).
+	// Else, if self.Layout is DirtyKid, it only needs to call Layout on its kids (common for layout UIs).
 	// The UI can lay itself out beyond size.Y, not beyond size.X.
 	// size.Y is the amount of screen real estate that will still be visible.
 	// Layout must update self.Draw if it needs to be drawn after.

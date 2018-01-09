@@ -28,7 +28,7 @@ func (ui *Tabs) ensure(dui *DUI) {
 			k.UI = ui.UIs[index]
 			e.Consumed = true
 			e.NeedLayout = true
-			dui.Mark(k.UI, true, StateSelf)
+			dui.Mark(k.UI, true, Dirty)
 		}
 	}
 }

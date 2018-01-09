@@ -15,7 +15,7 @@ type Pick struct {
 func (ui *Pick) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	dui.debugLayout("Pick", self)
 
-	if self.Layout == StateClean && !force {
+	if self.Layout == Clean && !force {
 		return
 	}
 

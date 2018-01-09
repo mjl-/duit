@@ -99,7 +99,7 @@ func (ui *Button) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, ori
 	hover := m.In(rr)
 	if ohover != hover || ui.m.Buttons&Button1 != m.Buttons&Button1 {
 		log.Printf("hover or buttons changed, drawing self!\n")
-		self.Draw = StateSelf
+		self.Draw = Dirty
 	}
 	if hover && ui.m.Buttons&Button1 == Button1 && m.Buttons&Button1 == 0 && ui.Click != nil {
 		var e Event

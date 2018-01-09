@@ -83,11 +83,11 @@ type Input struct {
 type State byte
 
 const (
-	StateSelf  = State(iota) // UI itself needs layout/draw;  kids will also get a layout/draw call, with force set.
-	StateKid                 // UI itself does not need layout/draw, but one of its children does, so pass the call on.
-	StateClean               // UI does not need layout/draw.
+	Dirty    = State(iota) // UI itself needs layout/draw;  kids will also get a layout/draw call, with force set.
+	DirtyKid               // UI itself does not need layout/draw, but one of its children does, so pass the call on.
+	Clean                  // UI does not need layout/draw.
 
-	// order is important, StateClean is highest and means least amount of work
+	// order is important, Clean is highest and means least amount of work
 )
 
 type DUI struct {
@@ -314,33 +314,33 @@ func (d *DUI) Render() {
 }
 
 func (d *DUI) Layout() {
-	if d.Top.Layout == StateClean {
+	if d.Top.Layout == Clean {
 		return
 	}
 	var t0 time.Time
 	if d.logTiming {
 		t0 = time.Now()
 	}
-	d.Top.UI.Layout(d, &d.Top, d.Display.ScreenImage.R.Size(), d.Top.Layout == StateSelf)
-	d.Top.Layout = StateClean
+	d.Top.UI.Layout(d, &d.Top, d.Display.ScreenImage.R.Size(), d.Top.Layout == Dirty)
+	d.Top.Layout = Clean
 	if d.logTiming {
 		log.Printf("duit: time layout: %d µs\n", time.Now().Sub(t0)/time.Microsecond)
 	}
 }
 
 func (d *DUI) Draw() {
-	if d.Top.Draw == StateClean {
+	if d.Top.Draw == Clean {
 		return
 	}
 	var t0, t1 time.Time
 	if d.logTiming {
 		t0 = time.Now()
 	}
-	if d.Top.Draw == StateSelf {
+	if d.Top.Draw == Dirty {
 		d.Display.ScreenImage.Draw(d.Display.ScreenImage.R, d.Background, nil, image.ZP)
 	}
-	d.Top.UI.Draw(d, &d.Top, d.Display.ScreenImage, image.ZP, d.mouse, d.Top.Draw == StateSelf)
-	d.Top.Draw = StateClean
+	d.Top.UI.Draw(d, &d.Top, d.Display.ScreenImage, image.ZP, d.mouse, d.Top.Draw == Dirty)
+	d.Top.Draw = Clean
 	if d.logTiming {
 		t1 = time.Now()
 	}
@@ -364,7 +364,7 @@ func (d *DUI) apply(r Result) {
 		}
 	} else {
 		if r.Hit != d.lastMouseUI {
-			d.Mark(d.lastMouseUI, false, StateSelf)
+			d.Mark(d.lastMouseUI, false, Dirty)
 		}
 		d.lastMouseUI = r.Hit
 	}
@@ -389,8 +389,8 @@ func (d *DUI) Resize() {
 		log.Printf("duit: resize")
 	}
 	check(d.Display.Attach(draw.Refmesg), "attach after resize")
-	d.Top.Layout = StateSelf
-	d.Top.Draw = StateSelf
+	d.Top.Layout = Dirty
+	d.Top.Draw = Dirty
 	d.Render()
 }
 
@@ -417,8 +417,8 @@ func (d *DUI) Key(k rune) {
 		return
 	case draw.KeyFn + 6:
 		log.Println("duit: rendering entire ui")
-		d.Top.Layout = StateSelf
-		d.Top.Draw = StateSelf
+		d.Top.Layout = Dirty
+		d.Top.Draw = Dirty
 		d.Render()
 		return
 	case draw.KeyFn + 7:

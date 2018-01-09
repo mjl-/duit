@@ -493,7 +493,7 @@ func (ui *Edit) scroll(lines int, self *Kid) {
 	}
 
 	if offset != ui.offset {
-		self.Draw = StateSelf
+		self.Draw = Dirty
 	}
 	ui.offset = offset
 }
@@ -595,7 +595,7 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 				rd.Get()
 			}
 			if rd.Offset() != ui.offset {
-				self.Draw = StateSelf
+				self.Draw = Dirty
 			}
 			ui.offset = rd.Offset()
 		case Button3:
@@ -672,7 +672,7 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 				ui.prevTextB1 = m
 			}
 			// xxx ensure cursor is visible, can happen when dragging outside UI, or through key commands
-			self.Draw = StateSelf
+			self.Draw = Dirty
 			r.Consumed = true
 			return
 		}
@@ -818,7 +818,7 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 	}
 
 	r.Consumed = true
-	self.Draw = StateSelf
+	self.Draw = Dirty
 
 	switch ui.mode {
 	case modeCommand:
