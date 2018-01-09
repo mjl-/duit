@@ -19,6 +19,7 @@ type Scroll struct {
 	offset        int         // current scroll offset in pixels
 	img           *draw.Image // for child to draw on
 	scrollbarSize int
+	lastMouseUI   UI
 }
 
 var _ UI = &Scroll{}
@@ -215,6 +216,15 @@ func (ui *Scroll) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, ori
 			r.Consumed = scrolled
 		}
 		ui.result(dui, self, &r, scrolled)
+		if r.Hit != ui.lastMouseUI {
+			if r.Hit != nil {
+				ui.Mark(self, r.Hit, false)
+			}
+			if ui.lastMouseUI != nil {
+				ui.Mark(self, ui.lastMouseUI, false)
+			}
+		}
+		ui.lastMouseUI = r.Hit
 	}
 	return
 }

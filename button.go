@@ -2,7 +2,6 @@ package duit
 
 import (
 	"image"
-	"log"
 
 	"9fans.net/go/draw"
 )
@@ -95,10 +94,8 @@ func (ui *Button) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, ori
 		return
 	}
 	rr := rect(ui.size)
-	ohover := ui.m.In(rr)
 	hover := m.In(rr)
-	if ohover != hover || ui.m.Buttons&Button1 != m.Buttons&Button1 {
-		log.Printf("hover or buttons changed, drawing self!\n")
+	if ui.m.Buttons != m.Buttons {
 		self.Draw = Dirty
 	}
 	if hover && ui.m.Buttons&Button1 == Button1 && m.Buttons&Button1 == 0 && ui.Click != nil {

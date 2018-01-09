@@ -384,7 +384,12 @@ func (d *DUI) apply(r Result) {
 		}
 	} else {
 		if r.Hit != d.lastMouseUI {
-			d.MarkDraw(d.lastMouseUI)
+			if r.Hit != nil {
+				d.MarkDraw(r.Hit)
+			}
+			if d.lastMouseUI != nil {
+				d.MarkDraw(d.lastMouseUI)
+			}
 		}
 		d.lastMouseUI = r.Hit
 	}
@@ -529,6 +534,7 @@ func (d *DUI) Input(e Input) {
 		d.Resize()
 	case InputFunc:
 		e.Func()
+		d.Render()
 	case InputError:
 		log.Fatalf("error from devdraw: %s\n", e.Error)
 	}

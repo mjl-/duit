@@ -27,13 +27,17 @@ func (ui *Place) ensure() {
 }
 
 func (ui *Place) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	ui.ensure()
 	dui.debugLayout("Place", self)
 
-	ui.ensure()
 	ui.Place(self, sizeAvail)
 }
 
 func (ui *Place) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	// xxx place should copies of its kids images, so it doesn't have to ask them to redraw all the time
+	if self.Draw == DirtyKid {
+		force = true
+	}
 	kidsDraw("Place", dui, self, ui.Kids, ui.size, img, orig, m, force)
 }
 
