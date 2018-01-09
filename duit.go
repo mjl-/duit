@@ -351,6 +351,26 @@ func (d *DUI) Draw() {
 	}
 }
 
+func (d *DUI) MarkLayout(ui UI) {
+	if ui == nil {
+		d.Top.Layout = Dirty
+	} else {
+		if !d.Top.UI.Mark(&d.Top, ui, true) {
+			log.Printf("duit: marklayout %T: nothing marked\n", ui)
+		}
+	}
+}
+
+func (d *DUI) MarkDraw(ui UI) {
+	if ui == nil {
+		d.Top.Draw = Dirty
+	} else {
+		if !d.Top.UI.Mark(&d.Top, ui, false) {
+			log.Printf("duit: markdraw %T: nothing marked\n", ui)
+		}
+	}
+}
+
 func (d *DUI) apply(r Result) {
 	if r.Warp != nil {
 		err := d.Display.MoveTo(*r.Warp)
@@ -364,7 +384,7 @@ func (d *DUI) apply(r Result) {
 		}
 	} else {
 		if r.Hit != d.lastMouseUI {
-			d.Mark(d.lastMouseUI, false, Dirty)
+			d.MarkDraw(d.lastMouseUI)
 		}
 		d.lastMouseUI = r.Hit
 	}
@@ -512,10 +532,6 @@ func (d *DUI) Input(e Input) {
 	case InputError:
 		log.Fatalf("error from devdraw: %s\n", e.Error)
 	}
-}
-
-func (d *DUI) Mark(o UI, forLayout bool, state State) {
-	d.Top.UI.Mark(&d.Top, o, forLayout, state)
 }
 
 func (d *DUI) Close() {

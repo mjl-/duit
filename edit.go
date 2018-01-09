@@ -953,8 +953,8 @@ func (ui *Edit) Focus(dui *DUI, o UI) (warp *image.Point) {
 	return ui.FirstFocus(dui)
 }
 
-func (ui *Edit) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
-	return self.Mark(o, forLayout, state)
+func (ui *Edit) Mark(self *Kid, o UI, forLayout bool) (marked bool) {
+	return self.Mark(o, forLayout)
 }
 
 func (ui *Edit) Print(self *Kid, indent int) {

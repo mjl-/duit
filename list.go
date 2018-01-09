@@ -192,8 +192,8 @@ func (ui *List) Focus(dui *DUI, o UI) *image.Point {
 	return ui.FirstFocus(dui)
 }
 
-func (ui *List) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
-	return self.Mark(o, forLayout, state)
+func (ui *List) Mark(self *Kid, o UI, forLayout bool) (marked bool) {
+	return self.Mark(o, forLayout)
 }
 
 func (ui *List) Print(self *Kid, indent int) {

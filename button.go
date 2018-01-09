@@ -134,8 +134,8 @@ func (ui *Button) Focus(dui *DUI, o UI) *image.Point {
 	return ui.FirstFocus(dui)
 }
 
-func (ui *Button) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
-	return self.Mark(o, forLayout, state)
+func (ui *Button) Mark(self *Kid, o UI, forLayout bool) (marked bool) {
+	return self.Mark(o, forLayout)
 }
 
 func (ui *Button) Print(self *Kid, indent int) {

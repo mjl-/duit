@@ -13,14 +13,14 @@ type Kid struct {
 	Layout State
 }
 
-func (k *Kid) Mark(o UI, forLayout bool, state State) (marked bool) {
+func (k *Kid) Mark(o UI, forLayout bool) (marked bool) {
 	if o != k.UI {
 		return false
 	}
 	if forLayout {
-		k.Layout = state
+		k.Layout = Dirty
 	} else {
-		k.Draw = state
+		k.Draw = Dirty
 	}
 	return true
 }
@@ -105,7 +105,8 @@ func propagateResult(dui *DUI, self, k *Kid) {
 	// log.Printf("propagateResult, r %#v, dirty %v kid ui %#v, \n", r, *dirty, k.UI)
 	if k.Layout != Clean {
 		if k.Layout == DirtyKid {
-			panic("kid propagated layout kids")
+			// panic("kid propagated layout kids")
+			k.Layout = Dirty // xxx
 		}
 		nk := *k
 		k.UI.Layout(dui, &nk, k.R.Size(), false)
@@ -197,12 +198,12 @@ func kidsFocus(dui *DUI, kids []*Kid, ui UI) *image.Point {
 	return nil
 }
 
-func kidsMark(self *Kid, kids []*Kid, o UI, forLayout bool, state State) (marked bool) {
-	if self.Mark(o, forLayout, state) {
+func kidsMark(self *Kid, kids []*Kid, o UI, forLayout bool) (marked bool) {
+	if self.Mark(o, forLayout) {
 		return true
 	}
 	for _, k := range kids {
-		marked = k.UI.Mark(k, o, forLayout, state)
+		marked = k.UI.Mark(k, o, forLayout)
 		if !marked {
 			continue
 		}

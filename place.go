@@ -53,8 +53,8 @@ func (ui *Place) Focus(dui *DUI, o UI) (warp *image.Point) {
 	return kidsFocus(dui, ui.Kids, o)
 }
 
-func (ui *Place) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
-	return kidsMark(self, ui.Kids, o, forLayout, state)
+func (ui *Place) Mark(self *Kid, o UI, forLayout bool) (marked bool) {
+	return kidsMark(self, ui.Kids, o, forLayout)
 }
 
 func (ui *Place) Print(self *Kid, indent int) {

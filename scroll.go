@@ -258,11 +258,11 @@ func (ui *Scroll) Focus(dui *DUI, o UI) *image.Point {
 	return &pp
 }
 
-func (ui *Scroll) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
-	if self.Mark(o, forLayout, state) {
+func (ui *Scroll) Mark(self *Kid, o UI, forLayout bool) (marked bool) {
+	if self.Mark(o, forLayout) {
 		return true
 	}
-	marked = ui.Kid.UI.Mark(&ui.Kid, o, forLayout, state)
+	marked = ui.Kid.UI.Mark(&ui.Kid, o, forLayout)
 	if marked {
 		if forLayout {
 			if self.Layout == Clean {

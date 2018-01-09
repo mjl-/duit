@@ -45,8 +45,8 @@ func (ui *Pick) Focus(dui *DUI, o UI) (warp *image.Point) {
 	return ui.ui.Focus(dui, o)
 }
 
-func (ui *Pick) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
-	return ui.ui.Mark(self, o, forLayout, state)
+func (ui *Pick) Mark(self *Kid, o UI, forLayout bool) (marked bool) {
+	return ui.ui.Mark(self, o, forLayout)
 }
 
 func (ui *Pick) Print(self *Kid, indent int) {

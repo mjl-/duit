@@ -82,8 +82,8 @@ func (ui *Label) Focus(dui *DUI, o UI) *image.Point {
 	return &image.ZP
 }
 
-func (ui *Label) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
-	return self.Mark(o, forLayout, state)
+func (ui *Label) Mark(self *Kid, o UI, forLayout bool) (marked bool) {
+	return self.Mark(o, forLayout)
 }
 
 func (ui *Label) Print(self *Kid, indent int) {

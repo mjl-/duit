@@ -49,8 +49,8 @@ type UI interface {
 	// Focus returns the focus-point for `ui`.
 	Focus(dui *DUI, o UI) (warp *image.Point)
 
-	// Mark looks for ui (itself or children), marks it as needing a layout or draw (forLayout), and propagates whether it marked anything back to the caller.
-	Mark(self *Kid, o UI, forLayout bool, state State) (marked bool)
+	// Mark looks for ui (itself or children), marks it as dirty for layout or draw (forLayout), and propagates whether it marked anything back to the caller.
+	Mark(self *Kid, o UI, forLayout bool) (marked bool)
 
 	// Print line about ui that includes r and is prefixed with indent spaces, following by a Print on each child.
 	Print(self *Kid, indent int)
