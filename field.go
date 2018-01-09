@@ -18,9 +18,9 @@ type Field struct {
 	Cursor1         int // index in string of cursor in bytes, start at 1. 0 means end of string.
 	SelectionStart1 int // if > 0, 1 beyond the start of the selection in bytes, with Cursor being the end.
 	Font            *draw.Font
-	Password        bool                                  // if true, text is rendered as bullet items to hide the password (but not the length of the password)
-	Changed         func(string, *Result)                 // called after contents of field have changed
-	Keys            func(k rune, m draw.Mouse, r *Result) // called before handling key. if you consume the event, Changed will not be called
+	Password        bool                                                       // if true, text is rendered as bullet items to hide the password (but not the length of the password)
+	Changed         func(text string, r *Result, draw, layout *State)          // called after contents of field have changed
+	Keys            func(k rune, m draw.Mouse, r *Result, draw, layout *State) // called before handling key. if you consume the event, Changed will not be called
 
 	size           image.Point // including space
 	m              draw.Mouse
@@ -76,12 +76,17 @@ func (ui *Field) removeSelection() {
 	ui.SelectionStart1 = 0
 }
 
-func (ui *Field) Layout(dui *DUI, size image.Point) image.Point {
-	ui.size = image.Point{size.X, ui.font(dui).Height + 2*ui.space(dui).Y}
-	return ui.size
+func (ui *Field) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	dui.debugLayout("Field", self)
+
+	ui.size = image.Point{sizeAvail.X, ui.font(dui).Height + 2*ui.space(dui).Y}
+	self.R = rect(ui.size)
+	return
 }
 
-func (ui *Field) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Field) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	dui.debugDraw("Field", self)
+
 	if ui.size.X <= 0 || ui.size.Y <= 0 {
 		return
 	}
@@ -288,11 +293,13 @@ func expandSelection(t string, i int) (s, e int) {
 	return
 }
 
-func (ui *Field) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
+func (ui *Field) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
+	if ui.Disabled {
+		return
+	}
 	if !origM.In(rect(ui.size)) {
 		return
 	}
-	r.Hit = ui
 	space := ui.space(dui)
 	locateCursor := func() int {
 		f := ui.font(dui)
@@ -315,12 +322,12 @@ func (ui *Field) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
 		ui.Cursor1 = 1 + locateCursor()
 		ui.SelectionStart1 = ui.Cursor1
 		r.Consumed = true
-		r.Draw = true
+		self.Draw = StateSelf
 	} else if ui.m.Buttons&1 == 1 || m.Buttons&1 == 1 {
 		// continue selection
 		ui.Cursor1 = 1 + locateCursor()
 		r.Consumed = true
-		r.Draw = true
+		self.Draw = StateSelf
 		if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 {
 			if m.Msec-ui.prevB1Release.Msec < 400 {
 				s, e := expandSelection(ui.Text, ui.cursor0())
@@ -349,17 +356,16 @@ func (ui *Field) fixCursor() {
 	}
 }
 
-func (ui *Field) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
-	if !m.In(rect(ui.size)) {
+func (ui *Field) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
+	if ui.Disabled {
 		return
 	}
-	r.Hit = ui
-	if ui.Disabled {
+	if !m.In(rect(ui.size)) {
 		return
 	}
 
 	if ui.Keys != nil {
-		ui.Keys(k, m, &r)
+		ui.Keys(k, m, &r, &self.Draw, &self.Layout)
 		if r.Consumed {
 			return
 		}
@@ -386,7 +392,7 @@ func (ui *Field) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result
 	}
 	switch k {
 	case draw.KeyPageUp, draw.KeyPageDown, draw.KeyUp, draw.KeyDown, '\t':
-		return Result{Hit: ui}
+		return
 	case draw.KeyLeft:
 		cursor0 = cursorPrev()
 		ui.SelectionStart1 = 0
@@ -495,9 +501,9 @@ func (ui *Field) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result
 	ui.Cursor1 = 1 + cursor0
 	ui.fixCursor()
 	r.Consumed = true
-	r.Draw = true
+	self.Draw = StateSelf
 	if ui.Changed != nil && origText != ui.Text {
-		ui.Changed(ui.Text, &r)
+		ui.Changed(ui.Text, &r, &self.Draw, &self.Layout)
 	}
 	return
 }
@@ -513,6 +519,10 @@ func (ui *Field) Focus(dui *DUI, o UI) *image.Point {
 	return ui.FirstFocus(dui)
 }
 
-func (ui *Field) Print(indent int, r image.Rectangle) {
-	PrintUI("Field", indent, r)
+func (ui *Field) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
+	return self.Mark(o, forLayout, state)
+}
+
+func (ui *Field) Print(self *Kid, indent int) {
+	PrintUI("Field", self, indent)
 }

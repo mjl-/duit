@@ -22,7 +22,12 @@ type Grid struct {
 
 var _ UI = &Grid{}
 
-func (ui *Grid) Layout(dui *DUI, size image.Point) image.Point {
+func (ui *Grid) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	dui.debugLayout("Grid", self)
+	if kidsLayout(dui, self, ui.Kids, force) {
+		return
+	}
+
 	if ui.Valign != nil && len(ui.Valign) != ui.Columns {
 		panic(fmt.Sprintf("len(valign) = %d, should be ui.Columns = %d", len(ui.Valign), ui.Columns))
 	}
@@ -37,7 +42,7 @@ func (ui *Grid) Layout(dui *DUI, size image.Point) image.Point {
 	}
 
 	scaledWidth := dui.Scale(ui.Width)
-	if scaledWidth > 0 && scaledWidth < size.X {
+	if scaledWidth > 0 && scaledWidth < sizeAvail.X {
 		ui.size.X = scaledWidth
 	}
 
@@ -62,16 +67,16 @@ func (ui *Grid) Layout(dui *DUI, size image.Point) image.Point {
 		space := spaces[col]
 		for i := col; i < len(ui.Kids); i += ui.Columns {
 			k := ui.Kids[i]
-			childSize := k.UI.Layout(dui, image.Pt(size.X-width-space.Dx(), size.Y-space.Dy()))
-			if childSize.X+space.Dx() > newDx {
-				newDx = childSize.X + space.Dx()
+			k.UI.Layout(dui, k, image.Pt(sizeAvail.X-width-space.Dx(), sizeAvail.Y-space.Dy()), true)
+			if k.R.Dx()+space.Dx() > newDx {
+				newDx = k.R.Dx() + space.Dx()
 			}
 		}
 		ui.widths[col] = newDx
 		width += ui.widths[col]
 	}
-	if scaledWidth < 0 && width < size.X {
-		leftover := size.X - width
+	if scaledWidth < 0 && width < sizeAvail.X {
+		leftover := sizeAvail.X - width
 		given := 0
 		for i, _ := range ui.widths {
 			x[i] += given
@@ -100,11 +105,11 @@ func (ui *Grid) Layout(dui *DUI, size image.Point) image.Point {
 		for col := 0; col < ui.Columns; col++ {
 			space := spaces[col]
 			k := ui.Kids[i+col]
-			childSize := k.UI.Layout(dui, image.Pt(ui.widths[col]-space.Dx(), size.Y-y[row]-space.Dy()))
+			k.UI.Layout(dui, k, image.Pt(ui.widths[col]-space.Dx(), sizeAvail.Y-y[row]-space.Dy()), true)
 			offset := image.Pt(x[col], y[row]).Add(space.Topleft())
-			k.R = rect(childSize).Add(offset) // aligned in top left, fixed for halign/valign later on
-			if childSize.Y+space.Dy() > rowDy {
-				rowDy = childSize.Y + space.Dy()
+			k.R = k.R.Add(offset) // aligned in top left, fixed for halign/valign later on
+			if k.R.Dy()+space.Dy() > rowDy {
+				rowDy = k.R.Dy() + space.Dy()
 			}
 		}
 		ui.heights[row] = rowDy
@@ -146,22 +151,22 @@ func (ui *Grid) Layout(dui *DUI, size image.Point) image.Point {
 	}
 
 	ui.size = image.Pt(width, height)
-	if ui.Width < 0 && ui.size.X < size.X {
-		ui.size.X = size.X
+	if ui.Width < 0 && ui.size.X < sizeAvail.X {
+		ui.size.X = sizeAvail.X
 	}
-	return ui.size
+	self.R = rect(ui.size)
 }
 
-func (ui *Grid) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
-	kidsDraw(dui, ui.Kids, ui.size, img, orig, m)
+func (ui *Grid) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	kidsDraw("Grid", dui, self, ui.Kids, ui.size, img, orig, m, force)
 }
 
-func (ui *Grid) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (result Result) {
-	return kidsMouse(dui, ui.Kids, m, origM)
+func (ui *Grid) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
+	return kidsMouse(dui, self, ui.Kids, m, origM, orig)
 }
 
-func (ui *Grid) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (result Result) {
-	return kidsKey(dui, ui, ui.Kids, k, m, orig)
+func (ui *Grid) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
+	return kidsKey(dui, self, ui.Kids, k, m, orig)
 }
 
 func (ui *Grid) FirstFocus(dui *DUI) *image.Point {
@@ -172,7 +177,11 @@ func (ui *Grid) Focus(dui *DUI, o UI) *image.Point {
 	return kidsFocus(dui, ui.Kids, o)
 }
 
-func (ui *Grid) Print(indent int, r image.Rectangle) {
-	PrintUI(fmt.Sprintf("Grid columns=%d padding=%v", ui.Columns, ui.Padding), indent, r)
+func (ui *Grid) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
+	return kidsMark(self, ui.Kids, o, forLayout, state)
+}
+
+func (ui *Grid) Print(self *Kid, indent int) {
+	PrintUI(fmt.Sprintf("Grid columns=%d padding=%v", ui.Columns, ui.Padding), self, indent)
 	kidsPrint(ui.Kids, indent+1)
 }

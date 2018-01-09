@@ -36,23 +36,29 @@ a b c d e f g h i j k l m n o p q r s t u v w x y z`))
 	var fontList *duit.List
 	fontList = &duit.List{
 		Values: fontValues,
-		Changed: func(index int, r *duit.Result) {
+		Changed: func(index int, r *duit.Result, draw, layout *duit.State) {
 			lv := fontList.Values[index]
 			// xxx todo should free font, but that seems to hang draw
 			if lv.Selected {
-				font, err := dui.Display.OpenFont("/mnt/font/" + lv.Text + "15a/font")
-				check(err, "open font")
-				edit.Font = font
+				go func() {
+					font, err := dui.Display.OpenFont("/mnt/font/" + lv.Text + "15a/font")
+					check(err, "open font")
+					dui.Call <- func() {
+						edit.Font = font
+						dui.Mark(edit, false, duit.StateSelf)
+						dui.Draw()
+					}
+				}()
 			} else {
 				edit.Font = nil
 			}
-			r.Draw = true
+			*draw = duit.StateSelf
 		},
 	}
 
 	search := &duit.Field{
 		Placeholder: "search...",
-		Changed: func(s string, r *duit.Result) {
+		Changed: func(s string, r *duit.Result, draw, layout *duit.State) {
 			s = strings.ToLower(s)
 			nl := []*duit.ListValue{}
 			for _, lv := range fontValues {
@@ -61,11 +67,11 @@ a b c d e f g h i j k l m n o p q r s t u v w x y z`))
 				}
 			}
 			fontList.Values = nl
-			r.Draw = true
+			*draw = duit.StateSelf
 		},
 	}
 
-	dui.Top = &duit.Horizontal{
+	dui.Top.UI = &duit.Horizontal{
 		Split: func(width int) []int {
 			first := dui.Scale(250)
 			return []int{first, width - first}
@@ -76,9 +82,7 @@ a b c d e f g h i j k l m n o p q r s t u v w x y z`))
 				Margin:  image.Pt(0, 4),
 				Kids: duit.NewKids(
 					search,
-					&duit.Scroll{
-						Child: fontList,
-					},
+					duit.NewScroll(fontList),
 				),
 			},
 			edit,
@@ -90,6 +94,9 @@ a b c d e f g h i j k l m n o p q r s t u v w x y z`))
 		select {
 		case e := <-dui.Events:
 			dui.Event(e)
+
+		case <-dui.Done:
+			return
 		}
 	}
 }

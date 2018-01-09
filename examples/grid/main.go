@@ -16,7 +16,7 @@ func main() {
 	dui, err := duit.NewDUI("page", "800x600")
 	check(err, "new dui")
 
-	dui.Top = &duit.Grid{
+	dui.Top.UI = &duit.Grid{
 		Columns: 3,
 		Valign:  []duit.Valign{duit.ValignTop, duit.ValignMiddle, duit.ValignBottom},
 		Halign:  []duit.Halign{duit.HalignLeft, duit.HalignMiddle, duit.HalignRight},
@@ -39,6 +39,9 @@ func main() {
 		select {
 		case e := <-dui.Events:
 			dui.Event(e)
+
+		case <-dui.Done:
+			return
 		}
 	}
 }

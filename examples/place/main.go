@@ -43,12 +43,10 @@ func main() {
 
 	var place *duit.Place
 	place = &duit.Place{
-		Place: func(sizeAvail image.Point) image.Point {
-			imageSize := place.Kids[0].UI.Layout(dui, sizeAvail)
-			place.Kids[0].R = rect(imageSize)
-			buttonSize := place.Kids[1].UI.Layout(dui, sizeAvail)
-			place.Kids[1].R = rect(buttonSize).Add(sizeAvail.Sub(buttonSize).Div(2))
-			return imageSize
+		Place: func(self *duit.Kid, sizeAvail image.Point) {
+			place.Kids[0].UI.Layout(dui, self, sizeAvail, true)
+			place.Kids[1].UI.Layout(dui, place.Kids[1], sizeAvail, true)
+			place.Kids[1].R = place.Kids[1].R.Add(sizeAvail.Sub(place.Kids[1].R.Size()).Div(2))
 		},
 		Kids: duit.NewKids(
 			&duit.Image{
@@ -57,13 +55,16 @@ func main() {
 			&duit.Button{Text: "testing"},
 		),
 	}
-	dui.Top = place
+	dui.Top.UI = place
 	dui.Render()
 
 	for {
 		select {
 		case e := <-dui.Events:
 			dui.Event(e)
+
+		case <-dui.Done:
+			return
 		}
 	}
 }

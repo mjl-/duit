@@ -31,7 +31,7 @@ const (
 
 type Edit struct {
 	Font *draw.Font
-	Keys func(k rune, m draw.Mouse, result *Result)
+	Keys func(k rune, m draw.Mouse, result *Result, draw, layout *State)
 
 	text    *text // what we are rendering.  offset & cursors index into this text
 	offset  int64 // byte offset of first line we draw
@@ -306,7 +306,9 @@ func (ui *Edit) font(dui *DUI) *draw.Font {
 	return dui.Font(ui.Font)
 }
 
-func (ui *Edit) Layout(dui *DUI, sizeAvail image.Point) (sizeTaken image.Point) {
+func (ui *Edit) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	dui.debugLayout("Edit", self)
+
 	ui.ensureInit()
 	ui.r = rect(sizeAvail)
 	ui.barR = ui.r
@@ -315,10 +317,12 @@ func (ui *Edit) Layout(dui *DUI, sizeAvail image.Point) (sizeTaken image.Point) 
 	ui.textR = ui.r
 	ui.textR.Min.X = ui.barR.Max.X
 	ui.textR = ui.textR.Inset(dui.Scale(4))
-	return sizeAvail
+	self.R = ui.r
 }
 
-func (ui *Edit) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	dui.debugDraw("Edit", self)
+
 	ui.ensureInit()
 	if ui.r.Empty() {
 		return
@@ -470,7 +474,7 @@ func (ui *Edit) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) 
 	img.Draw(ui.barActiveR.Add(orig), vis, nil, image.ZP)
 }
 
-func (ui *Edit) scroll(lines int, r *Result) {
+func (ui *Edit) scroll(lines int, self *Kid) {
 	offset := ui.offset
 	if lines > 0 {
 		rd := ui.reader(ui.offset, ui.text.Size())
@@ -488,7 +492,9 @@ func (ui *Edit) scroll(lines int, r *Result) {
 		offset = rd.Offset()
 	}
 
-	r.Draw = offset != ui.offset
+	if offset != ui.offset {
+		self.Draw = StateSelf
+	}
 	ui.offset = offset
 }
 
@@ -563,7 +569,7 @@ func (ui *Edit) expand(offset int64, fr, br *reader) (int64, int64) {
 	return offset - br.n, offset + fr.n
 }
 
-func (ui *Edit) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
+func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
 	ui.ensureInit()
 	font := ui.font(dui)
 	scrollLines := func(y int) int {
@@ -574,11 +580,10 @@ func (ui *Edit) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
 		}
 		return n
 	}
-	r.Hit = ui
 	if origM.In(ui.barR) {
 		switch m.Buttons {
 		case Button1:
-			ui.scroll(-scrollLines(origM.Y), &r)
+			ui.scroll(-scrollLines(origM.Y), self)
 		case Button2:
 			y := maximum(0, minimum(m.Y, ui.textR.Dy()))
 			rd := ui.revReader(ui.text.Size() * int64(y) / int64(ui.textR.Dy()))
@@ -589,14 +594,16 @@ func (ui *Edit) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
 				}
 				rd.Get()
 			}
-			r.Draw = rd.Offset() != ui.offset
+			if rd.Offset() != ui.offset {
+				self.Draw = StateSelf
+			}
 			ui.offset = rd.Offset()
 		case Button3:
-			ui.scroll(scrollLines(origM.Y), &r)
+			ui.scroll(scrollLines(origM.Y), self)
 		case Button4:
-			ui.scroll(-scrollLines(origM.Y/4), &r)
+			ui.scroll(-scrollLines(origM.Y/4), self)
 		case Button5:
-			ui.scroll(scrollLines(origM.Y/4), &r)
+			ui.scroll(scrollLines(origM.Y/4), self)
 		}
 		return
 	}
@@ -609,9 +616,9 @@ func (ui *Edit) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
 	ui.textM = m
 	switch m.Buttons {
 	case Button4:
-		ui.scroll(-scrollLines(m.Y/4), &r)
+		ui.scroll(-scrollLines(m.Y/4), self)
 	case Button5:
-		ui.scroll(scrollLines(m.Y/4), &r)
+		ui.scroll(scrollLines(m.Y/4), self)
 	default:
 		if m.Buttons == Button1 {
 			rrd := ui.revReader(ui.offset)
@@ -665,7 +672,7 @@ func (ui *Edit) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
 				ui.prevTextB1 = m
 			}
 			// xxx ensure cursor is visible, can happen when dragging outside UI, or through key commands
-			r.Draw = true
+			self.Draw = StateSelf
 			r.Consumed = true
 			return
 		}
@@ -791,9 +798,8 @@ func (ui *Edit) unindent(c0, c1 int64) int64 {
 	return int64(len(ns))
 }
 
-func (ui *Edit) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
+func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
 	ui.ensureInit()
-	r.Hit = ui
 	if m.In(ui.barR) {
 		log.Printf("key in scrollbar\n")
 		return
@@ -803,14 +809,14 @@ func (ui *Edit) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result)
 	}
 
 	if ui.Keys != nil {
-		ui.Keys(k, m, &r)
+		ui.Keys(k, m, &r, &self.Draw, &self.Layout)
 		if r.Consumed {
 			return
 		}
 	}
 
 	r.Consumed = true
-	r.Draw = true
+	self.Draw = StateSelf
 
 	switch ui.mode {
 	case modeCommand:
@@ -833,13 +839,13 @@ func (ui *Edit) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result)
 
 	switch k {
 	case draw.KeyPageUp:
-		ui.scroll(-lines/2, &r)
+		ui.scroll(-lines/2, self)
 	case draw.KeyPageDown:
-		ui.scroll(lines/2, &r)
+		ui.scroll(lines/2, self)
 	case draw.KeyUp:
-		ui.scroll(-lines/5, &r)
+		ui.scroll(-lines/5, self)
 	case draw.KeyDown:
-		ui.scroll(lines/5, &r)
+		ui.scroll(lines/5, self)
 	case draw.KeyLeft:
 		br.TryGet()
 		ui.cursor = br.Offset()
@@ -945,6 +951,10 @@ func (ui *Edit) Focus(dui *DUI, o UI) (warp *image.Point) {
 	return ui.FirstFocus(dui)
 }
 
-func (ui *Edit) Print(indent int, r image.Rectangle) {
-	PrintUI("Edit", indent, r)
+func (ui *Edit) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
+	return self.Mark(o, forLayout, state)
+}
+
+func (ui *Edit) Print(self *Kid, indent int) {
+	PrintUI("Edit", self, indent)
 }

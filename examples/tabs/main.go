@@ -16,7 +16,7 @@ func main() {
 	dui, err := duit.NewDUI("page", "800x600")
 	check(err, "new dui")
 
-	dui.Top = &duit.Tabs{
+	dui.Top.UI = &duit.Tabs{
 		Buttongroup: &duit.Buttongroup{
 			Texts: []string{
 				"tab1",
@@ -36,6 +36,9 @@ func main() {
 		select {
 		case e := <-dui.Events:
 			dui.Event(e)
+
+		case <-dui.Done:
+			return
 		}
 	}
 }

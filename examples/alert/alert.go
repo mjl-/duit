@@ -21,7 +21,7 @@ func main() {
 		Text: "type an alert message here",
 	}
 
-	dui.Top = &duit.Box{
+	dui.Top.UI = &duit.Box{
 		Padding: duit.SpaceXY(6, 4),
 		Margin:  image.Pt(6, 4),
 		Valign:  duit.ValignMiddle,
@@ -29,7 +29,7 @@ func main() {
 			field,
 			&duit.Button{
 				Text: "click me to create an alert",
-				Click: func(r *duit.Result) {
+				Click: func(r *duit.Result, _, _ *duit.State) {
 					go func() {
 						duit.Alert(field.Text)
 						log.Printf("alert is done\n")

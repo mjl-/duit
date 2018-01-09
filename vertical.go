@@ -16,32 +16,37 @@ type Vertical struct {
 
 var _ UI = &Vertical{}
 
-func (ui *Vertical) Layout(dui *DUI, size image.Point) image.Point {
-	heights := ui.Split(size.Y)
+func (ui *Vertical) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	dui.debugLayout("Vertical", self)
+	if kidsLayout(dui, self, ui.Kids, force) {
+		return
+	}
+
+	heights := ui.Split(sizeAvail.Y)
 	if len(heights) != len(ui.Kids) {
 		panic("bad number of heights from split")
 	}
 	ui.heights = heights
 	cur := image.ZP
 	for i, k := range ui.Kids {
-		childSize := k.UI.Layout(dui, image.Pt(size.X, heights[i]))
-		k.R = rect(childSize).Add(cur)
+		k.UI.Layout(dui, k, image.Pt(sizeAvail.X, heights[i]), true)
+		k.R = k.R.Add(cur)
 		cur.Y += heights[i]
 	}
-	ui.size = image.Pt(size.X, cur.Y)
-	return ui.size
+	ui.size = image.Pt(sizeAvail.X, cur.Y)
+	self.R = rect(ui.size)
 }
 
-func (ui *Vertical) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
-	kidsDraw(dui, ui.Kids, ui.size, img, orig, m)
+func (ui *Vertical) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	kidsDraw("Vertical", dui, self, ui.Kids, ui.size, img, orig, m, force)
 }
 
-func (ui *Vertical) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
-	return kidsMouse(dui, ui.Kids, m, origM)
+func (ui *Vertical) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
+	return kidsMouse(dui, self, ui.Kids, m, origM, orig)
 }
 
-func (ui *Vertical) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
-	return kidsKey(dui, ui, ui.Kids, k, m, orig)
+func (ui *Vertical) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
+	return kidsKey(dui, self, ui.Kids, k, m, orig)
 }
 
 func (ui *Vertical) FirstFocus(dui *DUI) *image.Point {
@@ -52,7 +57,11 @@ func (ui *Vertical) Focus(dui *DUI, o UI) *image.Point {
 	return kidsFocus(dui, ui.Kids, o)
 }
 
-func (ui *Vertical) Print(indent int, r image.Rectangle) {
-	PrintUI("Vertical", indent, r)
+func (ui *Vertical) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
+	return kidsMark(self, ui.Kids, o, forLayout, state)
+}
+
+func (ui *Vertical) Print(self *Kid, indent int) {
+	PrintUI("Vertical", self, indent)
 	kidsPrint(ui.Kids, indent+1)
 }

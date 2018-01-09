@@ -40,8 +40,8 @@ func main() {
 		},
 	}}, rows...)
 
-	dui.Top = &duit.Scroll{
-		Child: &duit.Gridlist{
+	dui.Top.UI = duit.NewScroll(
+		&duit.Gridlist{
 			Header:   duit.Gridrow{Values: []string{"col1", "col2", "col3"}},
 			Rows:     rows,
 			Multiple: true,
@@ -52,23 +52,26 @@ func main() {
 				duit.HalignRight,
 				duit.HalignLeft,
 			},
-			Changed: func(index int, result *duit.Result) {
+			Changed: func(index int, result *duit.Result, draw, layout *duit.State) {
 				log.Printf("gridlist, index %d changed\n", index)
 			},
-			Click: func(index int, m draw.Mouse, r *duit.Result) {
+			Click: func(index int, m draw.Mouse, r *duit.Result, draw, layout *duit.State) {
 				log.Printf("gridlist, click, index %d, m %d\n", index, m)
 			},
-			Keys: func(index int, k rune, m draw.Mouse, r *duit.Result) {
+			Keys: func(index int, k rune, m draw.Mouse, r *duit.Result, draw, layout *duit.State) {
 				log.Printf("gridlist, key %c at index %d, mouse %v\n", k, index, m)
 			},
 		},
-	}
+	)
 	dui.Render()
 
 	for {
 		select {
 		case e := <-dui.Events:
 			dui.Event(e)
+
+		case <-dui.Done:
+			return
 		}
 	}
 }

@@ -7,7 +7,7 @@ import (
 )
 
 type Place struct {
-	Place func(sizeAvail image.Point) (sizeTaken image.Point)
+	Place func(self *Kid, sizeAvail image.Point)
 	Kids  []*Kid
 
 	kidsReversed []*Kid
@@ -26,22 +26,23 @@ func (ui *Place) ensure() {
 	}
 }
 
-func (ui *Place) Layout(dui *DUI, sizeAvail image.Point) (sizeTaken image.Point) {
+func (ui *Place) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	dui.debugLayout("Place", self)
+
 	ui.ensure()
-	ui.size = ui.Place(sizeAvail)
-	return ui.size
+	ui.Place(self, sizeAvail)
 }
 
-func (ui *Place) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
-	kidsDraw(dui, ui.Kids, ui.size, img, orig, m)
+func (ui *Place) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	kidsDraw("Place", dui, self, ui.Kids, ui.size, img, orig, m, force)
 }
 
-func (ui *Place) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
-	return kidsMouse(dui, ui.kidsReversed, m, origM)
+func (ui *Place) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
+	return kidsMouse(dui, self, ui.kidsReversed, m, origM, orig)
 }
 
-func (ui *Place) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
-	return kidsKey(dui, ui, ui.kidsReversed, k, m, orig)
+func (ui *Place) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
+	return kidsKey(dui, self, ui.kidsReversed, k, m, orig)
 }
 
 func (ui *Place) FirstFocus(dui *DUI) (warp *image.Point) {
@@ -52,7 +53,11 @@ func (ui *Place) Focus(dui *DUI, o UI) (warp *image.Point) {
 	return kidsFocus(dui, ui.Kids, o)
 }
 
-func (ui *Place) Print(indent int, r image.Rectangle) {
-	PrintUI("Place", indent, r)
+func (ui *Place) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
+	return kidsMark(self, ui.Kids, o, forLayout, state)
+}
+
+func (ui *Place) Print(self *Kid, indent int) {
+	PrintUI("Place", self, indent)
 	kidsPrint(ui.Kids, indent+1)
 }

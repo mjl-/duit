@@ -59,7 +59,7 @@ func main() {
 	radio1.Group = group
 	radio2.Group = group
 
-	dui.Top = duit.NewBox(
+	dui.Top.UI = duit.NewBox(
 		&duit.Vertical{
 			Split: func(height int) []int {
 				row1 := height / 4
@@ -67,10 +67,10 @@ func main() {
 				row3 := height - row1 - row2
 				return []int{row1, row2, row3}
 			},
-			Kids: []*duit.Kid{
-				{UI: &duit.Label{Text: "in row 1"}},
-				{UI: &duit.Scroll{
-					Child: &duit.Grid{
+			Kids: duit.NewKids(
+				&duit.Label{Text: "in row 1"},
+				duit.NewScroll(
+					&duit.Grid{
 						Columns: 2,
 						Padding: duit.NSpace(2, duit.SpaceXY(6, 4)),
 						Halign:  []duit.Halign{duit.HalignRight, duit.HalignLeft},
@@ -99,9 +99,9 @@ func main() {
 							{UI: radio2},
 						},
 					},
-				}},
-				{UI: &duit.Scroll{
-					Child: &duit.Box{
+				),
+				duit.NewScroll(
+					&duit.Box{
 						Reverse: true,
 						Padding: duit.SpaceXY(6, 4),
 						Margin:  image.Pt(6, 4),
@@ -111,14 +111,14 @@ func main() {
 							&duit.Button{
 								Text:     "button1",
 								Colorset: &dui.Primary,
-								Click: func(r *duit.Result) {
+								Click: func(r *duit.Result, draw, layout *duit.State) {
 									log.Printf("button clicked")
 								},
 							},
 							&duit.Button{
 								Text:     "button2",
 								Disabled: true,
-								Click: func(r *duit.Result) {
+								Click: func(r *duit.Result, draw, layout *duit.State) {
 								},
 							},
 							&duit.List{
@@ -144,7 +144,7 @@ func main() {
 								},
 							},
 							&duit.Label{Text: "Another box with a scrollbar:"},
-							&duit.Scroll{Child: &duit.Box{
+							duit.NewScroll(&duit.Box{
 								Padding: duit.SpaceXY(6, 4),
 								Margin:  image.Pt(6, 4),
 								Kids: duit.NewKids(
@@ -159,7 +159,7 @@ func main() {
 									&duit.Field{Text: "A field!!"},
 									duit.NewBox(&duit.Image{Image: readImagePath("test.jpg")}),
 								),
-							}},
+							}),
 							&duit.Button{Text: "button3"},
 							&duit.Field{Text: "field 2"},
 							&duit.Field{Text: "field 3"},
@@ -170,15 +170,19 @@ func main() {
 							&duit.Label{Text: "this is a label"},
 						),
 					},
-				}},
-			},
-		})
+				),
+			),
+		},
+	)
 	dui.Render()
 
 	for {
 		select {
 		case e := <-dui.Events:
 			dui.Event(e)
+
+		case <-dui.Done:
+			return
 
 		case <-tick:
 			count++

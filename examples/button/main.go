@@ -16,16 +16,11 @@ func main() {
 	dui, err := duit.NewDUI("page", "800x600")
 	check(err, "new dui")
 
-	dui.Top.UI = &duit.Vertical{
-		Split: func(height int) []int {
-			p := height / 4
-			return []int{p, p, height - 2*p}
+	dui.Top.UI = &duit.Button{
+		Text: "click me",
+		Click: func(r *duit.Result, draw, layout *duit.State) {
+			log.Printf("clicked\n")
 		},
-		Kids: duit.NewKids(
-			&duit.Button{Text: "button1"},
-			&duit.Button{Text: "button2"},
-			&duit.Button{Text: "button3"},
-		),
 	}
 	dui.Render()
 

@@ -12,26 +12,30 @@ type Image struct {
 
 var _ UI = &Image{}
 
-func (ui *Image) Layout(dui *DUI, size image.Point) image.Point {
+func (ui *Image) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	dui.debugLayout("Image", self)
 	if ui.Image == nil {
-		return image.ZP
+		self.R = image.ZR
+	} else {
+		self.R = rect(ui.Image.R.Size())
 	}
-	return ui.Image.R.Size()
+	return
 }
 
-func (ui *Image) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Image) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	dui.debugDraw("Image", self)
 	if ui.Image == nil {
 		return
 	}
-	img.Draw(image.Rectangle{orig, orig.Add(ui.Image.R.Size())}, ui.Image, nil, image.ZP)
+	img.Draw(ui.Image.R.Add(orig), ui.Image, nil, image.ZP)
 }
 
-func (ui *Image) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) Result {
-	return Result{Hit: ui}
+func (ui *Image) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
+	return
 }
 
-func (ui *Image) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) Result {
-	return Result{Hit: ui}
+func (ui *Image) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
+	return
 }
 
 func (ui *Image) FirstFocus(dui *DUI) *image.Point {
@@ -45,6 +49,10 @@ func (ui *Image) Focus(dui *DUI, o UI) *image.Point {
 	return &image.ZP
 }
 
-func (ui *Image) Print(indent int, r image.Rectangle) {
-	PrintUI("Image", indent, r)
+func (ui *Image) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
+	return self.Mark(o, forLayout, state)
+}
+
+func (ui *Image) Print(self *Kid, indent int) {
+	PrintUI("Image", self, indent)
 }

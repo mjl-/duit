@@ -37,7 +37,7 @@ func main() {
 		return img
 	}
 
-	dui.Top = &duit.Image{
+	dui.Top.UI = &duit.Image{
 		Image: readImagePath(args[0]),
 	}
 	dui.Render()
@@ -46,6 +46,9 @@ func main() {
 		select {
 		case e := <-dui.Events:
 			dui.Event(e)
+
+		case <-dui.Done:
+			return
 		}
 	}
 }

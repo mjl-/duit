@@ -2,6 +2,7 @@ package duit
 
 import (
 	"image"
+	"log"
 
 	"9fans.net/go/draw"
 )
@@ -12,9 +13,10 @@ type Button struct {
 	Disabled bool
 	Colorset *Colorset
 	Font     *draw.Font
-	Click    func(r *Result)
+	Click    func(r *Result, draw, layout *State)
 
-	m draw.Mouse
+	m    draw.Mouse
+	size image.Point
 }
 
 var _ UI = &Button{}
@@ -32,16 +34,21 @@ func (ui *Button) padding(dui *DUI) image.Point {
 	return image.Pt(fontHeight/2, fontHeight/4)
 }
 
-func (ui *Button) Layout(dui *DUI, sizeAvail image.Point) (sizeTaken image.Point) {
-	sizeTaken = ui.font(dui).StringSize(ui.Text).Add(ui.space(dui).Mul(2))
+func (ui *Button) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	dui.debugLayout("Button", self)
+
+	size := ui.font(dui).StringSize(ui.Text).Add(ui.space(dui).Mul(2))
 	if ui.Icon.Font != nil {
-		sizeTaken.X += ui.Icon.Font.StringSize(string(ui.Icon.Rune)).X
-		sizeTaken.X += ui.font(dui).StringSize("  ").X
+		size.X += ui.Icon.Font.StringSize(string(ui.Icon.Rune)).X
+		size.X += ui.font(dui).StringSize("  ").X
 	}
-	return sizeTaken
+	ui.size = size
+	self.R = rect(size)
 }
 
-func (ui *Button) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Button) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	dui.debugDraw("Button", self)
+
 	text := ui.Text
 	iconSize := image.ZP
 	if ui.Icon.Font != nil {
@@ -83,24 +90,29 @@ func (ui *Button) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse
 	img.String(p, colors.Text, image.ZP, ui.font(dui), text)
 }
 
-func (ui *Button) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) Result {
-	r := Result{Hit: ui}
-	if ui.m.Buttons&1 != m.Buttons&1 {
-		r.Draw = true
+func (ui *Button) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
+	if ui.Disabled {
+		return
 	}
-	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 && ui.Click != nil && !ui.Disabled && m.Point.In(rect(ui.Layout(dui, image.ZP))) {
-		ui.Click(&r)
+	rr := rect(ui.size)
+	ohover := ui.m.In(rr)
+	hover := m.In(rr)
+	if ohover != hover || ui.m.Buttons&Button1 != m.Buttons&Button1 {
+		log.Printf("hover or buttons changed, drawing self!\n")
+		self.Draw = StateSelf
+	}
+	if hover && ui.m.Buttons&Button1 == Button1 && m.Buttons&Button1 == 0 && ui.Click != nil {
+		ui.Click(&r, &self.Draw, &self.Layout)
 	}
 	ui.m = m
 	return r
 }
 
-func (ui *Button) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
-	r.Hit = ui
+func (ui *Button) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
 	if !ui.Disabled && (k == ' ' || k == '\n') {
 		r.Consumed = true
 		if ui.Click != nil {
-			ui.Click(&r)
+			ui.Click(&r, &self.Draw, &self.Layout)
 		}
 	}
 	return
@@ -118,6 +130,10 @@ func (ui *Button) Focus(dui *DUI, o UI) *image.Point {
 	return ui.FirstFocus(dui)
 }
 
-func (ui *Button) Print(indent int, r image.Rectangle) {
-	PrintUI("Button", indent, r)
+func (ui *Button) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
+	return self.Mark(o, forLayout, state)
+}
+
+func (ui *Button) Print(self *Kid, indent int) {
+	PrintUI("Button", self, indent)
 }

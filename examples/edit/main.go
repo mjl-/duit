@@ -38,7 +38,7 @@ func main() {
 
 	print := &duit.Button{
 		Text: "print",
-		Click: func(r *duit.Result) {
+		Click: func(r *duit.Result, _, _ *duit.State) {
 			rd := edit.Reader()
 			n, err := io.Copy(os.Stdout, rd)
 			if err != nil {
@@ -48,13 +48,16 @@ func main() {
 		},
 	}
 
-	dui.Top = &duit.Box{Kids: duit.NewKids(print, edit)}
+	dui.Top.UI = &duit.Box{Kids: duit.NewKids(print, edit)}
 	dui.Render()
 
 	for {
 		select {
 		case e := <-dui.Events:
 			dui.Event(e)
+
+		case <-dui.Done:
+			return
 		}
 	}
 }

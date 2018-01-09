@@ -54,3 +54,9 @@ func maximum(a, b int) int {
 	}
 	return b
 }
+
+func assertClean(state State) {
+	if state != StateClean {
+		panic("state not clean")
+	}
+}

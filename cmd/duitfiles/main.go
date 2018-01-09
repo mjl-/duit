@@ -132,7 +132,7 @@ func main() {
 
 	favoritesUI = &duit.List{
 		Values: favorites,
-		Changed: func(index int, r *duit.Result) {
+		Changed: func(index int, r *duit.Result, draw, layout *duit.State) {
 			activeFavorite = favoritesUI.Values[index]
 			activeFavorite.Selected = true
 			path := activeFavorite.Value.(string)
@@ -142,7 +142,7 @@ func main() {
 				{name: "", names: listDir(path)},
 			}
 			columnsUI.Kids = duit.NewKids(makeColumnUI(0, columns[0]))
-			r.Layout = true
+			*layout = duit.StateSelf // xxx probably propagate to top?
 		},
 	}
 	activeFavorite = favoritesUI.Values[0]
@@ -158,7 +158,7 @@ func main() {
 
 	favoriteToggle = &duit.Button{
 		Text: "-",
-		Click: func(r *duit.Result) {
+		Click: func(r *duit.Result, draw, layout *duit.State) {
 			log.Printf("toggle favorite\n")
 			for _, lv := range favoritesUI.Values {
 				lv.Selected = false
@@ -185,7 +185,7 @@ func main() {
 			}
 			err := saveFavorites(favoritesUI.Values)
 			check(err, "saving favorites")
-			r.Layout = true
+			*layout = duit.StateSelf // xxx probably propagate to top
 		},
 	}
 
@@ -197,15 +197,15 @@ func main() {
 		var list *duit.List
 		list = &duit.List{
 			Values: l,
-			Changed: func(index int, result *duit.Result) {
+			Changed: func(index int, result *duit.Result, draw, layout *duit.State) {
 				if list.Values[index].Selected {
 					selectName(colIndex, list.Values[index].Value.(string))
-					result.Layout = true
+					*layout = duit.StateSelf // xxx propagate to top?
 				} else {
 					selectName(colIndex, "")
 				}
 			},
-			Click: func(index int, m draw.Mouse, r *duit.Result) {
+			Click: func(index int, m draw.Mouse, r *duit.Result, draw, layout *duit.State) {
 				if m.Buttons != 1<<2 {
 					return
 				}
@@ -213,7 +213,7 @@ func main() {
 				open(path)
 				r.Consumed = true
 			},
-			Keys: func(index int, k rune, m draw.Mouse, r *duit.Result) {
+			Keys: func(index int, k rune, m draw.Mouse, r *duit.Result, xdraw, layout *duit.State) {
 				log.Printf("list.keys, k %x %c %v\n", k, k, k)
 				switch k {
 				case '\n':
@@ -224,10 +224,10 @@ func main() {
 					r.Consumed = true
 					if colIndex > 0 {
 						selectName(colIndex-1, "")
-						r.Layout = true
+						*layout = duit.StateSelf
 					} else {
 						selectName(colIndex, "")
-						r.Draw = true
+						*xdraw = duit.StateSelf
 					}
 				case draw.KeyRight:
 					elem := list.Values[index].Value.(string)
@@ -240,9 +240,9 @@ func main() {
 							selectName(colIndex+1, columns[colIndex+1].names[0])
 						}
 						dui.Render()
-						newList := columnsUI.Kids[len(columnsUI.Kids)-1].UI.(*duit.Box).Kids[1].UI.(*duit.Scroll).Child
+						newList := columnsUI.Kids[len(columnsUI.Kids)-1].UI.(*duit.Box).Kids[1].UI.(*duit.Scroll).Kid.UI
 						dui.Focus(newList)
-						r.Layout = true
+						*layout = duit.StateSelf // xxx propagate?
 					}
 				}
 			},
@@ -252,7 +252,7 @@ func main() {
 			Margin:  image.Pt(6, 4),
 			Kids: duit.NewKids(
 				&duit.Field{
-					Changed: func(newValue string, result *duit.Result) {
+					Changed: func(newValue string, result *duit.Result, draw, layout *duit.State) {
 						nl := []*duit.ListValue{}
 						exactMatch := false
 						for _, name := range c.names {
@@ -268,7 +268,7 @@ func main() {
 							dui.Focus(field)
 						}
 						list.Values = nl
-						result.Layout = true
+						*layout = duit.StateSelf // xxx propagate?
 					},
 				},
 				duit.NewScroll(list),
@@ -328,7 +328,7 @@ func main() {
 		columnsUI.Kids = append(columnsUI.Kids, &duit.Kid{UI: makeColumnUI(len(columns)-1, newCol)})
 	}
 
-	dui.Top = &duit.Box{
+	dui.Top.UI = &duit.Box{
 		Padding: duit.SpaceXY(6, 4),
 		Margin:  image.Pt(6, 4),
 		Valign:  duit.ValignMiddle,

@@ -16,12 +16,17 @@ type Checkbox struct {
 
 var _ UI = &Checkbox{}
 
-func (ui *Checkbox) Layout(dui *DUI, size image.Point) image.Point {
+func (ui *Checkbox) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	dui.debugLayout("Checkbox", self)
 	hit := image.Point{0, 1}
-	return pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5).Add(hit)
+	size := pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5).Add(hit)
+	self.R = rect(size)
+	return
 }
 
-func (ui *Checkbox) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Checkbox) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	dui.debugDraw("Checkbox", self)
+
 	r := rect(pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5))
 	hover := m.In(r)
 	r = r.Add(orig)
@@ -55,18 +60,17 @@ func (ui *Checkbox) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mou
 	}
 }
 
-func (ui *Checkbox) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
-	r.Hit = ui
+func (ui *Checkbox) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
 	if ui.Disabled {
 		return
 	}
 	rr := rect(pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5))
 	hover := m.In(rr)
 	if hover != ui.m.In(rr) {
-		r.Draw = true
+		self.Draw = StateSelf
 	}
 	if hover && ui.m.Buttons&1 != m.Buttons&1 {
-		r.Draw = true
+		self.Draw = StateSelf
 		if m.Buttons&1 == 0 {
 			r.Consumed = true
 			ui.Checked = !ui.Checked
@@ -79,11 +83,13 @@ func (ui *Checkbox) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
 	return
 }
 
-func (ui *Checkbox) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
-	r.Hit = ui
+func (ui *Checkbox) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
+	if ui.Disabled {
+		return
+	}
 	if k == ' ' {
 		r.Consumed = true
-		r.Draw = true
+		self.Draw = StateSelf
 		ui.Checked = !ui.Checked
 		if ui.Changed != nil {
 			ui.Changed(&r)
@@ -103,6 +109,10 @@ func (ui *Checkbox) Focus(dui *DUI, o UI) *image.Point {
 	return ui.FirstFocus(dui)
 }
 
-func (ui *Checkbox) Print(indent int, r image.Rectangle) {
-	PrintUI("Checkbox", indent, r)
+func (ui *Checkbox) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
+	return self.Mark(o, forLayout, state)
+}
+
+func (ui *Checkbox) Print(self *Kid, indent int) {
+	PrintUI("Checkbox", self, indent)
 }

@@ -8,40 +8,46 @@ import (
 
 // Middle lays out a single child in the middle of the available space, both vertically and horizontally.
 type Middle struct {
-	UI UI
+	Kid *Kid
 
 	kids []*Kid
 	size image.Point
 }
 
 func NewMiddle(ui UI) *Middle {
-	return &Middle{UI: ui, kids: NewKids(ui)}
+	return &Middle{Kid: &Kid{UI: ui}}
 }
 
 func (ui *Middle) ensure() {
-	if len(ui.kids) != 1 || ui.kids[0].UI != ui.UI {
-		ui.kids = NewKids(ui.UI)
+	if len(ui.kids) != 1 {
+		ui.kids = make([]*Kid, 1)
 	}
+	ui.kids[0] = ui.Kid
 }
 
-func (ui *Middle) Layout(dui *DUI, sizeAvail image.Point) (sizeTaken image.Point) {
-	size := ui.UI.Layout(dui, sizeAvail)
-	left := sizeAvail.Sub(size)
-	ui.kids[0].R = rect(size).Add(image.Pt(maximum(0, left.X/2), maximum(0, left.Y/2)))
-	ui.size = image.Pt(maximum(size.X, sizeAvail.X), maximum(size.Y, sizeAvail.Y))
-	return ui.size
+func (ui *Middle) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	dui.debugLayout("Middle", self)
+	if kidsLayout(dui, self, ui.kids, force) {
+		return
+	}
+
+	ui.Kid.UI.Layout(dui, ui.Kid, sizeAvail, true)
+	left := sizeAvail.Sub(ui.Kid.R.Size())
+	ui.Kid.R = ui.Kid.R.Add(image.Pt(maximum(0, left.X/2), maximum(0, left.Y/2)))
+	ui.size = image.Pt(maximum(ui.Kid.R.Dx(), sizeAvail.X), maximum(ui.Kid.R.Dy(), sizeAvail.Y))
+	self.R = rect(ui.size)
 }
 
-func (ui *Middle) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
-	kidsDraw(dui, ui.kids, ui.size, img, orig, m)
+func (ui *Middle) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	kidsDraw("Middle", dui, self, ui.kids, ui.size, img, orig, m, force)
 }
 
-func (ui *Middle) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
-	return kidsMouse(dui, ui.kids, m, origM)
+func (ui *Middle) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
+	return kidsMouse(dui, self, ui.kids, m, origM, orig)
 }
 
-func (ui *Middle) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
-	return kidsKey(dui, ui, ui.kids, k, m, orig)
+func (ui *Middle) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
+	return kidsKey(dui, self, ui.kids, k, m, orig)
 }
 
 func (ui *Middle) FirstFocus(dui *DUI) (warp *image.Point) {
@@ -52,7 +58,11 @@ func (ui *Middle) Focus(dui *DUI, o UI) (warp *image.Point) {
 	return kidsFocus(dui, ui.kids, o)
 }
 
-func (ui *Middle) Print(indent int, r image.Rectangle) {
-	PrintUI("Middle", indent, r)
+func (ui *Middle) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
+	return kidsMark(self, ui.kids, o, forLayout, state)
+}
+
+func (ui *Middle) Print(self *Kid, indent int) {
+	PrintUI("Middle", self, indent)
 	kidsPrint(ui.kids, indent+1)
 }

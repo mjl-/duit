@@ -8,7 +8,7 @@ func Alert(s string) {
 	dui, err := NewDUI("alert", "300x200")
 	check(err, "alert")
 
-	dui.Top = NewMiddle(
+	dui.Top.UI = NewMiddle(
 		&Box{
 			Kids: NewKids(
 				&Box{
@@ -22,7 +22,7 @@ func Alert(s string) {
 					&Button{
 						Colorset: &dui.Primary,
 						Text:     "OK",
-						Click: func(nil *Result) {
+						Click: func(_ *Result, _, _ *State) {
 							stop <- struct{}{}
 						},
 					},

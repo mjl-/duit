@@ -16,9 +16,9 @@ type List struct {
 	Values   []*ListValue
 	Multiple bool
 	Font     *draw.Font
-	Changed  func(index int, result *Result)
-	Click    func(index int, m draw.Mouse, r *Result)
-	Keys     func(index int, k rune, m draw.Mouse, r *Result)
+	Changed  func(index int, result *Result, draw, layout *State)
+	Click    func(index int, m draw.Mouse, r *Result, draw, layout *State)
+	Keys     func(index int, k rune, m draw.Mouse, r *Result, draw, layout *State)
 
 	m    draw.Mouse
 	size image.Point
@@ -30,12 +30,15 @@ func (ui *List) font(dui *DUI) *draw.Font {
 	return dui.Font(ui.Font)
 }
 
-func (ui *List) Layout(dui *DUI, size image.Point) image.Point {
-	ui.size = image.Pt(size.X, len(ui.Values)*(4*ui.font(dui).Height/3))
-	return ui.size
+func (ui *List) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	dui.debugLayout("List", self)
+	ui.size = image.Pt(sizeAvail.X, len(ui.Values)*(4*ui.font(dui).Height/3))
+	self.R = rect(ui.size)
 }
 
-func (ui *List) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *List) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	dui.debugDraw("Label", self)
+
 	font := ui.font(dui)
 	r := rect(ui.size).Add(orig)
 	img.Draw(r, dui.Background, nil, image.ZP)
@@ -53,8 +56,7 @@ func (ui *List) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) 
 	}
 }
 
-func (ui *List) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (result Result) {
-	result.Hit = ui
+func (ui *List) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
 	prevM := ui.m
 	ui.m = m
 	if !m.In(rect(ui.size)) {
@@ -63,9 +65,9 @@ func (ui *List) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (result Result) 
 	font := ui.font(dui)
 	index := m.Y / (4 * font.Height / 3)
 	if m.Buttons != 0 && prevM.Buttons^m.Buttons != 0 && ui.Click != nil {
-		ui.Click(index, m, &result)
+		ui.Click(index, m, &r, &self.Draw, &self.Layout)
 	}
-	if !result.Consumed && prevM.Buttons == 0 && m.Buttons == Button1 {
+	if !r.Consumed && prevM.Buttons == 0 && m.Buttons == Button1 {
 		v := ui.Values[index]
 		v.Selected = !v.Selected
 		if v.Selected && !ui.Multiple {
@@ -76,10 +78,10 @@ func (ui *List) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (result Result) 
 			}
 		}
 		if ui.Changed != nil {
-			ui.Changed(index, &result)
+			ui.Changed(index, &r, &self.Draw, &self.Layout)
 		}
-		result.Draw = true
-		result.Consumed = true
+		self.Draw = StateSelf
+		r.Consumed = true
 	}
 	return
 }
@@ -110,8 +112,7 @@ func (ui *List) Unselect(indices []int) {
 	}
 }
 
-func (ui *List) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
-	r.Hit = ui
+func (ui *List) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
 	if !m.In(rect(ui.size)) {
 		return
 	}
@@ -122,7 +123,7 @@ func (ui *List) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result)
 		if len(sel) == 1 {
 			index = sel[0]
 		}
-		ui.Keys(index, k, m, &r)
+		ui.Keys(index, k, m, &r, &self.Draw, &self.Layout)
 		if r.Consumed {
 			return
 		}
@@ -155,13 +156,13 @@ func (ui *List) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result)
 		}
 		if oindex >= 0 {
 			ui.Values[oindex].Selected = false
-			r.Draw = true
+			self.Draw = StateSelf
 		}
 		if nindex >= 0 {
 			ui.Values[nindex].Selected = true
-			r.Draw = true
+			self.Draw = StateSelf
 			if ui.Changed != nil {
-				ui.Changed(nindex, &r)
+				ui.Changed(nindex, &r, &self.Draw, &self.Layout)
 			}
 			// xxx orig probably should not be a part in this...
 			font := ui.font(dui)
@@ -183,6 +184,10 @@ func (ui *List) Focus(dui *DUI, o UI) *image.Point {
 	return ui.FirstFocus(dui)
 }
 
-func (ui *List) Print(indent int, r image.Rectangle) {
-	PrintUI("List", indent, r)
+func (ui *List) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
+	return self.Mark(o, forLayout, state)
+}
+
+func (ui *List) Print(self *Kid, indent int) {
+	PrintUI("List", self, indent)
 }

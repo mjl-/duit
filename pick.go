@@ -12,21 +12,29 @@ type Pick struct {
 	ui UI
 }
 
-func (ui *Pick) Layout(dui *DUI, sizeAvail image.Point) (sizeTaken image.Point) {
+func (ui *Pick) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	dui.debugLayout("Pick", self)
+
+	if self.Layout == StateClean && !force {
+		return
+	}
+
+	oui := ui.ui
 	ui.ui = ui.Pick(sizeAvail)
-	return ui.ui.Layout(dui, sizeAvail)
+	ui.ui.Layout(dui, self, sizeAvail, force || oui != ui.ui)
 }
 
-func (ui *Pick) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
-	ui.ui.Draw(dui, img, orig, m)
+func (ui *Pick) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	dui.debugDraw("Pick", self)
+	ui.ui.Draw(dui, self, img, orig, m, force)
 }
 
-func (ui *Pick) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
-	return ui.ui.Mouse(dui, m, origM)
+func (ui *Pick) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
+	return ui.ui.Mouse(dui, self, m, origM, orig)
 }
 
-func (ui *Pick) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
-	return ui.ui.Key(dui, k, m, orig)
+func (ui *Pick) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
+	return ui.ui.Key(dui, self, k, m, orig)
 }
 
 func (ui *Pick) FirstFocus(dui *DUI) (warp *image.Point) {
@@ -37,7 +45,13 @@ func (ui *Pick) Focus(dui *DUI, o UI) (warp *image.Point) {
 	return ui.ui.Focus(dui, o)
 }
 
-func (ui *Pick) Print(indent int, r image.Rectangle) {
-	PrintUI("Pick", indent, r)
-	ui.ui.Print(indent+1, r)
+func (ui *Pick) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
+	return ui.ui.Mark(self, o, forLayout, state)
+}
+
+func (ui *Pick) Print(self *Kid, indent int) {
+	PrintUI("Pick", self, indent)
+	if ui.ui != nil {
+		ui.ui.Print(self, indent+1)
+	}
 }

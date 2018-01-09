@@ -17,27 +17,29 @@ type Tabs struct {
 var _ UI = &Tabs{}
 
 // ensure Box is set up properly
-func (ui *Tabs) ensure() {
+func (ui *Tabs) ensure(dui *DUI) {
 	if ui.Box.Kids == nil {
 		if len(ui.UIs) != len(ui.Buttongroup.Texts) {
 			panic(fmt.Sprintf("bad Tabs, len(UIs) = %d must be equal to len(ui.Buttongroup.Texts) %d", len(ui.UIs), len(ui.Buttongroup.Texts)))
 		}
 		ui.Box.Kids = NewKids(CenterUI(SpaceXY(4, 4), ui.Buttongroup), ui.UIs[ui.Buttongroup.Selected])
-		ui.Buttongroup.Changed = func(index int, r *Result) {
-			ui.Box.Kids[1] = &Kid{UI: ui.UIs[index]}
+		ui.Buttongroup.Changed = func(index int, r *Result, draw, layout *State) {
+			k := ui.Box.Kids[1]
+			k.UI = ui.UIs[index]
 			r.Consumed = true
-			r.Layout = true
+			*layout = StateSelf
+			dui.Mark(k.UI, true, StateSelf)
 		}
 	}
 }
 
-func (ui *Tabs) Layout(dui *DUI, sizeAvail image.Point) image.Point {
-	ui.ensure()
-	return ui.Box.Layout(dui, sizeAvail)
+func (ui *Tabs) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	ui.ensure(dui)
+	ui.Box.Layout(dui, self, sizeAvail, force)
 }
 
-func (ui *Tabs) Print(indent int, r image.Rectangle) {
-	PrintUI("Tabs", indent, r)
-	PrintUI("Box", indent+1, r)
+func (ui *Tabs) Print(self *Kid, indent int) {
+	PrintUI("Tabs", self, indent)
+	PrintUI("Box", self, indent+1)
 	kidsPrint(ui.Box.Kids, indent+2)
 }

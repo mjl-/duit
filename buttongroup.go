@@ -11,7 +11,7 @@ type Buttongroup struct {
 	Selected int
 	Disabled bool
 	Font     *draw.Font
-	Changed  func(index int, r *Result)
+	Changed  func(index int, r *Result, draw, layout *State)
 
 	m    draw.Mouse
 	size image.Point
@@ -28,9 +28,10 @@ func (ui *Buttongroup) padding(dui *DUI) image.Point {
 	return image.Pt(fontHeight/2, fontHeight/4)
 }
 
-func (ui *Buttongroup) Layout(dui *DUI, sizeAvail image.Point) (size image.Point) {
+func (ui *Buttongroup) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	dui.debugLayout("Buttongroup", self)
 	pad2 := ui.padding(dui).Mul(2)
-	size = pt(BorderSize).Mul(2)
+	size := pt(BorderSize).Mul(2)
 	size.Y = pad2.Y + ui.font(dui).Height
 	font := ui.font(dui)
 	for i, t := range ui.Texts {
@@ -40,6 +41,7 @@ func (ui *Buttongroup) Layout(dui *DUI, sizeAvail image.Point) (size image.Point
 		}
 	}
 	ui.size = size
+	self.R = rect(size)
 	return
 }
 
@@ -50,7 +52,9 @@ func (ui *Buttongroup) selected() int {
 	return ui.Selected
 }
 
-func (ui *Buttongroup) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Buttongroup) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	dui.debugDraw("Buttongroup", self)
+
 	if len(ui.Texts) == 0 {
 		return
 	}
@@ -111,28 +115,26 @@ func (ui *Buttongroup) findIndex(dui *DUI, m draw.Mouse) (int, int, int) {
 	return -1, 0, 0
 }
 
-func (ui *Buttongroup) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) Result {
-	r := Result{Hit: ui}
+func (ui *Buttongroup) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
 	if ui.m.Buttons&1 != m.Buttons&1 {
-		r.Draw = true
+		self.Draw = StateSelf
 	}
 	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 && !ui.Disabled {
 		index, _, _ := ui.findIndex(dui, m)
 		if index >= 0 {
 			ui.Selected = index
 			if ui.Changed != nil {
-				ui.Changed(ui.Selected, &r)
+				ui.Changed(ui.Selected, &r, &self.Draw, &self.Layout)
 			}
-			r.Draw = true
+			self.Draw = StateSelf
 			r.Consumed = true
 		}
 	}
 	ui.m = m
-	return r
+	return
 }
 
-func (ui *Buttongroup) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
-	r.Hit = ui
+func (ui *Buttongroup) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
 	if ui.Disabled {
 		return
 	}
@@ -143,10 +145,10 @@ func (ui *Buttongroup) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r 
 			break
 		}
 		r.Consumed = true
-		r.Draw = true
+		self.Draw = StateSelf
 		ui.Selected = index
 		if ui.Changed != nil {
-			ui.Changed(ui.Selected, &r)
+			ui.Changed(ui.Selected, &r, &self.Draw, &self.Layout)
 		}
 	case '\t':
 		index, _, end := ui.findIndex(dui, m)
@@ -158,7 +160,7 @@ func (ui *Buttongroup) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r 
 			p := orig.Add(image.Pt(end+BorderSize*2+ui.padding(dui).X, m.Y))
 			r.Warp = &p
 			r.Consumed = true
-			r.Draw = true
+			self.Draw = StateSelf
 		}
 	}
 	return
@@ -176,6 +178,10 @@ func (ui *Buttongroup) Focus(dui *DUI, o UI) *image.Point {
 	return ui.FirstFocus(dui)
 }
 
-func (ui *Buttongroup) Print(indent int, r image.Rectangle) {
-	PrintUI("Buttongroup", indent, r)
+func (ui *Buttongroup) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
+	return self.Mark(o, forLayout, state)
+}
+
+func (ui *Buttongroup) Print(self *Kid, indent int) {
+	PrintUI("Buttongroup", self, indent)
 }

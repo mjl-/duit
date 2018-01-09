@@ -9,14 +9,13 @@ import (
 
 // Scroll shows a part of its single child, typically a box, and lets you scroll the content.
 type Scroll struct {
-	Child  UI
+	Kid    Kid
 	Height int // < 0 means full height, 0 means as much as necessary, >0 means exactly that many lowdpi pixels
 
 	r             image.Rectangle // entire ui
 	barR          image.Rectangle
 	barActiveR    image.Rectangle
 	childR        image.Rectangle
-	childSize     image.Point
 	offset        int         // current scroll offset in pixels
 	img           *draw.Image // for child to draw on
 	scrollbarSize int
@@ -25,30 +24,52 @@ type Scroll struct {
 var _ UI = &Scroll{}
 
 func NewScroll(ui UI) *Scroll {
-	return &Scroll{Child: ui}
+	return &Scroll{Kid: Kid{UI: ui}}
 }
 
-func (ui *Scroll) Layout(dui *DUI, size image.Point) image.Point {
+func (ui *Scroll) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	dui.debugLayout("Scroll", self)
+
+	if self.Layout == StateClean && !force {
+		return
+	}
+	self.Layout = StateClean
+	self.Draw = StateSelf
+	// todo: be smarter about StateKid
+
 	ui.scrollbarSize = scale(dui.Display, ScrollbarSize)
 	scaledHeight := scale(dui.Display, ui.Height)
-	if scaledHeight > 0 && scaledHeight < size.Y {
-		size.Y = scaledHeight
+	if scaledHeight > 0 && scaledHeight < sizeAvail.Y {
+		sizeAvail.Y = scaledHeight
 	}
-	ui.r = rect(size)
+	ui.r = rect(sizeAvail)
 	ui.barR = ui.r
 	ui.barR.Max.X = ui.barR.Min.X + ui.scrollbarSize
 	ui.childR = ui.r
 	ui.childR.Min.X = ui.barR.Max.X
-	ui.childSize = ui.Child.Layout(dui, image.Pt(ui.r.Dx()-ui.barR.Dx(), ui.r.Dy()))
-	if ui.r.Dy() > ui.childSize.Y && ui.Height == 0 {
-		ui.barR.Max.Y = ui.childSize.Y
-		ui.r.Max.Y = ui.childSize.Y
-		ui.childR.Max.Y = ui.childSize.Y
+
+	// todo: only force when sizeAvail or childR changed?
+	ui.Kid.UI.Layout(dui, &ui.Kid, image.Pt(ui.r.Dx()-ui.barR.Dx(), ui.r.Dy()), force)
+	ui.Kid.Layout = StateClean
+	ui.Kid.Draw = StateSelf
+
+	kY := ui.Kid.R.Dy()
+	if ui.r.Dy() > kY && ui.Height == 0 {
+		ui.barR.Max.Y = kY
+		ui.r.Max.Y = kY
+		ui.childR.Max.Y = kY
 	}
-	return ui.r.Size()
+	self.R = rect(ui.r.Size())
 }
 
-func (ui *Scroll) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Scroll) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	dui.debugDraw("Scroll", self)
+
+	if self.Draw == StateClean {
+		return
+	}
+	self.Draw = StateClean
+
 	if ui.r.Empty() {
 		return
 	}
@@ -64,7 +85,7 @@ func (ui *Scroll) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse
 	}
 
 	h := ui.r.Dy()
-	uih := ui.childSize.Y
+	uih := ui.Kid.R.Dy()
 	if uih > h {
 		barR := ui.barR.Add(orig)
 		img.Draw(barR, bg, nil, image.ZP)
@@ -80,19 +101,26 @@ func (ui *Scroll) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse
 	if ui.childR.Empty() {
 		return
 	}
-	if ui.img == nil || ui.childSize != ui.img.R.Size() {
+	if ui.img == nil || ui.Kid.R.Size() != ui.img.R.Size() {
 		var err error
 		if ui.img != nil {
 			ui.img.Free()
 			ui.img = nil
 		}
-		ui.img, err = dui.Display.AllocImage(rect(ui.childSize), draw.ARGB32, false, dui.BackgroundColor)
+		ui.img, err = dui.Display.AllocImage(ui.Kid.R, draw.ARGB32, false, dui.BackgroundColor)
 		check(err, "allocimage")
-	} else {
+		ui.Kid.Draw = StateSelf
+	} else if ui.Kid.Draw == StateSelf {
 		ui.img.Draw(ui.img.R, dui.Background, nil, image.ZP)
 	}
 	m.Point = m.Point.Add(image.Pt(-ui.childR.Min.X, ui.offset))
-	ui.Child.Draw(dui, ui.img, image.ZP, m)
+	if ui.Kid.Draw != StateClean {
+		if force {
+			ui.Kid.Draw = StateSelf
+		}
+		ui.Kid.UI.Draw(dui, &ui.Kid, ui.img, image.ZP, m, ui.Kid.Draw == StateSelf)
+		ui.Kid.Draw = StateClean
+	}
 	img.Draw(ui.childR.Add(orig), ui.img, nil, image.Pt(0, ui.offset))
 }
 
@@ -102,7 +130,7 @@ func (ui *Scroll) scroll(delta int) bool {
 	if ui.offset < 0 {
 		ui.offset = 0
 	}
-	offsetMax := ui.childSize.Y - ui.childR.Dy()
+	offsetMax := ui.Kid.R.Dy() - ui.childR.Dy()
 	if offsetMax < 0 {
 		offsetMax = 0
 	}
@@ -141,8 +169,8 @@ func (ui *Scroll) scrollMouse(m draw.Mouse, scrollOnly bool) (consumed bool) {
 	case Button1:
 		return ui.scroll(-m.Y)
 	case Button2:
-		offset := m.Y * ui.childSize.Y / ui.barR.Dy()
-		offsetMax := ui.childSize.Y - ui.childR.Dy()
+		offset := m.Y * ui.Kid.R.Dy() / ui.barR.Dy()
+		offsetMax := ui.Kid.R.Dy() - ui.childR.Dy()
 		if offset < 0 {
 			offset = 0
 		} else if offset > offsetMax {
@@ -157,48 +185,63 @@ func (ui *Scroll) scrollMouse(m draw.Mouse, scrollOnly bool) (consumed bool) {
 	return false
 }
 
-func (ui *Scroll) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
-	r.Hit = ui
+func (ui *Scroll) result(dui *DUI, self *Kid, r *Result, scrolled bool) {
+	if ui.Kid.Layout != StateClean {
+		ui.Kid.UI.Layout(dui, &ui.Kid, ui.childR.Size(), false)
+		ui.Kid.Layout = StateClean
+		ui.Kid.Draw = StateSelf
+		self.Draw = StateSelf
+	} else if ui.Kid.Draw != StateClean || scrolled {
+		self.Draw = StateSelf
+	}
+}
+
+func (ui *Scroll) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
 	if m.Point.In(ui.barR) {
+		r.Hit = ui
 		r.Consumed = ui.scrollMouse(m, false)
-		r.Draw = r.Consumed
+		self.Draw = StateSelf
 		return
 	}
-	if m.Point.In(ui.r) {
+	if m.Point.In(ui.childR) {
 		nOrigM := origM
 		nOrigM.Point = nOrigM.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
 		nm := m
 		nm.Point = nm.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
-		r = ui.Child.Mouse(dui, nm, nOrigM)
+		r = ui.Kid.UI.Mouse(dui, &ui.Kid, nm, nOrigM, orig)
+		scrolled := false
 		if !r.Consumed {
-			r.Consumed = ui.scrollMouse(m, true)
-			r.Draw = r.Draw || r.Consumed
+			scrolled = ui.scrollMouse(m, true)
+			r.Consumed = scrolled
 		}
-		return
+		ui.result(dui, self, &r, scrolled)
 	}
 	return
 }
 
-func (ui *Scroll) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) Result {
+func (ui *Scroll) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
 	if m.Point.In(ui.barR) {
-		consumed := ui.scrollKey(k)
-		redraw := consumed
-		return Result{Hit: ui, Consumed: consumed, Draw: redraw}
-	}
-	if m.Point.In(ui.r) {
-		m.Point = m.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
-		r := ui.Child.Key(dui, k, m, orig.Add(image.Pt(ui.scrollbarSize, -ui.offset)))
-		if !r.Consumed {
-			r.Consumed = ui.scrollKey(k)
-			r.Draw = r.Draw || r.Consumed
+		r.Hit = ui
+		r.Consumed = ui.scrollKey(k)
+		if r.Consumed {
+			self.Draw = StateSelf
 		}
-		return r
 	}
-	return Result{}
+	if m.Point.In(ui.childR) {
+		m.Point = m.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
+		r = ui.Kid.UI.Key(dui, &ui.Kid, k, m, orig.Add(image.Pt(ui.scrollbarSize, -ui.offset)))
+		scrolled := false
+		if !r.Consumed {
+			scrolled = ui.scrollKey(k)
+			r.Consumed = scrolled
+		}
+		ui.result(dui, self, &r, scrolled)
+	}
+	return
 }
 
 func (ui *Scroll) FirstFocus(dui *DUI) *image.Point {
-	first := ui.Child.FirstFocus(dui)
+	first := ui.Kid.UI.FirstFocus(dui)
 	if first == nil {
 		return nil
 	}
@@ -207,7 +250,7 @@ func (ui *Scroll) FirstFocus(dui *DUI) *image.Point {
 }
 
 func (ui *Scroll) Focus(dui *DUI, o UI) *image.Point {
-	p := ui.Child.Focus(dui, o)
+	p := ui.Kid.UI.Focus(dui, o)
 	if p == nil {
 		return nil
 	}
@@ -215,7 +258,27 @@ func (ui *Scroll) Focus(dui *DUI, o UI) *image.Point {
 	return &pp
 }
 
-func (ui *Scroll) Print(indent int, r image.Rectangle) {
-	PrintUI(fmt.Sprintf("Scroll offset=%d childR=%v childSize=%v", ui.offset, ui.childR, ui.childSize), indent, r)
-	ui.Child.Print(indent+1, image.Rectangle{image.ZP, ui.childSize})
+func (ui *Scroll) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
+	if self.Mark(o, forLayout, state) {
+		return true
+	}
+	marked = ui.Kid.UI.Mark(&ui.Kid, o, forLayout, state)
+	if marked {
+		if forLayout {
+			if self.Layout == StateClean {
+				self.Layout = StateKid
+			}
+		} else {
+			if self.Layout == StateClean {
+				self.Draw = StateKid
+			}
+		}
+	}
+	return
+}
+
+func (ui *Scroll) Print(self *Kid, indent int) {
+	what := fmt.Sprintf("Scroll offset=%d childR=%v", ui.offset, ui.childR)
+	PrintUI(what, self, indent)
+	ui.Kid.UI.Print(&ui.Kid, indent+1)
 }

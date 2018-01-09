@@ -32,7 +32,7 @@ func main() {
 		Kids: duit.NewKids(b1, b2),
 	}
 
-	dui.Top = &duit.Pick{
+	dui.Top.UI = &duit.Pick{
 		Pick: func(sizeAvail image.Point) duit.UI {
 			if sizeAvail.X < dui.Scale(800) {
 				return vertical
@@ -46,6 +46,9 @@ func main() {
 		select {
 		case e := <-dui.Events:
 			dui.Event(e)
+
+		case <-dui.Done:
+			return
 		}
 	}
 }

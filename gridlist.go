@@ -29,9 +29,9 @@ type Gridlist struct {
 	Striped  bool
 	Font     *draw.Font
 
-	Changed func(index int, r *Result)
-	Click   func(index int, m draw.Mouse, r *Result)
-	Keys    func(index int, k rune, m draw.Mouse, r *Result)
+	Changed func(index int, r *Result, draw, layout *State)
+	Click   func(index int, m draw.Mouse, r *Result, draw, layout *State)
+	Keys    func(index int, k rune, m draw.Mouse, r *Result, draw, layout *State)
 
 	m                draw.Mouse
 	colWidths        []int // set the first time there are rows
@@ -230,7 +230,9 @@ func (ui *Gridlist) columnWidths(dui *DUI, width int) []int {
 	return ui.colWidths
 }
 
-func (ui *Gridlist) Layout(dui *DUI, sizeAvail image.Point) (sizeTaken image.Point) {
+func (ui *Gridlist) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	dui.debugLayout("Gridlist", self)
+
 	if ui.Halign != nil && len(ui.Halign) != len(ui.Header.Values) {
 		panic(fmt.Sprintf("len(halign) = %d, should be len(ui.Header.Values) = %d", len(ui.Halign), len(ui.Header.Values)))
 	}
@@ -238,10 +240,12 @@ func (ui *Gridlist) Layout(dui *DUI, sizeAvail image.Point) (sizeTaken image.Poi
 	n := 1 + len(ui.Rows)
 	ui.columnWidths(dui, sizeAvail.X) // calculate widths, possibly remembering
 	ui.size = image.Pt(sizeAvail.X, n*ui.rowHeight(dui)+(n-1)*separatorHeight)
-	return ui.size
+	self.R = rect(ui.size)
 }
 
-func (ui *Gridlist) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Gridlist) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	dui.debugDraw("Gridlist", self)
+
 	ncol := len(ui.Header.Values)
 	if ncol == 0 {
 		return
@@ -340,8 +344,7 @@ func (ui *Gridlist) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mou
 	}
 }
 
-func (ui *Gridlist) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
-	r.Hit = ui
+func (ui *Gridlist) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
 	prevM := ui.m
 	ui.m = m
 	if !m.In(rect(ui.size)) {
@@ -385,7 +388,7 @@ func (ui *Gridlist) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
 
 			ui.colWidths = widths // note: this sets colWidths even if it wasn't set before
 			r.Consumed = true
-			r.Draw = true
+			self.Draw = StateSelf
 			return
 		}
 
@@ -404,7 +407,7 @@ func (ui *Gridlist) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
 	}
 	index-- // adjust for header
 	if m.Buttons != 0 && prevM.Buttons^m.Buttons != 0 && ui.Click != nil {
-		ui.Click(index, m, &r)
+		ui.Click(index, m, &r, &self.Draw, &self.Layout)
 	}
 	if !r.Consumed && prevM.Buttons == 0 && m.Buttons == Button1 {
 		row := ui.Rows[index]
@@ -417,9 +420,9 @@ func (ui *Gridlist) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
 			}
 		}
 		if ui.Changed != nil {
-			ui.Changed(index, &r)
+			ui.Changed(index, &r, &self.Draw, &self.Layout)
 		}
-		r.Draw = true
+		self.Draw = StateSelf
 		r.Consumed = true
 	}
 	return
@@ -438,8 +441,7 @@ func (ui *Gridlist) Selected() (indices []int) {
 	return ui.selectedIndices()
 }
 
-func (ui *Gridlist) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
-	r.Hit = ui
+func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
 	if !m.In(rect(ui.size)) {
 		return
 	}
@@ -450,7 +452,7 @@ func (ui *Gridlist) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Res
 		if len(sel) == 1 {
 			index = sel[0]
 		}
-		ui.Keys(index, k, m, &r)
+		ui.Keys(index, k, m, &r, &self.Draw, &self.Layout)
 		if r.Consumed {
 			return
 		}
@@ -462,14 +464,14 @@ func (ui *Gridlist) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Res
 			row.Selected = false
 		}
 		r.Consumed = true
-		r.Draw = true
+		self.Draw = StateSelf
 	case draw.KeyCmd + 'a':
 		// select all
 		for _, row := range ui.Rows {
 			row.Selected = true
 		}
 		r.Consumed = true
-		r.Draw = true
+		self.Draw = StateSelf
 	case draw.KeyCmd + 'c':
 		// snarf selection
 		s := ""
@@ -482,7 +484,7 @@ func (ui *Gridlist) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Res
 		if s != "" {
 			dui.Display.WriteSnarf([]byte(s))
 			r.Consumed = true
-			r.Draw = true
+			self.Draw = StateSelf
 		}
 
 	case draw.KeyUp, draw.KeyDown:
@@ -512,7 +514,7 @@ func (ui *Gridlist) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Res
 		}
 		if oindex >= 0 {
 			ui.Rows[oindex].Selected = false
-			r.Draw = true
+			self.Draw = StateSelf
 		}
 		if nindex >= 0 {
 			font := ui.font(dui)
@@ -520,9 +522,9 @@ func (ui *Gridlist) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Res
 			pad := dui.ScaleSpace(ui.Padding)
 
 			ui.Rows[nindex].Selected = true
-			r.Draw = true
+			self.Draw = StateSelf
 			if ui.Changed != nil {
-				ui.Changed(nindex, &r)
+				ui.Changed(nindex, &r, &self.Draw, &self.Layout)
 			}
 			// xxx orig probably should not be a part in this...
 			p := orig.Add(image.Pt(m.X, (1+nindex)*(rowHeight+separatorHeight)+(font.Height+pad.Dy())/2))
@@ -543,6 +545,10 @@ func (ui *Gridlist) Focus(dui *DUI, o UI) (warp *image.Point) {
 	return ui.FirstFocus(dui)
 }
 
-func (ui *Gridlist) Print(indent int, r image.Rectangle) {
-	PrintUI("Gridlist", indent, r)
+func (ui *Gridlist) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
+	return self.Mark(o, forLayout, state)
+}
+
+func (ui *Gridlist) Print(self *Kid, indent int) {
+	PrintUI("Gridlist", self, indent)
 }

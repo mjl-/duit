@@ -18,12 +18,17 @@ type Radiobutton struct {
 
 var _ UI = &Radiobutton{}
 
-func (ui *Radiobutton) Layout(dui *DUI, size image.Point) image.Point {
+func (ui *Radiobutton) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	dui.debugLayout("Radiobutton", self)
+
 	hit := image.Point{0, 1}
-	return pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5).Add(hit)
+	size := pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5).Add(hit)
+	self.R = rect(size)
 }
 
-func (ui *Radiobutton) Draw(dui *DUI, img *draw.Image, orig image.Point, m draw.Mouse) {
+func (ui *Radiobutton) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	dui.debugDraw("Radiobutton", self)
+
 	r := rect(pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5))
 	hover := m.In(r)
 	r = r.Add(orig)
@@ -68,18 +73,17 @@ func (ui *Radiobutton) check(r *Result) {
 	}
 }
 
-func (ui *Radiobutton) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result) {
-	r.Hit = ui
+func (ui *Radiobutton) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
 	if ui.Disabled {
 		return
 	}
 	rr := rect(pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5))
 	hover := m.In(rr)
 	if hover != ui.m.In(rr) {
-		r.Draw = true
+		self.Draw = StateSelf
 	}
 	if hover && ui.m.Buttons&1 != m.Buttons&1 {
-		r.Draw = true
+		self.Draw = StateSelf
 		if m.Buttons&1 == 0 {
 			r.Consumed = true
 			ui.check(&r)
@@ -89,11 +93,10 @@ func (ui *Radiobutton) Mouse(dui *DUI, m draw.Mouse, origM draw.Mouse) (r Result
 	return
 }
 
-func (ui *Radiobutton) Key(dui *DUI, k rune, m draw.Mouse, orig image.Point) (r Result) {
-	r.Hit = ui
+func (ui *Radiobutton) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
 	if k == ' ' {
 		r.Consumed = true
-		r.Draw = true
+		self.Draw = StateSelf
 		ui.check(&r)
 	}
 	return
@@ -110,6 +113,10 @@ func (ui *Radiobutton) Focus(dui *DUI, o UI) *image.Point {
 	return ui.FirstFocus(dui)
 }
 
-func (ui *Radiobutton) Print(indent int, r image.Rectangle) {
-	PrintUI("Radiobutton", indent, r)
+func (ui *Radiobutton) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
+	return self.Mark(o, forLayout, state)
+}
+
+func (ui *Radiobutton) Print(self *Kid, indent int) {
+	PrintUI("Radiobutton", self, indent)
 }

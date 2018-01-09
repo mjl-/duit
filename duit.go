@@ -43,8 +43,6 @@ const (
 type Result struct {
 	Hit      UI           // the UI where the event ended up
 	Consumed bool         // whether event was consumed, and should not be further handled by upper UI's
-	Draw     bool         // whether event needs a redraw after
-	Layout   bool         // whether event needs a layout after
 	Warp     *image.Point // if set, mouse will warp to location
 }
 
@@ -76,9 +74,19 @@ type Event struct {
 	Error error
 }
 
+type State byte
+
+const (
+	StateSelf  = State(iota) // UI itself needs layout/draw;  kids will also get a layout/draw call, with force set.
+	StateKid                 // UI itself does not need layout/draw, but one of its children does, so pass the call on.
+	StateClean               // UI does not need layout/draw.
+
+	// order is important, StateClean is highest and means least amount of work
+)
+
 type DUI struct {
 	Events  chan Event
-	Top     UI
+	Top     Kid
 	Call    chan func()   // functions sent here will go through DUI.Events and run by DUI.Event() in the main event loop. for code that changes UI state.
 	Done    chan struct{} // closed when window is closed
 	Display *draw.Display
@@ -106,6 +114,8 @@ type DUI struct {
 	ScrollVisibleNormal,
 	ScrollVisibleHover *draw.Image
 
+	DebugDraw   int  // if 1, UIs print each draw they do, if 2, UIs print all calls to their Draw function. Cycle through 0-2 with F7
+	DebugLayout int  // if 1, UIs print each Layout they do, if 2, UIs print all calls to their Layout function. Cycle through 0-2 with F8
 	DebugKids   bool // whether to print distinct backgrounds in kids* functions
 	debugColors []*draw.Image
 
@@ -291,27 +301,40 @@ func NewDUI(name, dim string) (*DUI, error) {
 	return dui, nil
 }
 
+// Render calls Layout followed by Draw.
 func (d *DUI) Render() {
+	d.Layout()
+	d.Draw()
+}
+
+func (d *DUI) Layout() {
+	if d.Top.Layout == StateClean {
+		return
+	}
 	var t0 time.Time
 	if d.logTiming {
 		t0 = time.Now()
 	}
-	size := image.Pt(d.Display.ScreenImage.R.Dx(), d.Display.ScreenImage.R.Dy())
-	d.Top.Layout(d, size)
+	d.Top.UI.Layout(d, &d.Top, d.Display.ScreenImage.R.Size(), d.Top.Layout == StateSelf)
+	d.Top.Layout = StateClean
 	if d.logTiming {
 		log.Printf("duit: time layout: %d µs\n", time.Now().Sub(t0)/time.Microsecond)
 	}
-	d.Display.ScreenImage.Draw(d.Display.ScreenImage.R, d.Display.White, nil, image.ZP)
-	d.Draw()
 }
 
 func (d *DUI) Draw() {
+	if d.Top.Draw == StateClean {
+		return
+	}
 	var t0, t1 time.Time
 	if d.logTiming {
 		t0 = time.Now()
 	}
-	d.Display.ScreenImage.Draw(d.Display.ScreenImage.R, d.Background, nil, image.ZP)
-	d.Top.Draw(d, d.Display.ScreenImage, image.ZP, d.mouse)
+	if d.Top.Draw == StateSelf {
+		d.Display.ScreenImage.Draw(d.Display.ScreenImage.R, d.Background, nil, image.ZP)
+	}
+	d.Top.UI.Draw(d, &d.Top, d.Display.ScreenImage, image.ZP, d.mouse, d.Top.Draw == StateSelf)
+	d.Top.Draw = StateClean
 	if d.logTiming {
 		t1 = time.Now()
 	}
@@ -322,21 +345,37 @@ func (d *DUI) Draw() {
 	}
 }
 
+func (d *DUI) apply(r Result) {
+	if r.Warp != nil {
+		err := d.Display.MoveTo(*r.Warp)
+		if err != nil {
+			log.Printf("duit: warp to %v: %s\n", r.Warp, err)
+		} else {
+			d.mouse.Point = *r.Warp
+			d.origMouse.Point = *r.Warp
+			r = d.Top.UI.Mouse(d, &d.Top, d.mouse, d.origMouse, image.ZP)
+			d.lastMouseUI = r.Hit
+		}
+	} else {
+		if r.Hit != d.lastMouseUI {
+			d.Mark(d.lastMouseUI, false, StateSelf)
+		}
+		d.lastMouseUI = r.Hit
+	}
+
+	d.Render()
+}
+
 func (d *DUI) Mouse(m draw.Mouse) {
+	if d.logEvents {
+		log.Printf("duit: mouse %v, %b\n", m, m.Buttons)
+	}
 	if m.Buttons == 0 || d.origMouse.Buttons == 0 {
 		d.origMouse = m
 	}
 	d.mouse = m
-	if d.logEvents {
-		log.Printf("duit: mouse %v, %b\n", m, m.Buttons)
-	}
-	r := d.Top.Mouse(d, m, d.origMouse)
-	if r.Layout {
-		d.Render()
-	} else if r.Hit != d.lastMouseUI || r.Draw {
-		d.Draw()
-	}
-	d.lastMouseUI = r.Hit
+	r := d.Top.UI.Mouse(d, &d.Top, m, d.origMouse, image.ZP)
+	d.apply(r)
 }
 
 func (d *DUI) Resize() {
@@ -344,37 +383,55 @@ func (d *DUI) Resize() {
 		log.Printf("duit: resize")
 	}
 	check(d.Display.Attach(draw.Refmesg), "attach after resize")
+	d.Top.Layout = StateSelf
+	d.Top.Draw = StateSelf
 	d.Render()
 }
 
 func (d *DUI) Key(k rune) {
+	switch k {
+	case draw.KeyFn + 1:
+		d.logEvents = !d.logEvents
+		log.Printf("duit: logEvents now %v\n", d.logEvents)
+		return
+	case draw.KeyFn + 2:
+		d.logTiming = !d.logTiming
+		log.Printf("duit: logTiming now %v\n", d.logTiming)
+		return
+	case draw.KeyFn + 3:
+		d.Top.UI.Print(&d.Top, 0)
+		return
+	case draw.KeyFn + 4:
+		d.Display.SetDebug(true)
+		log.Println("duit: drawdebug now on")
+		return
+	case draw.KeyFn + 5:
+		d.DebugKids = !d.DebugKids
+		log.Println("duit: debugKids now", d.DebugKids)
+		return
+	case draw.KeyFn + 6:
+		log.Println("duit: rendering entire ui")
+		d.Top.Layout = StateSelf
+		d.Top.Draw = StateSelf
+		d.Render()
+		return
+	case draw.KeyFn + 7:
+		d.DebugDraw = (d.DebugDraw + 1) % 3
+		log.Printf("duit: DebugDraw now %d", d.DebugDraw)
+		return
+	case draw.KeyFn + 8:
+		d.DebugLayout = (d.DebugLayout + 1) % 3
+		log.Printf("duit: DebugLayout now %d", d.DebugLayout)
+		return
+	}
 	if d.logEvents {
 		log.Printf("duit: key %c, %x\n", k, k)
 	}
-	layout := false
-	if k == draw.KeyFn+1 {
-		d.logEvents = !d.logEvents
-	}
-	if k == draw.KeyFn+2 {
-		d.logTiming = !d.logTiming
-	}
-	if k == draw.KeyFn+3 {
-		d.Top.Print(0, d.Display.ScreenImage.R)
-	}
-	if k == draw.KeyFn+4 {
-		d.Display.SetDebug(true)
-		log.Println("duit: drawdebug now on")
-	}
-	if k == draw.KeyFn+5 {
-		d.DebugKids = !d.DebugKids
-		log.Println("duit: debugKids now", d.DebugKids)
-		layout = true
-	}
-	r := d.Top.Key(d, k, d.mouse, image.ZP)
+	r := d.Top.UI.Key(d, &d.Top, k, d.mouse, image.ZP)
 	if !r.Consumed {
 		switch k {
 		case '\t':
-			first := d.Top.FirstFocus(d)
+			first := d.Top.UI.FirstFocus(d)
 			if first != nil {
 				r.Warp = first
 				r.Consumed = true
@@ -385,27 +442,11 @@ func (d *DUI) Key(k rune) {
 			return
 		}
 	}
-	if r.Warp != nil {
-		err := d.Display.MoveTo(*r.Warp)
-		if err != nil {
-			log.Printf("duit: move mouse to %v: %s\n", r.Warp, err)
-		}
-		d.mouse.Point = *r.Warp
-		d.origMouse.Point = *r.Warp
-		r2 := d.Top.Mouse(d, d.mouse, d.origMouse)
-		r.Draw = r.Draw || r2.Draw || true
-		r.Layout = r.Layout || r2.Layout
-		d.lastMouseUI = r2.Hit
-	}
-	if r.Layout || layout {
-		d.Render()
-	} else if r.Draw {
-		d.Draw()
-	}
+	d.apply(r)
 }
 
 func (d *DUI) Focus(ui UI) {
-	p := d.Top.Focus(d, ui)
+	p := d.Top.UI.Focus(d, ui)
 	if p == nil {
 		return
 	}
@@ -416,21 +457,28 @@ func (d *DUI) Focus(ui UI) {
 	}
 	d.mouse.Point = *p
 	d.origMouse.Point = *p
-	r := d.Top.Mouse(d, d.mouse, d.origMouse)
-	d.lastMouseUI = r.Hit
-	if r.Layout {
-		d.Render()
-	} else {
-		d.Draw()
+	r := d.Top.UI.Mouse(d, &d.Top, d.mouse, d.origMouse, image.ZP)
+	d.apply(r)
+}
+
+func (d *DUI) debugLayout(what string, self *Kid) {
+	if d.DebugLayout > 0 {
+		log.Printf("duit: Layout %s %s layout=%d draw=%d\n", what, self.R, self.Layout, self.Draw)
 	}
 }
 
-func PrintUI(s string, indent int, r image.Rectangle) {
+func (d *DUI) debugDraw(what string, self *Kid) {
+	if d.DebugDraw > 0 {
+		log.Printf("duit: Draw %s %s layout=%d draw=%d\n", what, self.R, self.Layout, self.Draw)
+	}
+}
+
+func PrintUI(s string, self *Kid, indent int) {
 	indentStr := ""
 	if indent > 0 {
 		indentStr = fmt.Sprintf("%*s", indent*2, " ")
 	}
-	log.Printf("duit: %s%s r %v\n", indentStr, s, r)
+	log.Printf("duit: %s%s r %v layout=%d draw=%d\n", indentStr, s, self.R, self.Layout, self.Draw)
 }
 
 func scale(d *draw.Display, n int) int {
@@ -458,6 +506,10 @@ func (d *DUI) Event(e Event) {
 	case EventError:
 		log.Fatalf("error from devdraw: %s\n", e.Error)
 	}
+}
+
+func (d *DUI) Mark(o UI, forLayout bool, state State) {
+	d.Top.UI.Mark(&d.Top, o, forLayout, state)
 }
 
 func (d *DUI) Close() {
