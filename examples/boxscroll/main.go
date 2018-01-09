@@ -34,8 +34,8 @@ Est an partiendo prodesset, qui ea incorrupte efficiendi. Ei eam suavitate conse
 
 	for {
 		select {
-		case e := <-dui.Events:
-			dui.Event(e)
+		case e := <-dui.Inputs:
+			dui.Input(e)
 
 		case <-dui.Done:
 			return

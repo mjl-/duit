@@ -56,18 +56,18 @@ type Colorset struct {
 	Normal, Hover Colors
 }
 
-type EventType byte
+type InputType byte
 
 const (
-	EventMouse = EventType(iota)
-	EventKey
-	EventFunc
-	EventResize
-	EventError
+	InputMouse = InputType(iota)
+	InputKey
+	InputFunc
+	InputResize
+	InputError
 )
 
-type Event struct {
-	Type  EventType
+type Input struct {
+	Type  InputType
 	Mouse draw.Mouse
 	Key   rune
 	Func  func()
@@ -85,9 +85,9 @@ const (
 )
 
 type DUI struct {
-	Events  chan Event
+	Inputs  chan Input
 	Top     Kid
-	Call    chan func()   // functions sent here will go through DUI.Events and run by DUI.Event() in the main event loop. for code that changes UI state.
+	Call    chan func()   // functions sent here will go through DUI.Inputs and run by DUI.Input() in the main event loop. for code that changes UI state.
 	Done    chan struct{} // closed when window is closed
 	Display *draw.Display
 
@@ -129,7 +129,7 @@ type DUI struct {
 	mouse       draw.Mouse
 	origMouse   draw.Mouse
 	lastMouseUI UI
-	logEvents   bool
+	logInputs   bool
 	logTiming   bool
 }
 
@@ -157,7 +157,7 @@ func NewDUI(name, dim string) (*DUI, error) {
 		mousectl: display.InitMouse(),
 		keyctl:   display.InitKeyboard(),
 		stop:     make(chan struct{}, 1),
-		Events:   make(chan Event, 1),
+		Inputs:   make(chan Input, 1),
 		Call:     make(chan func(), 1),
 		Done:     make(chan struct{}, 1),
 
@@ -277,13 +277,13 @@ func NewDUI(name, dim string) (*DUI, error) {
 		for {
 			select {
 			case m := <-dui.mousectl.C:
-				dui.Events <- Event{Type: EventMouse, Mouse: m}
+				dui.Inputs <- Input{Type: InputMouse, Mouse: m}
 			case k := <-dui.keyctl.C:
-				dui.Events <- Event{Type: EventKey, Key: k}
+				dui.Inputs <- Input{Type: InputKey, Key: k}
 			case <-dui.mousectl.Resize:
-				dui.Events <- Event{Type: EventResize}
+				dui.Inputs <- Input{Type: InputResize}
 			case fn := <-dui.Call:
-				dui.Events <- Event{Type: EventFunc, Func: fn}
+				dui.Inputs <- Input{Type: InputFunc, Func: fn}
 			case <-dui.stop:
 				return
 			case e := <-errch:
@@ -292,7 +292,7 @@ func NewDUI(name, dim string) (*DUI, error) {
 					close(dui.Done)
 					return
 				} else {
-					dui.Events <- Event{Type: EventError, Error: e}
+					dui.Inputs <- Input{Type: InputError, Error: e}
 				}
 			}
 		}
@@ -367,7 +367,7 @@ func (d *DUI) apply(r Result) {
 }
 
 func (d *DUI) Mouse(m draw.Mouse) {
-	if d.logEvents {
+	if d.logInputs {
 		log.Printf("duit: mouse %v, %b\n", m, m.Buttons)
 	}
 	if m.Buttons == 0 || d.origMouse.Buttons == 0 {
@@ -379,7 +379,7 @@ func (d *DUI) Mouse(m draw.Mouse) {
 }
 
 func (d *DUI) Resize() {
-	if d.logEvents {
+	if d.logInputs {
 		log.Printf("duit: resize")
 	}
 	check(d.Display.Attach(draw.Refmesg), "attach after resize")
@@ -391,8 +391,8 @@ func (d *DUI) Resize() {
 func (d *DUI) Key(k rune) {
 	switch k {
 	case draw.KeyFn + 1:
-		d.logEvents = !d.logEvents
-		log.Printf("duit: logEvents now %v\n", d.logEvents)
+		d.logInputs = !d.logInputs
+		log.Printf("duit: logInputs now %v\n", d.logInputs)
 		return
 	case draw.KeyFn + 2:
 		d.logTiming = !d.logTiming
@@ -424,7 +424,7 @@ func (d *DUI) Key(k rune) {
 		log.Printf("duit: DebugLayout now %d", d.DebugLayout)
 		return
 	}
-	if d.logEvents {
+	if d.logInputs {
 		log.Printf("duit: key %c, %x\n", k, k)
 	}
 	r := d.Top.UI.Key(d, &d.Top, k, d.mouse, image.ZP)
@@ -493,17 +493,17 @@ func (d *DUI) Scale(n int) int {
 	return (d.Display.DPI / 100) * n
 }
 
-func (d *DUI) Event(e Event) {
+func (d *DUI) Input(e Input) {
 	switch e.Type {
-	case EventMouse:
+	case InputMouse:
 		d.Mouse(e.Mouse)
-	case EventKey:
+	case InputKey:
 		d.Key(e.Key)
-	case EventResize:
+	case InputResize:
 		d.Resize()
-	case EventFunc:
+	case InputFunc:
 		e.Func()
-	case EventError:
+	case InputError:
 		log.Fatalf("error from devdraw: %s\n", e.Error)
 	}
 }

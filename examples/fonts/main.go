@@ -92,8 +92,8 @@ a b c d e f g h i j k l m n o p q r s t u v w x y z`))
 
 	for {
 		select {
-		case e := <-dui.Events:
-			dui.Event(e)
+		case e := <-dui.Inputs:
+			dui.Input(e)
 
 		case <-dui.Done:
 			return
