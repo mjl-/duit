@@ -7,7 +7,7 @@ import (
 )
 
 type Vertical struct {
-	Split func(height int) (heights []int)
+	Split func(height int) (heights []int) `json:"-"`
 	Kids  []*Kid
 
 	size    image.Point

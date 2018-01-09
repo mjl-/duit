@@ -7,7 +7,7 @@ import (
 )
 
 type Image struct {
-	Image *draw.Image
+	Image *draw.Image `json:"-"`
 }
 
 var _ UI = &Image{}

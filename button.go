@@ -8,11 +8,11 @@ import (
 
 type Button struct {
 	Text     string
-	Icon     Icon // drawn before text
+	Icon     Icon `json:"-"` // drawn before text
 	Disabled bool
 	Colorset *Colorset
-	Font     *draw.Font
-	Click    func(e *Event)
+	Font     *draw.Font `json:"-"`
+	Click    func(e *Event)	`json:"-"`
 
 	m    draw.Mouse
 	size image.Point

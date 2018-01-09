@@ -8,10 +8,10 @@ import (
 
 type Radiobutton struct {
 	Selected bool
-	Value    interface{}
+	Value    interface{} `json:"-"`
 	Disabled bool
 	Group    []*Radiobutton
-	Changed  func(v interface{}, r *Result) // only the change function of the newly selected radiobutton in the group will be called
+	Changed  func(v interface{}, r *Event) `json:"-"` // only the change function of the newly selected radiobutton in the group will be called
 
 	m draw.Mouse
 }
@@ -61,7 +61,7 @@ func (ui *Radiobutton) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Poi
 	}
 }
 
-func (ui *Radiobutton) check(r *Result) {
+func (ui *Radiobutton) check(self *Kid, r *Result) {
 	ui.Selected = true
 	for _, r := range ui.Group {
 		if r != ui {
@@ -69,7 +69,9 @@ func (ui *Radiobutton) check(r *Result) {
 		}
 	}
 	if ui.Changed != nil {
-		ui.Changed(ui.Value, r)
+		var e Event
+		ui.Changed(ui.Value, &e)
+		propagateEvent(self, r, e)
 	}
 }
 
@@ -86,7 +88,7 @@ func (ui *Radiobutton) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse
 		self.Draw = Dirty
 		if m.Buttons&1 == 0 {
 			r.Consumed = true
-			ui.check(&r)
+			ui.check(self, &r)
 		}
 	}
 	ui.m = m
@@ -97,7 +99,7 @@ func (ui *Radiobutton) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image
 	if k == ' ' {
 		r.Consumed = true
 		self.Draw = Dirty
-		ui.check(&r)
+		ui.check(self, &r)
 	}
 	return
 }

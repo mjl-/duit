@@ -8,7 +8,7 @@ import (
 
 type Label struct {
 	Text string
-	Font *draw.Font
+	Font *draw.Font `json:"-"`
 
 	lines []string
 }

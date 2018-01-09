@@ -7,7 +7,7 @@ import (
 )
 
 type Pick struct {
-	Pick func(sizeAvail image.Point) UI
+	Pick func(sizeAvail image.Point) UI `json:"-"`
 
 	ui UI
 }

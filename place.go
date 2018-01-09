@@ -7,7 +7,7 @@ import (
 )
 
 type Place struct {
-	Place func(self *Kid, sizeAvail image.Point)
+	Place func(self *Kid, sizeAvail image.Point) `json:"-"`
 	Kids  []*Kid
 
 	kidsReversed []*Kid

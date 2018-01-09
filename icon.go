@@ -6,5 +6,5 @@ import (
 
 type Icon struct {
 	Rune rune
-	Font *draw.Font
+	Font *draw.Font `json:"-"`
 }

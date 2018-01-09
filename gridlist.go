@@ -17,7 +17,7 @@ const (
 type Gridrow struct {
 	Selected bool
 	Values   []string
-	Value    interface{}
+	Value    interface{} `json:"-"`
 }
 
 type Gridlist struct {
@@ -27,11 +27,11 @@ type Gridlist struct {
 	Halign   []Halign
 	Padding  Space // in low DPI pixels
 	Striped  bool
-	Font     *draw.Font
+	Font     *draw.Font `json:"-"`
 
-	Changed func(index int, e *Event)
-	Click   func(index int, m draw.Mouse, e *Event)
-	Keys    func(index int, k rune, m draw.Mouse, e *Event)
+	Changed func(index int, e *Event) `json:"-"`
+	Click   func(index int, m draw.Mouse, e *Event) `json:"-"`
+	Keys    func(index int, k rune, m draw.Mouse, e *Event) `json:"-"`
 
 	m                draw.Mouse
 	colWidths        []int // set the first time there are rows

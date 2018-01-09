@@ -7,7 +7,7 @@ import (
 )
 
 type Horizontal struct {
-	Split func(width int) (widths []int)
+	Split func(width int) (widths []int) `json:"-"`
 	Kids  []*Kid
 
 	size   image.Point

@@ -10,8 +10,8 @@ type Buttongroup struct {
 	Texts    []string
 	Selected int
 	Disabled bool
-	Font     *draw.Font
-	Changed  func(index int, e *Event)
+	Font     *draw.Font `json:"-"`
+	Changed  func(index int, e *Event) `json:"-"`
 
 	m    draw.Mouse
 	size image.Point

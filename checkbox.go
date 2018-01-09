@@ -9,7 +9,7 @@ import (
 type Checkbox struct {
 	Checked  bool
 	Disabled bool
-	Changed  func(e *Event)
+	Changed  func(e *Event) `json:"-"`
 
 	m draw.Mouse
 }

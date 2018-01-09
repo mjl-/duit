@@ -17,10 +17,10 @@ type Field struct {
 	Disabled        bool
 	Cursor1         int // index in string of cursor in bytes, start at 1. 0 means end of string.
 	SelectionStart1 int // if > 0, 1 beyond the start of the selection in bytes, with Cursor being the end.
-	Font            *draw.Font
+	Font            *draw.Font `json:"-"`
 	Password        bool                                 // if true, text is rendered as bullet items to hide the password (but not the length of the password)
-	Changed         func(text string, e *Event)          // called after contents of field have changed
-	Keys            func(k rune, m draw.Mouse, e *Event) // called before handling key. if you consume the event, Changed will not be called
+	Changed         func(text string, e *Event) `json:"-"`          // called after contents of field have changed
+	Keys            func(k rune, m draw.Mouse, e *Event) `json:"-"` // called before handling key. if you consume the event, Changed will not be called
 
 	size           image.Point // including space
 	m              draw.Mouse

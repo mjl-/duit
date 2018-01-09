@@ -42,13 +42,13 @@ func main() {
 	radio1 := &duit.Radiobutton{
 		Selected: true,
 		Value:    1,
-		Changed: func(v interface{}, r *duit.Result) {
+		Changed: func(v interface{}, r *duit.Event) {
 			log.Printf("radiobutton value changed, now %#v\n", v)
 		},
 	}
 	radio2 := &duit.Radiobutton{
 		Value: 2,
-		Changed: func(v interface{}, r *duit.Result) {
+		Changed: func(v interface{}, r *duit.Event) {
 			log.Printf("radiobutton value changed, now %#v\n", v)
 		},
 	}
@@ -75,29 +75,29 @@ func main() {
 						Padding: duit.NSpace(2, duit.SpaceXY(6, 4)),
 						Halign:  []duit.Halign{duit.HalignRight, duit.HalignLeft},
 						Valign:  []duit.Valign{duit.ValignMiddle, duit.ValignMiddle},
-						Kids: []*duit.Kid{
-							{UI: &duit.Label{Text: "From"}},
-							{UI: &duit.Field{Text: "...from...", Disabled: true}},
-							{UI: &duit.Label{Text: "To"}},
-							{UI: &duit.Field{Text: "...to..."}},
-							{UI: &duit.Label{Text: "Cc"}},
-							{UI: &duit.Field{Text: "...cc..."}},
-							{UI: &duit.Label{Text: "Bcc"}},
-							{UI: &duit.Field{Text: "...bcc..."}},
-							{UI: &duit.Label{Text: "Subject"}},
-							{UI: &duit.Field{Text: "...subject..."}},
-							{UI: &duit.Label{Text: "Checkbox"}},
-							{UI: &duit.Checkbox{
+						Kids: duit.NewKids(
+							&duit.Label{Text: "From"},
+							&duit.Field{Text: "...from...", Disabled: true},
+							&duit.Label{Text: "To"},
+							&duit.Field{Text: "...to..."},
+							&duit.Label{Text: "Cc"},
+							&duit.Field{Text: "...cc..."},
+							&duit.Label{Text: "Bcc"},
+							&duit.Field{Text: "...bcc..."},
+							&duit.Label{Text: "Subject"},
+							&duit.Field{Text: "...subject..."},
+							&duit.Label{Text: "Checkbox"},
+							&duit.Checkbox{
 								Checked: true,
 								Changed: func(e *duit.Event) {
 									log.Println("checkbox value changed")
 								},
-							}},
-							{UI: &duit.Label{Text: "Radio 1"}},
-							{UI: radio1},
-							{UI: &duit.Label{Text: "Radio 2"}},
-							{UI: radio2},
-						},
+							},
+							&duit.Label{Text: "Radio 1"},
+							radio1,
+							&duit.Label{Text: "Radio 2"},
+							radio2,
+						),
 					}},
 				},
 				&duit.Scroll{
@@ -131,11 +131,11 @@ func main() {
 							},
 							&duit.Label{Text: "Horizontal split"},
 							&duit.Horizontal{
-								Kids: []*duit.Kid{
-									{UI: &duit.Label{Text: "in column 1"}},
-									{UI: &duit.Label{Text: "in column 2"}},
-									{UI: &duit.Label{Text: "in column 3"}},
-								},
+								Kids: duit.NewKids(
+									&duit.Label{Text: "in column 1"},
+									&duit.Label{Text: "in column 2"},
+									&duit.Label{Text: "in column 3"},
+								),
 								Split: func(width int) []int {
 									col1 := width / 4
 									col2 := width / 4

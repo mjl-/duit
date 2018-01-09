@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"time"
+	"encoding/json"
+	"os"
 
 	"9fans.net/go/draw"
 )
@@ -53,9 +55,9 @@ type Result struct {
 }
 
 type Colors struct {
-	Text,
-	Background,
-	Border *draw.Image
+	Text *draw.Image `json:"-"`
+	Background *draw.Image `json:"-"`
+	Border *draw.Image `json:"-"`
 }
 
 type Colorset struct {
@@ -453,6 +455,12 @@ func (d *DUI) Key(k rune) {
 	case draw.KeyFn + 8:
 		d.DebugLayout = (d.DebugLayout + 1) % 3
 		log.Printf("duit: DebugLayout now %d", d.DebugLayout)
+		return
+	case draw.KeyFn + 9:
+		err := json.NewEncoder(os.Stderr).Encode(&d.Top)
+		if err != nil {
+			log.Printf("encoding d.Top: %s\n", err)
+		}
 		return
 	}
 	if d.logInputs {
