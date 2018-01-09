@@ -26,7 +26,9 @@ func (ui *Middle) ensure() {
 }
 
 func (ui *Middle) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	ui.ensure()
 	dui.debugLayout("Middle", self)
+
 	if kidsLayout(dui, self, ui.kids, force) {
 		return
 	}
@@ -39,30 +41,38 @@ func (ui *Middle) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool)
 }
 
 func (ui *Middle) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	ui.ensure()
+	dui.debugDraw("Middle", self)
 	kidsDraw("Middle", dui, self, ui.kids, ui.size, img, orig, m, force)
 }
 
 func (ui *Middle) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
+	ui.ensure()
 	return kidsMouse(dui, self, ui.kids, m, origM, orig)
 }
 
 func (ui *Middle) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
+	ui.ensure()
 	return kidsKey(dui, self, ui.kids, k, m, orig)
 }
 
 func (ui *Middle) FirstFocus(dui *DUI) (warp *image.Point) {
+	ui.ensure()
 	return kidsFirstFocus(dui, ui.kids)
 }
 
 func (ui *Middle) Focus(dui *DUI, o UI) (warp *image.Point) {
+	ui.ensure()
 	return kidsFocus(dui, ui.kids, o)
 }
 
-func (ui *Middle) Mark(self *Kid, o UI, forLayout bool, state State) (marked bool) {
-	return kidsMark(self, ui.kids, o, forLayout, state)
+func (ui *Middle) Mark(self *Kid, o UI, forLayout bool) (marked bool) {
+	ui.ensure()
+	return kidsMark(self, ui.kids, o, forLayout)
 }
 
 func (ui *Middle) Print(self *Kid, indent int) {
+	ui.ensure()
 	PrintUI("Middle", self, indent)
 	kidsPrint(ui.kids, indent+1)
 }
