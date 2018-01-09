@@ -24,8 +24,9 @@ type Scroll struct {
 
 var _ UI = &Scroll{}
 
+// NewScroll returns a full-height scroll bar containing ui.
 func NewScroll(ui UI) *Scroll {
-	return &Scroll{Kid: Kid{UI: ui}}
+	return &Scroll{Height: -1, Kid: Kid{UI: ui}}
 }
 
 func (ui *Scroll) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {

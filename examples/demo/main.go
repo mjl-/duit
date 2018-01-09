@@ -69,8 +69,8 @@ func main() {
 			},
 			Kids: duit.NewKids(
 				&duit.Label{Text: "in row 1"},
-				duit.NewScroll(
-					&duit.Grid{
+				&duit.Scroll{
+					Kid: duit.Kid{UI: &duit.Grid{
 						Columns: 2,
 						Padding: duit.NSpace(2, duit.SpaceXY(6, 4)),
 						Halign:  []duit.Halign{duit.HalignRight, duit.HalignLeft},
@@ -98,10 +98,10 @@ func main() {
 							{UI: &duit.Label{Text: "Radio 2"}},
 							{UI: radio2},
 						},
-					},
-				),
-				duit.NewScroll(
-					&duit.Box{
+					}},
+				},
+				&duit.Scroll{
+					Kid: duit.Kid{UI: &duit.Box{
 						Reverse: true,
 						Padding: duit.SpaceXY(6, 4),
 						Margin:  image.Pt(6, 4),
@@ -144,22 +144,24 @@ func main() {
 								},
 							},
 							&duit.Label{Text: "Another box with a scrollbar:"},
-							duit.NewScroll(&duit.Box{
-								Padding: duit.SpaceXY(6, 4),
-								Margin:  image.Pt(6, 4),
-								Kids: duit.NewKids(
-									&duit.Label{Text: "another label, this one is somewhat longer"},
-									&duit.Button{Text: "some other button"},
-									&duit.Label{Text: "more labels"},
-									&duit.Label{Text: "another"},
-									&duit.Field{Text: "A field!!"},
-									duit.NewBox(&duit.Image{Image: readImagePath("test.jpg")}),
-									&duit.Field{Text: "A field!!"},
-									duit.NewBox(&duit.Image{Image: readImagePath("test.jpg")}),
-									&duit.Field{Text: "A field!!"},
-									duit.NewBox(&duit.Image{Image: readImagePath("test.jpg")}),
-								),
-							}),
+							&duit.Scroll{
+								Kid: duit.Kid{UI: &duit.Box{
+									Padding: duit.SpaceXY(6, 4),
+									Margin:  image.Pt(6, 4),
+									Kids: duit.NewKids(
+										&duit.Label{Text: "another label, this one is somewhat longer"},
+										&duit.Button{Text: "some other button"},
+										&duit.Label{Text: "more labels"},
+										&duit.Label{Text: "another"},
+										&duit.Field{Text: "A field!!"},
+										duit.NewBox(&duit.Image{Image: readImagePath("test.jpg")}),
+										&duit.Field{Text: "A field!!"},
+										duit.NewBox(&duit.Image{Image: readImagePath("test.jpg")}),
+										&duit.Field{Text: "A field!!"},
+										duit.NewBox(&duit.Image{Image: readImagePath("test.jpg")}),
+									),
+								}},
+							},
 							&duit.Button{Text: "button3"},
 							&duit.Field{Text: "field 2"},
 							&duit.Field{Text: "field 3"},
@@ -169,8 +171,8 @@ func main() {
 							&duit.Field{Text: "field 7"},
 							&duit.Label{Text: "this is a label"},
 						),
-					},
-				),
+					}},
+				},
 			),
 		},
 	)
