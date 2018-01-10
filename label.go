@@ -68,6 +68,11 @@ func (ui *Label) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig
 }
 
 func (ui *Label) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
+	switch k {
+	case draw.KeyCmd + 'c':
+		dui.WriteSnarf([]byte(ui.Text))
+		r.Consumed = true
+	}
 	return
 }
 
