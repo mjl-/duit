@@ -488,7 +488,7 @@ func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 			s += strings.Join(row.Values, "\t") + "\n"
 		}
 		if s != "" {
-			dui.Display.WriteSnarf([]byte(s))
+			dui.WriteSnarf([]byte(s))
 			r.Consumed = true
 			self.Draw = Dirty
 		}

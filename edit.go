@@ -742,32 +742,6 @@ func (ui *Edit) scrollCursor(dui *DUI) {
 	ui.offset = nbr.Offset()
 }
 
-func (ui *Edit) readSnarf(dui *DUI) ([]byte, bool) {
-	buf := make([]byte, 128)
-	have, total, err := dui.Display.ReadSnarf(buf)
-	if err != nil {
-		log.Printf("duit: readsnarf: %s\n", err)
-		return nil, false
-	}
-	if have >= total {
-		return buf[:have], true
-	}
-	buf = make([]byte, total)
-	have, _, err = dui.Display.ReadSnarf(buf)
-	if err != nil {
-		log.Printf("duit: readsnarf entire buffer: %s\n", err)
-		return nil, false
-	}
-	return buf[:have], true
-}
-
-func (ui *Edit) writeSnarf(dui *DUI, buf []byte) {
-	err := dui.Display.WriteSnarf(buf)
-	if err != nil {
-		log.Printf("duit: writesnarf: %s\n", err)
-	}
-}
-
 func (ui *Edit) indent(c0, c1 int64) int64 {
 	s := ui.readText(c0, c1)
 	buf := []byte(s)
@@ -901,12 +875,12 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 	case draw.KeyCmd + 'n':
 		ui.cursor0 = ui.cursor
 	case draw.KeyCmd + 'c':
-		ui.writeSnarf(dui, []byte(ui.selectionText()))
+		dui.WriteSnarf([]byte(ui.selectionText()))
 	case draw.KeyCmd + 'x':
-		ui.writeSnarf(dui, []byte(ui.selectionText()))
+		dui.WriteSnarf([]byte(ui.selectionText()))
 		ui.text.Replace(c0, c1, nil)
 	case draw.KeyCmd + 'v':
-		buf, ok := ui.readSnarf(dui)
+		buf, ok := dui.ReadSnarf()
 		if ok {
 			ui.text.Replace(c0, c1, buf)
 		}

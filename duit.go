@@ -568,3 +568,31 @@ func (d *DUI) Font(font *draw.Font) *draw.Font {
 	}
 	return d.Display.DefaultFont
 }
+
+// WriteSnarf writes the snarf buffer and prints an error in case of failure.
+func (d *DUI) WriteSnarf(buf []byte) {
+	err := d.Display.WriteSnarf(buf)
+	if err != nil {
+		log.Printf("duit: writesnarf: %s\n", err)
+	}
+}
+
+// ReadSnarf reads the entire snarf buffer and prints an error in case of failure.
+func (d *DUI) ReadSnarf() (buf []byte, success bool) {
+	buf = make([]byte, 128)
+	have, total, err := d.Display.ReadSnarf(buf)
+	if err != nil {
+		log.Printf("duit: readsnarf: %s\n", err)
+		return nil, false
+	}
+	if have >= total {
+		return buf[:have], true
+	}
+	buf = make([]byte, total)
+	have, _, err = d.Display.ReadSnarf(buf)
+	if err != nil {
+		log.Printf("duit: readsnarf entire buffer: %s\n", err)
+		return nil, false
+	}
+	return buf[:have], true
+}

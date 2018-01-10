@@ -261,9 +261,9 @@ func (ui *Edit) visualKey(dui *DUI, k rune, line bool, result *Result) {
 		ui.cursor = c0
 	case 'y':
 		s := ui.readText(c0, c1)
-		ui.writeSnarf(dui, []byte(s))
+		dui.WriteSnarf([]byte(s))
 	case 'p':
-		buf, ok := ui.readSnarf(dui)
+		buf, ok := dui.ReadSnarf()
 		if ok {
 			ui.text.Replace(c0, c1, buf)
 			ui.cursor0 = c0
@@ -445,7 +445,7 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 		cmd.Get()
 		cmd.Number()
 		c0, c1 := order(ui.cursor, ui.commandMove(dui, cmd, br, fr, 'y'))
-		ui.writeSnarf(dui, []byte(ui.readText(c0, c1)))
+		dui.WriteSnarf([]byte(ui.readText(c0, c1)))
 	case 'Y':
 		// whole lines
 		cmd.Get()
@@ -453,18 +453,18 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 		cmd.Times(func() {
 			fr.Line(true)
 		})
-		ui.writeSnarf(dui, []byte(ui.readText(br.Offset(), fr.Offset())))
+		dui.WriteSnarf([]byte(ui.readText(br.Offset(), fr.Offset())))
 	case 'p':
 		// paste
 		cmd.Get()
-		buf, ok := ui.readSnarf(dui)
+		buf, ok := dui.ReadSnarf()
 		if ok {
 			ui.text.Replace(ui.cursor, ui.cursor, buf)
 		}
 	case 'P':
 		// paste before
 		cmd.Get()
-		buf, ok := ui.readSnarf(dui)
+		buf, ok := dui.ReadSnarf()
 		if ok {
 			br.TryGet()
 			ui.text.Replace(br.Offset(), br.Offset(), buf)

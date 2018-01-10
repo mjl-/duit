@@ -2,7 +2,6 @@ package duit
 
 import (
 	"image"
-	"log"
 	"strings"
 	"unicode/utf8"
 
@@ -451,13 +450,13 @@ func (ui *Field) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point
 	case draw.KeyCmd + 'c':
 		_, _, t := ui.selection0()
 		if t != "" {
-			dui.Display.WriteSnarf([]byte(t))
+			dui.WriteSnarf([]byte(t))
 		}
 
 	case draw.KeyCmd + 'x':
 		s, e, t := ui.selection0()
 		if t != "" {
-			dui.Display.WriteSnarf([]byte(t))
+			dui.WriteSnarf([]byte(t))
 			ui.Text = ui.Text[:s] + ui.Text[e:]
 			cursor0 = s
 			ui.SelectionStart1 = 0
@@ -465,27 +464,13 @@ func (ui *Field) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point
 
 	case draw.KeyCmd + 'v':
 		cursor0 = removeSelection()
-		buf := make([]byte, 128)
-		have, total, err := dui.Display.ReadSnarf(buf)
-		if err != nil {
-			log.Printf("duit: readsnarf: %s\n", err)
-			break
+		buf, ok := dui.ReadSnarf()
+		if ok {
+			t := string(buf)
+			ui.Text = ui.Text[:cursor0] + t + ui.Text[cursor0:]
+			ui.SelectionStart1 = 1 + cursor0
+			cursor0 = 1 + cursor0 + len(t)
 		}
-		var t string
-		if have >= total {
-			t = string(buf[:have])
-		} else {
-			buf = make([]byte, total)
-			have, _, err = dui.Display.ReadSnarf(buf)
-			if err != nil {
-				log.Printf("duit: readsnarf entire buffer: %s\n", err)
-			}
-			t = string(buf[:have])
-		}
-		ui.Text = ui.Text[:cursor0] + t + ui.Text[cursor0:]
-
-		ui.SelectionStart1 = 1 + cursor0
-		cursor0 = 1 + cursor0 + len(t)
 
 	case '\n':
 		return
