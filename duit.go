@@ -1,13 +1,13 @@
 package duit
 
 import (
+	"encoding/json"
 	"fmt"
 	"image"
 	"io"
 	"log"
-	"time"
-	"encoding/json"
 	"os"
+	"time"
 
 	"9fans.net/go/draw"
 )
@@ -55,9 +55,9 @@ type Result struct {
 }
 
 type Colors struct {
-	Text *draw.Image `json:"-"`
+	Text       *draw.Image `json:"-"`
 	Background *draw.Image `json:"-"`
-	Border *draw.Image `json:"-"`
+	Border     *draw.Image `json:"-"`
 }
 
 type Colorset struct {

@@ -29,8 +29,8 @@ type Gridlist struct {
 	Striped  bool
 	Font     *draw.Font `json:"-"`
 
-	Changed func(index int, e *Event) `json:"-"`
-	Click   func(index int, m draw.Mouse, e *Event) `json:"-"`
+	Changed func(index int, e *Event)                       `json:"-"`
+	Click   func(index int, m draw.Mouse, e *Event)         `json:"-"`
 	Keys    func(index int, k rune, m draw.Mouse, e *Event) `json:"-"`
 
 	m                draw.Mouse
@@ -88,6 +88,10 @@ func (ui *Gridlist) columnWidths(dui *DUI, width int) []int {
 	}
 
 	makeWidths := func(rows []*Gridrow) ([]int, bool) {
+		if len(rows[0].Values) == 0 {
+			panic("makeWidths on empty rows")
+		}
+
 		// first determine max & avg size of first 50 columns. there is always at least one row.
 		if len(rows) > 50 {
 			rows = rows[:50]

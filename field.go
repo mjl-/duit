@@ -14,11 +14,11 @@ type Field struct {
 	Text            string
 	Placeholder     string // text displayed in lighter color as example
 	Disabled        bool
-	Cursor1         int // index in string of cursor in bytes, start at 1. 0 means end of string.
-	SelectionStart1 int // if > 0, 1 beyond the start of the selection in bytes, with Cursor being the end.
-	Font            *draw.Font `json:"-"`
+	Cursor1         int                                  // index in string of cursor in bytes, start at 1. 0 means end of string.
+	SelectionStart1 int                                  // if > 0, 1 beyond the start of the selection in bytes, with Cursor being the end.
+	Font            *draw.Font                           `json:"-"`
 	Password        bool                                 // if true, text is rendered as bullet items to hide the password (but not the length of the password)
-	Changed         func(text string, e *Event) `json:"-"`          // called after contents of field have changed
+	Changed         func(text string, e *Event)          `json:"-"` // called after contents of field have changed
 	Keys            func(k rune, m draw.Mouse, e *Event) `json:"-"` // called before handling key. if you consume the event, Changed will not be called
 
 	size           image.Point // including space

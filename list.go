@@ -15,9 +15,9 @@ type ListValue struct {
 type List struct {
 	Values   []*ListValue
 	Multiple bool
-	Font     *draw.Font `json:"-"`
-	Changed  func(index int, e *Event) `json:"-"`
-	Click    func(index int, m draw.Mouse, e *Event) `json:"-"`
+	Font     *draw.Font                                      `json:"-"`
+	Changed  func(index int, e *Event)                       `json:"-"`
+	Click    func(index int, m draw.Mouse, e *Event)         `json:"-"`
 	Keys     func(index int, k rune, m draw.Mouse, e *Event) `json:"-"`
 
 	m    draw.Mouse

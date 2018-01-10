@@ -30,7 +30,7 @@ const (
 )
 
 type Edit struct {
-	Font *draw.Font `json:"-"`
+	Font *draw.Font                           `json:"-"`
 	Keys func(k rune, m draw.Mouse, e *Event) `json:"-"`
 
 	text    *text // what we are rendering.  offset & cursors index into this text
