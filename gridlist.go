@@ -116,6 +116,9 @@ func (ui *Gridlist) columnWidths(dui *DUI, width int) []int {
 		for _, v := range max {
 			maxTotal += v
 		}
+		if maxTotal == 0 {
+			return nil, false
+		}
 
 		// log.Printf("making widths, ncol %d, max %v, avg %v, maxTotal %d, width avail %d\n", ncol, max, avg, maxTotal, width)
 
