@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
+	"path"
+	"strings"
 	"time"
 
 	"9fans.net/go/draw"
@@ -131,14 +134,16 @@ type DUI struct {
 	commandMode,
 	visualMode *draw.Image
 
-	stop        chan struct{}
-	mousectl    *draw.Mousectl
-	keyctl      *draw.Keyboardctl
-	mouse       draw.Mouse
-	origMouse   draw.Mouse
-	lastMouseUI UI
-	logInputs   bool
-	logTiming   bool
+	stop                    chan struct{}
+	mousectl                *draw.Mousectl
+	keyctl                  *draw.Keyboardctl
+	mouse                   draw.Mouse
+	origMouse               draw.Mouse
+	lastMouseUI             UI
+	logInputs               bool
+	logTiming               bool
+	dimensionsPath          string
+	dimensionsDelayedWriter *time.Timer
 }
 
 func check(err error, msg string) {
@@ -148,7 +153,31 @@ func check(err error, msg string) {
 	}
 }
 
+func configDir() string {
+	appdata := os.Getenv("APPDATA") // windows, but more helpful than just homedir
+	if appdata == "" {
+		home := os.Getenv("HOME") // unix
+		if home == "" {
+			home = os.Getenv("home") // plan 9
+		}
+		appdata = home + "/lib"
+	}
+	return appdata + "/duit"
+}
+
 func NewDUI(name, dim string) (*DUI, error) {
+	var dimensionsPath string
+	if name != "" {
+		dimensionsPath = fmt.Sprintf("%s/%s/dimensions", configDir(), name)
+		buf, err := ioutil.ReadFile(dimensionsPath)
+		if err != nil {
+			os.MkdirAll(path.Dir(dimensionsPath), os.ModePerm)
+			ioutil.WriteFile(dimensionsPath, []byte(dim), os.ModePerm)
+		} else {
+			dim = strings.TrimSpace(string(buf))
+		}
+	}
+
 	errch := make(chan error, 1)
 	display, err := draw.Init(errch, "", name, dim)
 	if err != nil {
@@ -279,6 +308,8 @@ func NewDUI(name, dim string) (*DUI, error) {
 			makeColor(0x00400040),
 			makeColor(0x00004040),
 		},
+
+		dimensionsPath: dimensionsPath,
 	}
 
 	go func() {
@@ -419,6 +450,16 @@ func (d *DUI) Resize() {
 	d.Top.Layout = Dirty
 	d.Top.Draw = Dirty
 	d.Render()
+	if d.dimensionsPath != "" {
+		if d.dimensionsDelayedWriter != nil {
+			d.dimensionsDelayedWriter.Stop()
+		}
+		size := d.Display.ScreenImage.R.Size()
+		d.dimensionsDelayedWriter = time.AfterFunc(2*time.Second, func() {
+			log.Printf("writing dimensions path...\n")
+			ioutil.WriteFile(d.dimensionsPath, []byte(fmt.Sprintf("%dx%d", size.X, size.Y)), os.ModePerm)
+		})
+	}
 }
 
 func (d *DUI) Key(k rune) {

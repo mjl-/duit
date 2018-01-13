@@ -17,7 +17,7 @@ func check(err error, msg string) {
 }
 
 func main() {
-	dui, err := duit.NewDUI("font", "800x600")
+	dui, err := duit.NewDUI("fonts", "800x600")
 	check(err, "new dui")
 
 	buf, err := exec.Command("fontsrv", "-p", ".").Output()

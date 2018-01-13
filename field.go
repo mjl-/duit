@@ -21,11 +21,11 @@ type Field struct {
 	Changed         func(text string, e *Event)          `json:"-"` // called after contents of field have changed
 	Keys            func(k rune, m draw.Mouse, e *Event) `json:"-"` // called before handling key. if you consume the event, Changed will not be called
 
-	size           image.Point // including space
-	m              draw.Mouse
-	prevB1Release  draw.Mouse
-	img            *draw.Image // in case text is too big
-	prevTextOffset int         // offset for text for previous draw, used to determine whether to realign the cursor
+	size            image.Point // including space
+	m               draw.Mouse
+	prevB1Release   draw.Mouse
+	img             *draw.Image // in case text is too big
+	prevTextOffset  int         // offset for text for previous draw, used to determine whether to realign the cursor
 	lastCursorPoint image.Point // location of last cursor draw, for FirstFocus() and cmd+t
 }
 
