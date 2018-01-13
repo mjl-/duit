@@ -54,10 +54,20 @@ func (ui *Radiobutton) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Poi
 	radius := r.Dx() / 2
 	img.Arc(r.Min.Add(pt(radius)), radius, radius, 0, color, image.ZP, 0, 360)
 
-	cr := r.Inset((7 * dui.Display.DefaultFont.Height / 10) / 5).Add(hit)
+	cr := r.Inset((7 * dui.Display.DefaultFont.Height / 10) / 5)
 	if ui.Selected {
 		radius = cr.Dx() / 2
 		img.FillArc(cr.Min.Add(pt(radius)), radius, radius, 0, color, image.ZP, 0, 360)
+	}
+}
+
+func (ui *Radiobutton) Select(dui *DUI) {
+	ui.Selected = true
+	for _, o := range ui.Group {
+		if o != ui {
+			o.Selected = false
+		}
+		dui.MarkDraw(o)
 	}
 }
 
