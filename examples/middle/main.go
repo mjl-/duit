@@ -16,7 +16,7 @@ func main() {
 	dui, err := duit.NewDUI("page", "800x600")
 	check(err, "new dui")
 
-	dui.Top.UI = duit.NewMiddle(&duit.Label{Text: "this label is centered vertically and horizontally"})
+	dui.Top.UI = duit.NewMiddle(duit.SpaceXY(10, 10), &duit.Label{Text: "this label is centered vertically and horizontally"})
 	dui.Render()
 
 	for {
