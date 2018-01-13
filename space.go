@@ -44,3 +44,12 @@ func NSpace(n int, space Space) []Space {
 	}
 	return l
 }
+
+// NSpaceXY is a convenience function to create N identical SpaceXY's.
+func NSpaceXY(n, x, y int) []Space {
+	l := make([]Space, n)
+	for i := 0; i < n; i++ {
+		l[i] = SpaceXY(x, y)
+	}
+	return l
+}
