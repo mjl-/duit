@@ -26,6 +26,7 @@ type Field struct {
 	prevB1Release  draw.Mouse
 	img            *draw.Image // in case text is too big
 	prevTextOffset int         // offset for text for previous draw, used to determine whether to realign the cursor
+	lastCursorPoint image.Point // location of last cursor draw, for FirstFocus() and cmd+t
 }
 
 var _ UI = &Field{}
@@ -173,6 +174,7 @@ func (ui *Field) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m 
 			cp1 := cp
 			cp1.Y += f.Height
 			i.Line(cp, cp1, 1, 1, 0, dui.Regular.Hover.Border, image.ZP)
+			ui.lastCursorPoint = cp1.Sub(orig)
 		}
 	}
 
@@ -472,6 +474,10 @@ func (ui *Field) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point
 			cursor0 = 1 + cursor0 + len(t)
 		}
 
+	case draw.KeyCmd + 't':
+		p := ui.lastCursorPoint.Add(orig)
+		r.Warp = &p
+
 	case '\n':
 		return
 
@@ -498,7 +504,8 @@ func (ui *Field) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point
 }
 
 func (ui *Field) FirstFocus(dui *DUI) *image.Point {
-	return &image.ZP
+	p := ui.lastCursorPoint
+	return &p
 }
 
 func (ui *Field) Focus(dui *DUI, o UI) *image.Point {

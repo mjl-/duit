@@ -43,7 +43,7 @@ type UI interface {
 	// `orig` is the origin location of this UI. If you want to warp the mouse, add the origin to the UI-relative point.
 	Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result)
 
-	// FirstFocus returns the top-left corner where the focus should go next when "tab" is hit, if anything.
+	// FirstFocus returns where the focus should go next when "tab" is hit, if anything.
 	FirstFocus(dui *DUI) (warp *image.Point)
 
 	// Focus returns the focus-point for `ui`.

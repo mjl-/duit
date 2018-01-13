@@ -49,6 +49,8 @@ type Edit struct {
 
 	textM,
 	prevTextB1 draw.Mouse
+
+	lastCursorPoint image.Point
 }
 
 func NewEdit(f SeekReaderAt) *Edit {
@@ -374,6 +376,7 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 				thick = 0
 			}
 			img.Line(p0, p1, 0, 0, thick, dui.Display.Black, image.ZP)
+			ui.lastCursorPoint = p1.Sub(orig)
 		}
 
 		// we draw text before selection
@@ -898,6 +901,9 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		n := ui.indent(br.Offset(), fr.Offset())
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor + n
+	case draw.KeyCmd + 't':
+		p := ui.lastCursorPoint.Add(orig)
+		r.Warp = &p
 	case draw.KeyEscape:
 		// oh yeah
 		if ui.cursor == ui.cursor0 {
@@ -917,7 +923,8 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 }
 
 func (ui *Edit) FirstFocus(dui *DUI) (warp *image.Point) {
-	return &ui.textR.Min
+	p := ui.lastCursorPoint
+	return &p
 }
 
 func (ui *Edit) Focus(dui *DUI, o UI) (warp *image.Point) {
