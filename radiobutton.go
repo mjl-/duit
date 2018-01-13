@@ -75,6 +75,14 @@ func (ui *Radiobutton) check(self *Kid, r *Result) {
 	}
 }
 
+func (ui *Radiobutton) markDraw(dui *DUI) {
+	for _, o := range ui.Group {
+		if o != ui {
+			dui.MarkDraw(o)
+		}
+	}
+}
+
 func (ui *Radiobutton) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
 	if ui.Disabled {
 		return
@@ -86,6 +94,7 @@ func (ui *Radiobutton) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse
 	}
 	if hover && ui.m.Buttons&1 != m.Buttons&1 {
 		self.Draw = Dirty
+		ui.markDraw(dui)
 		if m.Buttons&1 == 0 {
 			r.Consumed = true
 			ui.check(self, &r)
@@ -99,6 +108,7 @@ func (ui *Radiobutton) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image
 	if k == ' ' {
 		r.Consumed = true
 		self.Draw = Dirty
+		ui.markDraw(dui)
 		ui.check(self, &r)
 	}
 	return
