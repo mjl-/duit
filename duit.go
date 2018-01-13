@@ -456,7 +456,6 @@ func (d *DUI) Resize() {
 		}
 		size := d.Display.ScreenImage.R.Size()
 		d.dimensionsDelayedWriter = time.AfterFunc(2*time.Second, func() {
-			log.Printf("writing dimensions path...\n")
 			ioutil.WriteFile(d.dimensionsPath, []byte(fmt.Sprintf("%dx%d", size.X, size.Y)), os.ModePerm)
 		})
 	}
