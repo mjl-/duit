@@ -31,8 +31,7 @@ func (ui *Buttongroup) padding(dui *DUI) image.Point {
 func (ui *Buttongroup) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	dui.debugLayout("Buttongroup", self)
 	pad2 := ui.padding(dui).Mul(2)
-	size := pt(BorderSize).Mul(2)
-	size.Y = pad2.Y + ui.font(dui).Height
+	size := image.Pt(2*BorderSize, 2*BorderSize+pad2.Y+ui.font(dui).Height)
 	font := ui.font(dui)
 	for i, t := range ui.Texts {
 		size.X += font.StringSize(t).X + pad2.X
@@ -72,30 +71,29 @@ func (ui *Buttongroup) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Poi
 	r = r.Add(orig)
 	drawRoundedBorder(img, r, colors.Border)
 
-	hit := image.ZP
-	if hover && !ui.Disabled && m.Buttons&1 == 1 {
-		hit = image.Pt(0, 1)
-	}
-
 	sel := ui.selected()
 	font := ui.font(dui)
 	pad := ui.padding(dui)
 	pad2 := pad.Mul(2)
-	p := r.Min.Add(pad).Add(pt(BorderSize)).Add(hit)
+	p := r.Min.Add(pt(BorderSize)).Add(pad)
 	for i, t := range ui.Texts {
+		dx := font.StringWidth(t)
+		selR := image.Rect(p.X-pad.X, r.Min.Y+BorderSize, p.X+dx+pad.X, r.Max.Y-BorderSize)
 		col := colors
 		if i == sel {
 			col = dui.Primary.Normal
-			dx := font.StringWidth(t)
-			selR := image.Rect(p.X-pad.X, r.Min.Y+BorderSize, p.X+dx+pad.X+BorderSize, r.Max.Y-BorderSize)
 			img.Draw(selR, col.Background, nil, image.ZP)
 		}
 		if i > 0 {
-			p0 := image.Pt(p.X-pad.X, r.Min.Y)
-			p1 := p0.Add(image.Pt(0, r.Dy()))
+			p0 := image.Pt(p.X-pad.X-BorderSize, r.Min.Y+BorderSize)
+			p1 := p0.Add(image.Pt(0, r.Dy()-2*BorderSize))
 			img.Line(p0, p1, 0, 0, 0, col.Border, image.ZP)
 		}
-		p0 := img.String(p, col.Text, image.ZP, font, t)
+		pp := p
+		if !ui.Disabled && m.Buttons == Button1 && m.Add(orig).In(selR) {
+			pp = pp.Add(image.Pt(0, 1))
+		}
+		p0 := img.String(pp, col.Text, image.ZP, font, t)
 		p.X = p0.X + pad2.X + BorderSize
 	}
 }
@@ -116,10 +114,10 @@ func (ui *Buttongroup) findIndex(dui *DUI, m draw.Mouse) (int, int, int) {
 }
 
 func (ui *Buttongroup) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
-	if ui.m.Buttons&1 != m.Buttons&1 {
+	if ui.m.Buttons^m.Buttons != 0 {
 		self.Draw = Dirty
 	}
-	if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 && !ui.Disabled {
+	if ui.m.Buttons == Button1 && m.Buttons == 0 && !ui.Disabled {
 		index, _, _ := ui.findIndex(dui, m)
 		if index >= 0 {
 			ui.Selected = index

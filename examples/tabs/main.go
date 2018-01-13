@@ -22,12 +22,16 @@ func main() {
 				"tab1",
 				"tab2",
 				"tab3",
+				"tab4",
+				"tab5",
 			},
 		},
 		UIs: []duit.UI{
 			&duit.Button{Text: "this is the content of tab1"},
 			&duit.Field{Text: "this is the content of tab2"},
 			&duit.Label{Text: "this is the content of tab3"},
+			&duit.Label{Text: "this is the content of tab4"},
+			&duit.Label{Text: "this is the content of tab5"},
 		},
 	}
 	dui.Render()
