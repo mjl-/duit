@@ -14,7 +14,7 @@ func check(err error, msg string) {
 }
 
 func main() {
-	dui, err := duit.NewDUI("page", "400x300")
+	dui, err := duit.NewDUI("ex/alert", "400x300")
 	check(err, "new dui")
 
 	field := &duit.Field{

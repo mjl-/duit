@@ -115,7 +115,7 @@ func main() {
 	var (
 		selectName     func(int, string)
 		composePath    func(int, string) string
-		columnsUI      *duit.Horizontal
+		columnsUI      *duit.Split
 		favoritesUI    *duit.List
 		favoriteToggle *duit.Button
 		activeFavorite *duit.ListValue
@@ -276,7 +276,8 @@ func main() {
 		}
 	}
 
-	columnsUI = &duit.Horizontal{
+	columnsUI = &duit.Split{
+		Gutter: 1,
 		Split: func(width int) []int {
 			widths := make([]int, len(columns))
 			col := width / len(widths)
@@ -335,7 +336,8 @@ func main() {
 		Kids: duit.NewKids(
 			favoriteToggle,
 			pathLabel,
-			&duit.Horizontal{
+			&duit.Split{
+				Gutter: 1,
 				Split: func(width int) []int {
 					return []int{dui.Scale(200), width - dui.Scale(200)}
 				},

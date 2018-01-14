@@ -20,7 +20,7 @@ func check(err error, msg string) {
 }
 
 func main() {
-	dui, err := duit.NewDUI("duitex", "600x400")
+	dui, err := duit.NewDUI("ex/demo", "600x400")
 	check(err, "new dui")
 
 	readImagePath := func(path string) *draw.Image {
@@ -60,7 +60,9 @@ func main() {
 	radio2.Group = group
 
 	dui.Top.UI = duit.NewBox(
-		&duit.Vertical{
+		&duit.Split{
+			Gutter: 1,
+			Vertical: true,
 			Split: func(height int) []int {
 				row1 := height / 4
 				row2 := height / 4
@@ -130,7 +132,8 @@ func main() {
 								},
 							},
 							&duit.Label{Text: "Horizontal split"},
-							&duit.Horizontal{
+							&duit.Split{
+								Gutter: 1,
 								Kids: duit.NewKids(
 									&duit.Label{Text: "in column 1"},
 									&duit.Label{Text: "in column 2"},

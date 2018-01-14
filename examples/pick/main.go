@@ -14,18 +14,21 @@ func check(err error, msg string) {
 }
 
 func main() {
-	dui, err := duit.NewDUI("page", "800x600")
+	dui, err := duit.NewDUI("ex/pick", "800x600")
 	check(err, "new dui")
 
 	b1 := &duit.Button{Text: "b1"}
 	b2 := &duit.Button{Text: "b2"}
-	horizontal := &duit.Horizontal{
+	horizontal := &duit.Split{
+		Gutter: 1,
 		Split: func(width int) []int {
 			return []int{width / 2, width - width/2}
 		},
 		Kids: duit.NewKids(b1, b2),
 	}
-	vertical := &duit.Vertical{
+	vertical := &duit.Split{
+		Vertical: true,
+		Gutter: 1,
 		Split: func(height int) []int {
 			return []int{height / 2, height - height/2}
 		},

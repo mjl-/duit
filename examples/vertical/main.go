@@ -13,10 +13,12 @@ func check(err error, msg string) {
 }
 
 func main() {
-	dui, err := duit.NewDUI("page", "800x600")
+	dui, err := duit.NewDUI("ex/vertical", "800x600")
 	check(err, "new dui")
 
-	dui.Top.UI = &duit.Vertical{
+	dui.Top.UI = &duit.Split{
+		Gutter: 1,
+		Vertical: true,
 		Split: func(height int) []int {
 			p := height / 4
 			return []int{p, p, height - 2*p}

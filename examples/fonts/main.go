@@ -17,7 +17,7 @@ func check(err error, msg string) {
 }
 
 func main() {
-	dui, err := duit.NewDUI("fonts", "800x600")
+	dui, err := duit.NewDUI("ex/fonts", "800x600")
 	check(err, "new dui")
 
 	buf, err := exec.Command("fontsrv", "-p", ".").Output()
@@ -71,7 +71,8 @@ a b c d e f g h i j k l m n o p q r s t u v w x y z`))
 		},
 	}
 
-	dui.Top.UI = &duit.Horizontal{
+	dui.Top.UI = &duit.Split{
+		Gutter: 1,
 		Split: func(width int) []int {
 			first := dui.Scale(250)
 			return []int{first, width - first}

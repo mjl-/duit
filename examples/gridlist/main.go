@@ -16,7 +16,7 @@ func check(err error, msg string) {
 }
 
 func main() {
-	dui, err := duit.NewDUI("page", "800x600")
+	dui, err := duit.NewDUI("ex/gridlist", "800x600")
 	check(err, "new dui")
 
 	var rows []*duit.Gridrow

@@ -31,7 +31,7 @@ func main() {
 	f, err := os.Open(args[0])
 	check(err, "open")
 
-	dui, err := duit.NewDUI("page", "800x600@0,0")
+	dui, err := duit.NewDUI("ex/edit", "800x600")
 	check(err, "new dui")
 
 	edit := duit.NewEdit(f)

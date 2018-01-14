@@ -8,7 +8,7 @@ import (
 
 // UI is a user interface widget.
 // It is implemented by Button, Label, Field, Image and List.
-// And by layout UI's such as Box, Grid, Horizontal, Vertical and Scroll.
+// And by layout UI's such as Box, Grid,  Split and Scroll.
 // Layout UI's simply contain other UI's, and are in charge of passing layout, draw, mouse, key, etc events on to the right child/children.
 type UI interface {
 	// Layout asks the UI to layout itself in `availSize`.
