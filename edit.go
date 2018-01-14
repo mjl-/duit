@@ -371,9 +371,9 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 			p0 := p
 			p1 := p0
 			p1.Y += font.Height
-			thick := dui.Scale(1)
-			if thick > 1 {
-				thick = 0
+			thick := 0
+			if dui.Scale(1) > 1 {
+				thick = 1
 			}
 			img.Line(p0, p1, 0, 0, thick, dui.Display.Black, image.ZP)
 			ui.lastCursorPoint = p1.Sub(orig)
