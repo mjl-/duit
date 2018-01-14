@@ -144,6 +144,9 @@ type DUI struct {
 	logTiming               bool
 	dimensionsPath          string
 	dimensionsDelayedWriter *time.Timer
+	name                    string
+	settings                map[string][]byte      // indexed by Kid.ID, holds json
+	settingsWriters         map[string]*time.Timer // delayed writes of settings
 }
 
 func check(err error, msg string) {
@@ -309,7 +312,10 @@ func NewDUI(name, dim string) (*DUI, error) {
 			makeColor(0x00004040),
 		},
 
-		dimensionsPath: dimensionsPath,
+		dimensionsPath:  dimensionsPath,
+		name:            name,
+		settings:        map[string][]byte{},
+		settingsWriters: map[string]*time.Timer{},
 	}
 
 	go func() {
@@ -635,4 +641,43 @@ func (d *DUI) ReadSnarf() (buf []byte, success bool) {
 		return nil, false
 	}
 	return buf[:have], true
+}
+
+func (d *DUI) settingsPath(self *Kid) string {
+	return fmt.Sprintf("%s/%s/%s.json", configDir(), d.name, self.ID)
+}
+
+func (d *DUI) ReadSettings(self *Kid, v interface{}) bool {
+	if self.ID == "" {
+		return false
+	}
+	if buf, ok := d.settings[self.ID]; ok {
+		return json.Unmarshal(buf, v) == nil
+	}
+	buf, err := ioutil.ReadFile(d.settingsPath(self))
+	if err != nil {
+		d.settings[self.ID] = nil
+		return false
+	}
+	d.settings[self.ID] = buf
+	return json.Unmarshal(buf, v) == nil
+}
+
+func (d *DUI) WriteSettings(self *Kid, v interface{}) bool {
+	if self.ID == "" {
+		return false
+	}
+	buf, err := json.Marshal(v)
+	if err != nil {
+		return false
+	}
+	d.settings[self.ID] = buf
+	w := d.settingsWriters[self.ID]
+	if w != nil {
+		w.Stop()
+	}
+	d.settingsWriters[self.ID] = time.AfterFunc(2*time.Second, func() {
+		ioutil.WriteFile(d.settingsPath(self), buf, os.ModePerm)
+	})
+	return true
 }
