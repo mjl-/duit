@@ -1,6 +1,8 @@
 package duit
 
 import (
+	"encoding/json"
+	"fmt"
 	"image"
 
 	"9fans.net/go/draw"
@@ -11,6 +13,18 @@ type Kid struct {
 	R      image.Rectangle
 	Draw   State
 	Layout State
+	ID     string
+}
+
+func (k *Kid) MarshalJSON() ([]byte, error) {
+	type kid struct {
+		Kid
+		Type string
+	}
+	return json.Marshal(kid{
+		Kid:  *k,
+		Type: fmt.Sprintf("%T", k.UI),
+	})
 }
 
 func (k *Kid) Mark(o UI, forLayout bool) (marked bool) {
