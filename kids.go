@@ -171,6 +171,7 @@ func kidsKey(dui *DUI, self *Kid, kids []*Kid, key rune, m draw.Mouse, orig imag
 					p := first.Add(orig).Add(kR.Min)
 					r.Warp = &p
 					r.Consumed = true
+					r.Hit = kids[next].UI
 					break
 				}
 			}

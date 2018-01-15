@@ -419,19 +419,17 @@ func (d *DUI) apply(r Result) {
 			d.mouse.Point = *r.Warp
 			d.origMouse.Point = *r.Warp
 			r = d.Top.UI.Mouse(d, &d.Top, d.mouse, d.origMouse, image.ZP)
-			d.lastMouseUI = r.Hit
 		}
-	} else {
-		if r.Hit != d.lastMouseUI {
-			if r.Hit != nil {
-				d.MarkDraw(r.Hit)
-			}
-			if d.lastMouseUI != nil {
-				d.MarkDraw(d.lastMouseUI)
-			}
-		}
-		d.lastMouseUI = r.Hit
 	}
+	if r.Hit != d.lastMouseUI {
+		if r.Hit != nil {
+			d.MarkDraw(r.Hit)
+		}
+		if d.lastMouseUI != nil {
+			d.MarkDraw(d.lastMouseUI)
+		}
+	}
+	d.lastMouseUI = r.Hit
 
 	d.Render()
 }
