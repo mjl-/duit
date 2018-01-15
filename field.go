@@ -112,6 +112,9 @@ func (ui *Field) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m 
 		text = ui.Placeholder
 		if !ui.Disabled {
 			colors = dui.Placeholder
+			if hover {
+				colors.Border = dui.Regular.Hover.Border
+			}
 		}
 	} else if ui.Password {
 		// ugh
