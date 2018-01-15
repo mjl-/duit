@@ -42,7 +42,7 @@ func main() {
 
 	dui.Top.UI = duit.NewScroll(
 		&duit.Gridlist{
-			Header:   duit.Gridrow{Values: []string{"col1", "col2", "col3"}},
+			Header:   &duit.Gridrow{Values: []string{"col1", "col2", "col3"}},
 			Rows:     rows,
 			Multiple: true,
 			Striped:  true,

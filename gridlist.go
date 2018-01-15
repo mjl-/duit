@@ -21,7 +21,7 @@ type Gridrow struct {
 }
 
 type Gridlist struct {
-	Header   Gridrow
+	Header   *Gridrow
 	Rows     []*Gridrow
 	Multiple bool
 	Halign   []Halign
@@ -70,7 +70,8 @@ func (ui *Gridlist) columnWidths(dui *DUI, width int) []int {
 		// log.Printf("making new columns, ui.size.X %d, width %d\n", ui.size.X, width)
 
 		// reassign sizes, same relative size, just new absolute widths
-		ncol := len(ui.Header.Values)
+		row := ui.exampleRow()
+		ncol := len(row.Values)
 		pad := dui.ScaleSpace(ui.Padding)
 		avail := width - ncol*pad.Dx() - (ncol-1)*separatorWidth
 		prevTotal := 0
@@ -223,13 +224,16 @@ func (ui *Gridlist) columnWidths(dui *DUI, width int) []int {
 	}
 
 	if len(ui.Rows) == 0 {
-		widths, _ := makeWidths([]*Gridrow{&ui.Header})
+		if ui.Header == nil {
+			return nil
+		}
+		widths, _ := makeWidths([]*Gridrow{ui.Header})
 		return widths
 	}
 	var fit bool
 	ui.colWidths, fit = makeWidths(ui.Rows)
-	if fit {
-		widths, fit := makeWidths(append([]*Gridrow{&ui.Header}, ui.Rows...))
+	if fit && ui.Header != nil {
+		widths, fit := makeWidths(append([]*Gridrow{ui.Header}, ui.Rows...))
 		if fit {
 			ui.colWidths = widths
 		}
@@ -237,14 +241,33 @@ func (ui *Gridlist) columnWidths(dui *DUI, width int) []int {
 	return ui.colWidths
 }
 
+func (ui *Gridlist) exampleRow() *Gridrow {
+	if ui.Header != nil {
+		return ui.Header
+	}
+	if len(ui.Rows) == 0 {
+		return nil
+	}
+	return ui.Rows[0]
+}
+
+func (ui *Gridlist) rowCount() int {
+	n := len(ui.Rows)
+	if ui.Header != nil {
+		n++
+	}
+	return n
+}
+
 func (ui *Gridlist) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	dui.debugLayout("Gridlist", self)
 
-	if ui.Halign != nil && len(ui.Halign) != len(ui.Header.Values) {
-		panic(fmt.Sprintf("len(halign) = %d, should be len(ui.Header.Values) = %d", len(ui.Halign), len(ui.Header.Values)))
+	row := ui.exampleRow()
+	if ui.Halign != nil && row != nil && len(ui.Halign) != len(row.Values) {
+		panic(fmt.Sprintf("len(halign) = %d, should be len(row.Values) = %d", len(ui.Halign), len(row.Values)))
 	}
 
-	n := 1 + len(ui.Rows)
+	n := ui.rowCount()
 	ui.columnWidths(dui, sizeAvail.X) // calculate widths, possibly remembering
 	ui.size = image.Pt(sizeAvail.X, n*ui.rowHeight(dui)+(n-1)*separatorHeight)
 	self.R = rect(ui.size)
@@ -253,10 +276,11 @@ func (ui *Gridlist) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force boo
 func (ui *Gridlist) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
 	dui.debugDraw("Gridlist", self)
 
-	ncol := len(ui.Header.Values)
-	if ncol == 0 {
+	row := ui.exampleRow()
+	if row == nil || len(row.Values) == 0 {
 		return
 	}
+	ncol := len(row.Values)
 
 	r := rect(ui.size).Add(orig)
 
@@ -332,19 +356,20 @@ func (ui *Gridlist) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point,
 		lineR = lineR.Add(image.Pt(0, rowHeight+separatorHeight))
 	}
 
-	drawRow(&ui.Header, false)
-
-	// print separators
-	for i := 1; i < ncol; i++ {
-		p0 := image.Pt(x[i], 0).Add(orig).Add(image.Pt(0, pad.Top))
-		p1 := p0
-		p1.Y += rowHeight - pad.Dy()
-		img.Line(p0, p1, 0, 0, 0, dui.Regular.Normal.Border, image.ZP)
+	if ui.Header != nil {
+		drawRow(ui.Header, false)
+		// print separators
+		for i := 1; i < ncol; i++ {
+			p0 := image.Pt(x[i], 0).Add(orig).Add(image.Pt(0, pad.Top))
+			p1 := p0
+			p1.Y += rowHeight - pad.Dy()
+			img.Line(p0, p1, 0, 0, 0, dui.Regular.Normal.Border, image.ZP)
+		}
+		lp0 := lineR.Min.Sub(image.Pt(0, separatorHeight))
+		lp1 := lp0
+		lp1.X += r.Dx()
+		img.Line(lp0, lp1, 0, 0, 0, dui.Regular.Normal.Border, image.ZP)
 	}
-	lp0 := lineR.Min.Sub(image.Pt(0, separatorHeight))
-	lp1 := lp0
-	lp1.X += r.Dx()
-	img.Line(lp0, lp1, 0, 0, 0, dui.Regular.Normal.Border, image.ZP)
 
 	for i, row := range ui.Rows {
 		drawRow(row, i%2 == 1)
@@ -359,7 +384,7 @@ func (ui *Gridlist) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, o
 	}
 	rowHeight := ui.rowHeight(dui)
 	index := m.Y / (rowHeight + separatorHeight)
-	if ui.draggingColStart > 0 || index == 0 {
+	if ui.draggingColStart > 0 || (index == 0 && ui.Header != nil) {
 		// xxx todo: on double click, max column before fit (but at most twice as large)
 		// xxx todo: should probably show the grid separator with hover style
 
@@ -412,7 +437,9 @@ func (ui *Gridlist) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, o
 
 		return
 	}
-	index-- // adjust for header
+	if ui.Header != nil {
+		index--
+	}
 	if m.Buttons != 0 && prevM.Buttons^m.Buttons != 0 && ui.Click != nil {
 		var e Event
 		ui.Click(index, m, &e)
@@ -450,6 +477,15 @@ func (ui *Gridlist) selectedIndices() (l []int) {
 
 func (ui *Gridlist) Selected() (indices []int) {
 	return ui.selectedIndices()
+}
+
+func (ui *Gridlist) firstSelected() int {
+	for i, row := range ui.Rows {
+		if row.Selected {
+			return i
+		}
+	}
+	return -1
 }
 
 func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
@@ -509,21 +545,26 @@ func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 		nindex := -1
 		switch k {
 		case draw.KeyUp:
-			r.Consumed = true
 			if len(sel) == 0 {
-				nindex = len(ui.Rows) - 1
+				r.Consumed = true
+				nindex = 0
 			} else {
 				oindex = sel[0]
-				nindex = (sel[0] - 1 + len(ui.Rows)) % len(ui.Rows)
+				nindex = maximum(0, sel[0]-1)
+				r.Consumed = oindex != nindex
 			}
 		case draw.KeyDown:
-			r.Consumed = true
 			if len(sel) == 0 {
+				r.Consumed = true
 				nindex = 0
 			} else {
 				oindex = sel[len(sel)-1]
-				nindex = (sel[len(sel)-1] + 1) % len(ui.Rows)
+				nindex = minimum(sel[len(sel)-1]+1, len(ui.Rows)-1)
+				r.Consumed = oindex != nindex
 			}
+		}
+		if !r.Consumed {
+			return
 		}
 		if oindex >= 0 {
 			ui.Rows[oindex].Selected = false
@@ -542,7 +583,11 @@ func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 				propagateEvent(self, &r, e)
 			}
 			// xxx orig probably should not be a part in this...
-			p := orig.Add(image.Pt(m.X, (1+nindex)*(rowHeight+separatorHeight)+(font.Height+pad.Dy())/2))
+			n := nindex
+			if ui.Header != nil {
+				n++
+			}
+			p := orig.Add(image.Pt(m.X, n*(rowHeight+separatorHeight)+(font.Height+pad.Dy())/2))
 			r.Warp = &p
 		}
 	}
@@ -550,7 +595,13 @@ func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 }
 
 func (ui *Gridlist) FirstFocus(dui *DUI) (warp *image.Point) {
-	return &image.ZP
+	i := ui.firstSelected()
+	if ui.Header != nil {
+		i++
+	}
+	// focus on first selected item
+	p := image.Pt(0, i*(ui.rowHeight(dui)+separatorHeight))
+	return &p
 }
 
 func (ui *Gridlist) Focus(dui *DUI, o UI) (warp *image.Point) {
