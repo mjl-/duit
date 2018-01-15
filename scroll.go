@@ -130,7 +130,7 @@ func (ui *Scroll) scroll(delta int) bool {
 	o := ui.offset
 	ui.offset += delta
 	ui.offset = maximum(0, ui.offset)
-	ui.offset = minimum(ui.offset, maximum(0, ui.Kid.R.Dy() - ui.childR.Dy()))
+	ui.offset = minimum(ui.offset, maximum(0, ui.Kid.R.Dy()-ui.childR.Dy()))
 	return o != ui.offset
 }
 
@@ -248,9 +248,9 @@ func (ui *Scroll) warpScroll(dui *DUI, self *Kid, warp *image.Point, orig image.
 
 	offset := ui.offset
 	if warp.Y < ui.offset {
-		ui.offset = maximum(0, warp.Y - dui.Scale(40))
-	} else if warp.Y > ui.offset + ui.r.Dy() {
-		ui.offset = minimum(ui.Kid.R.Dy() - ui.r.Dy(), warp.Y + dui.Scale(40) - ui.r.Dy())
+		ui.offset = maximum(0, warp.Y-dui.Scale(40))
+	} else if warp.Y > ui.offset+ui.r.Dy() {
+		ui.offset = minimum(ui.Kid.R.Dy()-ui.r.Dy(), warp.Y+dui.Scale(40)-ui.r.Dy())
 	}
 	if offset != ui.offset {
 		if self != nil {
