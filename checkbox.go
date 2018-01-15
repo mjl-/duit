@@ -9,6 +9,7 @@ import (
 type Checkbox struct {
 	Checked  bool
 	Disabled bool
+	Font     *draw.Font     `json:"-"`
 	Changed  func(e *Event) `json:"-"`
 
 	m draw.Mouse
@@ -16,10 +17,25 @@ type Checkbox struct {
 
 var _ UI = &Checkbox{}
 
+func (ui *Checkbox) font(dui *DUI) *draw.Font {
+	if ui.Font != nil {
+		return ui.Font
+	}
+	return dui.Display.DefaultFont
+}
+
+func (ui *Checkbox) size(dui *DUI) image.Point {
+	return pt(2*BorderSize + ui.innerDim(dui))
+}
+
+func (ui *Checkbox) innerDim(dui *DUI) int {
+	return 4 * ui.font(dui).Height / 5
+}
+
 func (ui *Checkbox) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	dui.debugLayout("Checkbox", self)
 	hit := image.Point{0, 1}
-	size := pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5).Add(hit)
+	size := ui.size(dui).Add(hit)
 	self.R = rect(size)
 	return
 }
@@ -27,7 +43,7 @@ func (ui *Checkbox) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force boo
 func (ui *Checkbox) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
 	dui.debugDraw("Checkbox", self)
 
-	r := rect(pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5))
+	r := rect(ui.size(dui))
 	hover := m.In(r)
 	r = r.Add(orig)
 
@@ -50,7 +66,7 @@ func (ui *Checkbox) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point,
 	r = r.Add(hit)
 	drawRoundedBorder(img, r, color)
 
-	cr := r.Inset((4 * dui.Display.DefaultFont.Height / 5) / 5)
+	cr := r.Inset(ui.innerDim(dui) / 5)
 	if ui.Checked {
 		p0 := image.Pt(cr.Min.X, cr.Min.Y+2*cr.Dy()/3)
 		p1 := image.Pt(cr.Min.X+1*cr.Dx()/3, cr.Max.Y)
@@ -64,7 +80,7 @@ func (ui *Checkbox) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, o
 	if ui.Disabled {
 		return
 	}
-	rr := rect(pt(2*BorderSize + 4*dui.Display.DefaultFont.Height/5))
+	rr := rect(ui.size(dui))
 	hover := m.In(rr)
 	if hover != ui.m.In(rr) {
 		self.Draw = Dirty
@@ -103,7 +119,8 @@ func (ui *Checkbox) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 }
 
 func (ui *Checkbox) FirstFocus(dui *DUI) *image.Point {
-	return &image.ZP
+	p := ui.size(dui).Mul(3).Div(4)
+	return &p
 }
 
 func (ui *Checkbox) Focus(dui *DUI, o UI) *image.Point {

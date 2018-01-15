@@ -11,12 +11,28 @@ type Radiobutton struct {
 	Value    interface{} `json:"-"`
 	Disabled bool
 	Group    []*Radiobutton
+	Font     *draw.Font                    `json:"-"`
 	Changed  func(v interface{}, r *Event) `json:"-"` // only the change function of the newly selected radiobutton in the group will be called
 
 	m draw.Mouse
 }
 
 var _ UI = &Radiobutton{}
+
+func (ui *Radiobutton) font(dui *DUI) *draw.Font {
+	if ui.Font != nil {
+		return ui.Font
+	}
+	return dui.Display.DefaultFont
+}
+
+func (ui *Radiobutton) size(dui *DUI) image.Point {
+	return pt(2*BorderSize + ui.innerDim(dui))
+}
+
+func (ui *Radiobutton) innerDim(dui *DUI) int {
+	return 7 * dui.Display.DefaultFont.Height / 10
+}
 
 func (ui *Radiobutton) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	dui.debugLayout("Radiobutton", self)
@@ -97,7 +113,7 @@ func (ui *Radiobutton) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse
 	if ui.Disabled {
 		return
 	}
-	rr := rect(pt(2*BorderSize + 7*dui.Display.DefaultFont.Height/10))
+	rr := rect(ui.size(dui))
 	hover := m.In(rr)
 	if hover != ui.m.In(rr) {
 		self.Draw = Dirty
@@ -125,7 +141,8 @@ func (ui *Radiobutton) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image
 }
 
 func (ui *Radiobutton) FirstFocus(dui *DUI) *image.Point {
-	return &image.ZP
+	p := ui.size(dui).Mul(3).Div(4)
+	return &p
 }
 
 func (ui *Radiobutton) Focus(dui *DUI, o UI) *image.Point {

@@ -170,6 +170,7 @@ func (ui *Buttongroup) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image
 
 func (ui *Buttongroup) FirstFocus(dui *DUI) *image.Point {
 	p := ui.padding(dui)
+	// todo: move to active item
 	return &p
 }
 
