@@ -131,7 +131,7 @@ func (ui *List) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		}
 	}
 	switch k {
-	case draw.KeyUp, draw.KeyDown:
+	case draw.KeyUp, draw.KeyDown, draw.KeyHome, draw.KeyEnd:
 		if len(ui.Values) == 0 {
 			return
 		}
@@ -140,21 +140,27 @@ func (ui *List) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		nindex := -1
 		switch k {
 		case draw.KeyUp:
-			r.Consumed = true
 			if len(sel) == 0 {
 				nindex = len(ui.Values) - 1
 			} else {
 				oindex = sel[0]
-				nindex = (sel[0] - 1 + len(ui.Values)) % len(ui.Values)
+				nindex = maximum(0, sel[0]-1)
 			}
 		case draw.KeyDown:
-			r.Consumed = true
 			if len(sel) == 0 {
 				nindex = 0
 			} else {
 				oindex = sel[len(sel)-1]
-				nindex = (sel[len(sel)-1] + 1) % len(ui.Values)
+				nindex = minimum(sel[len(sel)-1]+1, len(ui.Values)-1)
 			}
+		case draw.KeyHome:
+			nindex = 0
+		case draw.KeyEnd:
+			nindex = len(ui.Values) - 1
+		}
+		r.Consumed = oindex != nindex
+		if !r.Consumed {
+			return
 		}
 		if oindex >= 0 {
 			ui.Values[oindex].Selected = false

@@ -527,7 +527,7 @@ func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 			self.Draw = Dirty
 		}
 
-	case draw.KeyUp, draw.KeyDown:
+	case draw.KeyUp, draw.KeyDown, draw.KeyHome, draw.KeyEnd:
 		if len(ui.Rows) == 0 {
 			return
 		}
@@ -537,23 +537,24 @@ func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 		switch k {
 		case draw.KeyUp:
 			if len(sel) == 0 {
-				r.Consumed = true
 				nindex = 0
 			} else {
 				oindex = sel[0]
 				nindex = maximum(0, sel[0]-1)
-				r.Consumed = oindex != nindex
 			}
 		case draw.KeyDown:
 			if len(sel) == 0 {
-				r.Consumed = true
 				nindex = 0
 			} else {
 				oindex = sel[len(sel)-1]
 				nindex = minimum(sel[len(sel)-1]+1, len(ui.Rows)-1)
-				r.Consumed = oindex != nindex
 			}
+		case draw.KeyHome:
+			nindex = 0
+		case draw.KeyEnd:
+			nindex = len(ui.Rows) - 1
 		}
+		r.Consumed = oindex != nindex
 		if !r.Consumed {
 			return
 		}
