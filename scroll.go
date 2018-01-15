@@ -129,16 +129,8 @@ func (ui *Scroll) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m
 func (ui *Scroll) scroll(delta int) bool {
 	o := ui.offset
 	ui.offset += delta
-	if ui.offset < 0 {
-		ui.offset = 0
-	}
-	offsetMax := ui.Kid.R.Dy() - ui.childR.Dy()
-	if offsetMax < 0 {
-		offsetMax = 0
-	}
-	if ui.offset > offsetMax {
-		ui.offset = offsetMax
-	}
+	ui.offset = maximum(0, ui.offset)
+	ui.offset = minimum(ui.offset, maximum(0, ui.Kid.R.Dy() - ui.childR.Dy()))
 	return o != ui.offset
 }
 
@@ -173,11 +165,7 @@ func (ui *Scroll) scrollMouse(m draw.Mouse, scrollOnly bool) (consumed bool) {
 	case Button2:
 		offset := m.Y * ui.Kid.R.Dy() / ui.barR.Dy()
 		offsetMax := ui.Kid.R.Dy() - ui.childR.Dy()
-		if offset < 0 {
-			offset = 0
-		} else if offset > offsetMax {
-			offset = offsetMax
-		}
+		offset = maximum(0, minimum(offset, offsetMax))
 		o := ui.offset
 		ui.offset = offset
 		return o != ui.offset
@@ -210,7 +198,8 @@ func (ui *Scroll) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, ori
 		nOrigM.Point = nOrigM.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
 		nm := m
 		nm.Point = nm.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
-		r = ui.Kid.UI.Mouse(dui, &ui.Kid, nm, nOrigM, orig)
+		r = ui.Kid.UI.Mouse(dui, &ui.Kid, nm, nOrigM, image.ZP)
+		ui.warpScroll(dui, self, r.Warp, orig)
 		scrolled := false
 		if !r.Consumed {
 			scrolled = ui.scrollMouse(m, true)
@@ -240,7 +229,8 @@ func (ui *Scroll) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Poin
 	}
 	if m.Point.In(ui.childR) {
 		m.Point = m.Point.Add(image.Pt(-ui.scrollbarSize, ui.offset))
-		r = ui.Kid.UI.Key(dui, &ui.Kid, k, m, orig.Add(image.Pt(ui.scrollbarSize, -ui.offset)))
+		r = ui.Kid.UI.Key(dui, &ui.Kid, k, m, image.ZP)
+		ui.warpScroll(dui, self, r.Warp, orig)
 		scrolled := false
 		if !r.Consumed {
 			scrolled = ui.scrollKey(k)
@@ -251,22 +241,44 @@ func (ui *Scroll) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Poin
 	return
 }
 
-func (ui *Scroll) FirstFocus(dui *DUI) *image.Point {
-	first := ui.Kid.UI.FirstFocus(dui)
-	if first == nil {
-		return nil
+func (ui *Scroll) warpScroll(dui *DUI, self *Kid, warp *image.Point, orig image.Point) {
+	if warp == nil {
+		return
 	}
-	p := first.Add(image.Pt(ui.scrollbarSize, -ui.offset))
-	return &p
+
+	offset := ui.offset
+	if warp.Y < ui.offset {
+		ui.offset = maximum(0, warp.Y - dui.Scale(40))
+	} else if warp.Y > ui.offset + ui.r.Dy() {
+		ui.offset = minimum(ui.Kid.R.Dy() - ui.r.Dy(), warp.Y + dui.Scale(40) - ui.r.Dy())
+	}
+	if offset != ui.offset {
+		if self != nil {
+			self.Draw = Dirty
+		} else {
+			dui.MarkDraw(ui)
+		}
+	}
+	warp.Y -= ui.offset
+	warp.X += orig.X + ui.scrollbarSize
+	warp.Y += orig.Y
 }
 
-func (ui *Scroll) Focus(dui *DUI, o UI) *image.Point {
-	p := ui.Kid.UI.Focus(dui, o)
+func (ui *Scroll) FirstFocus(dui *DUI) *image.Point {
+	p := ui.Kid.UI.FirstFocus(dui)
 	if p == nil {
 		return nil
 	}
-	pp := p.Add(image.Pt(ui.scrollbarSize, -ui.offset))
-	return &pp
+	ui.warpScroll(dui, nil, p, image.ZP)
+	return p
+}
+
+func (ui *Scroll) Focus(dui *DUI, o UI) *image.Point {
+	if o == ui {
+		p := image.Pt(minimum(ui.scrollbarSize/2, ui.r.Dx()), minimum(ui.scrollbarSize/2, ui.r.Dy()))
+		return &p
+	}
+	return ui.Kid.UI.Focus(dui, o)
 }
 
 func (ui *Scroll) Mark(self *Kid, o UI, forLayout bool) (marked bool) {
