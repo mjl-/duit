@@ -404,10 +404,10 @@ func (ui *Field) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point
 	case draw.KeyRight:
 		cursor0 = cursorNext()
 		ui.SelectionStart1 = 0
-	case Ctrl & 'a':
+	case Ctrl & 'a', draw.KeyHome:
 		cursor0 = 0
 		ui.SelectionStart1 = 0
-	case Ctrl & 'e':
+	case Ctrl & 'e', draw.KeyEnd:
 		cursor0 = len(ui.Text)
 		ui.SelectionStart1 = 0
 
@@ -484,6 +484,9 @@ func (ui *Field) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point
 		return
 
 	default:
+		if k >= draw.KeyCmd && k < draw.KeyCmd+128 {
+			return
+		}
 		cursor0 = removeSelection()
 		ks := string(k)
 		if cursor0 >= len(ui.Text) {

@@ -912,6 +912,10 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		}
 
 	default:
+		if k >= draw.KeyCmd && k < draw.KeyCmd+128 {
+			r.Consumed = false
+			return
+		}
 		ui.text.Replace(c0, c1, []byte(string(k)))
 		ui.cursor = c0 + int64(len(string(k)))
 		ui.cursor0 = ui.cursor
