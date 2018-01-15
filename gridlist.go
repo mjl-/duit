@@ -595,7 +595,7 @@ func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 }
 
 func (ui *Gridlist) FirstFocus(dui *DUI) (warp *image.Point) {
-	i := ui.firstSelected()
+	i := maximum(0, ui.firstSelected())
 	if ui.Header != nil {
 		i++
 	}

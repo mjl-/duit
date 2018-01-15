@@ -30,20 +30,25 @@ func (ui *List) font(dui *DUI) *draw.Font {
 	return dui.Font(ui.Font)
 }
 
+func (ui *List) rowHeight(dui *DUI) int {
+	return 4 * ui.font(dui).Height / 3
+}
+
 func (ui *List) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	dui.debugLayout("List", self)
-	ui.size = image.Pt(sizeAvail.X, len(ui.Values)*(4*ui.font(dui).Height/3))
+	ui.size = image.Pt(sizeAvail.X, len(ui.Values)*ui.rowHeight(dui))
 	self.R = rect(ui.size)
 }
 
 func (ui *List) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
 	dui.debugDraw("Label", self)
 
+	rowHeight := ui.rowHeight(dui)
 	font := ui.font(dui)
 	r := rect(ui.size).Add(orig)
 	img.Draw(r, dui.Background, nil, image.ZP)
 	lineR := r
-	lineR.Max.Y = lineR.Min.Y + 4*font.Height/3
+	lineR.Max.Y = lineR.Min.Y + rowHeight
 
 	for _, v := range ui.Values {
 		colors := dui.Regular.Normal
@@ -52,7 +57,7 @@ func (ui *List) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 			img.Draw(lineR, colors.Background, nil, image.ZP)
 		}
 		img.String(lineR.Min.Add(pt(font.Height/4)), colors.Text, image.ZP, font, v.Text)
-		lineR = lineR.Add(image.Pt(0, 4*font.Height/3))
+		lineR = lineR.Add(image.Pt(0, rowHeight))
 	}
 }
 
@@ -174,15 +179,25 @@ func (ui *List) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 			}
 			// xxx orig probably should not be a part in this...
 			font := ui.font(dui)
-			p := orig.Add(image.Pt(m.X, nindex*(4*font.Height/3)+font.Height/2))
+			p := orig.Add(image.Pt(m.X, nindex*ui.rowHeight(dui)+font.Height/2))
 			r.Warp = &p
 		}
 	}
 	return
 }
 
+func (ui *List) firstSelected() int {
+	for i, lv := range ui.Values {
+		if lv.Selected {
+			return i
+		}
+	}
+	return -1
+}
+
 func (ui *List) FirstFocus(dui *DUI) *image.Point {
-	return &image.ZP
+	p := image.Pt(0, maximum(0, ui.firstSelected())*ui.rowHeight(dui))
+	return &p
 }
 
 func (ui *List) Focus(dui *DUI, o UI) *image.Point {
