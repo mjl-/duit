@@ -42,14 +42,16 @@ func main() {
 	radio1 := &duit.Radiobutton{
 		Selected: true,
 		Value:    1,
-		Changed: func(v interface{}, r *duit.Event) {
+		Changed: func(v interface{}) (e duit.Event) {
 			log.Printf("radiobutton value changed, now %#v\n", v)
+			return
 		},
 	}
 	radio2 := &duit.Radiobutton{
 		Value: 2,
-		Changed: func(v interface{}, r *duit.Event) {
+		Changed: func(v interface{}) (e duit.Event) {
 			log.Printf("radiobutton value changed, now %#v\n", v)
+			return
 		},
 	}
 	group := []*duit.Radiobutton{
@@ -91,8 +93,9 @@ func main() {
 							&duit.Label{Text: "Checkbox"},
 							&duit.Checkbox{
 								Checked: true,
-								Changed: func(e *duit.Event) {
+								Changed: func() (e duit.Event) {
 									log.Println("checkbox value changed")
+									return
 								},
 							},
 							&duit.Label{Text: "Radio 1"},
@@ -113,14 +116,16 @@ func main() {
 							&duit.Button{
 								Text:     "button1",
 								Colorset: &dui.Primary,
-								Click: func(e *duit.Event) {
+								Click: func() (e duit.Event) {
 									log.Printf("button clicked")
+									return
 								},
 							},
 							&duit.Button{
 								Text:     "button2",
 								Disabled: true,
-								Click: func(e *duit.Event) {
+								Click: func() (e duit.Event) {
+									return
 								},
 							},
 							&duit.List{

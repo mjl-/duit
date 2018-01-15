@@ -11,8 +11,8 @@ type Button struct {
 	Icon     Icon `json:"-"` // drawn before text
 	Disabled bool
 	Colorset *Colorset
-	Font     *draw.Font     `json:"-"`
-	Click    func(e *Event) `json:"-"`
+	Font     *draw.Font       `json:"-"`
+	Click    func() (e Event) `json:"-"`
 
 	m    draw.Mouse
 	size image.Point
@@ -99,8 +99,7 @@ func (ui *Button) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, ori
 		self.Draw = Dirty
 	}
 	if hover && ui.m.Buttons&Button1 == Button1 && m.Buttons&Button1 == 0 && ui.Click != nil {
-		var e Event
-		ui.Click(&e)
+		e := ui.Click()
 		propagateEvent(self, &r, e)
 	}
 	ui.m = m
@@ -111,8 +110,7 @@ func (ui *Button) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Poin
 	if !ui.Disabled && (k == ' ' || k == '\n') {
 		r.Consumed = true
 		if ui.Click != nil {
-			var e Event
-			ui.Click(&e)
+			e := ui.Click()
 			propagateEvent(self, &r, e)
 		}
 	}

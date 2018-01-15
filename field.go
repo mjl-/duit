@@ -18,8 +18,8 @@ type Field struct {
 	SelectionStart1 int                                  // if > 0, 1 beyond the start of the selection in bytes, with Cursor being the end.
 	Font            *draw.Font                           `json:"-"`
 	Password        bool                                 // if true, text is rendered as bullet items to hide the password (but not the length of the password)
-	Changed         func(text string, e *Event)          `json:"-"` // called after contents of field have changed
-	Keys            func(k rune, m draw.Mouse, e *Event) `json:"-"` // called before handling key. if you consume the event, Changed will not be called
+	Changed         func(text string) (e Event)          `json:"-"` // called after contents of field have changed
+	Keys            func(k rune, m draw.Mouse) (e Event) `json:"-"` // called before handling key. if you consume the event, Changed will not be called
 
 	size            image.Point // including space
 	m               draw.Mouse
@@ -369,8 +369,7 @@ func (ui *Field) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point
 	}
 
 	if ui.Keys != nil {
-		var e Event
-		ui.Keys(k, m, &e)
+		e := ui.Keys(k, m)
 		propagateEvent(self, &r, e)
 		if r.Consumed {
 			return
@@ -499,8 +498,7 @@ func (ui *Field) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point
 	r.Consumed = true
 	self.Draw = Dirty
 	if ui.Changed != nil && origText != ui.Text {
-		var e Event
-		ui.Changed(ui.Text, &e)
+		e := ui.Changed(ui.Text)
 		propagateEvent(self, &r, e)
 	}
 	return

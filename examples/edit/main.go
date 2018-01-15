@@ -38,13 +38,14 @@ func main() {
 
 	print := &duit.Button{
 		Text: "print",
-		Click: func(e *duit.Event) {
+		Click: func() (e duit.Event) {
 			rd := edit.Reader()
 			n, err := io.Copy(os.Stdout, rd)
 			if err != nil {
 				log.Printf("error copying text: %s\n", err)
 			}
 			log.Printf("copied %d bytes\n", n)
+			return
 		},
 	}
 

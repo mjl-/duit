@@ -31,7 +31,7 @@ const (
 
 type Edit struct {
 	Font *draw.Font                           `json:"-"`
-	Keys func(k rune, m draw.Mouse, e *Event) `json:"-"`
+	Keys func(k rune, m draw.Mouse) (e Event) `json:"-"`
 
 	text    *text // what we are rendering.  offset & cursors index into this text
 	offset  int64 // byte offset of first line we draw
@@ -786,8 +786,7 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 	}
 
 	if ui.Keys != nil {
-		var e Event
-		ui.Keys(k, m, &e)
+		e := ui.Keys(k, m)
 		propagateEvent(self, &r, e)
 		if r.Consumed {
 			return

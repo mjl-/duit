@@ -132,7 +132,7 @@ func main() {
 
 	favoritesUI = &duit.List{
 		Values: favorites,
-		Changed: func(index int, e *duit.Event) {
+		Changed: func(index int) (e duit.Event) {
 			activeFavorite = favoritesUI.Values[index]
 			activeFavorite.Selected = true
 			path := activeFavorite.Value.(string)
@@ -143,6 +143,7 @@ func main() {
 			}
 			columnsUI.Kids = duit.NewKids(makeColumnUI(0, columns[0]))
 			e.NeedLayout = true // xxx probably propagate to top?
+			return
 		},
 	}
 	activeFavorite = favoritesUI.Values[0]
@@ -158,7 +159,7 @@ func main() {
 
 	favoriteToggle = &duit.Button{
 		Text: "-",
-		Click: func(e *duit.Event) {
+		Click: func() (e duit.Event) {
 			log.Printf("toggle favorite\n")
 			for _, lv := range favoritesUI.Values {
 				lv.Selected = false
@@ -186,6 +187,7 @@ func main() {
 			err := saveFavorites(favoritesUI.Values)
 			check(err, "saving favorites")
 			e.NeedLayout = true // xxx probably propagate to top
+			return
 		},
 	}
 
@@ -197,23 +199,25 @@ func main() {
 		var list *duit.List
 		list = &duit.List{
 			Values: l,
-			Changed: func(index int, e *duit.Event) {
+			Changed: func(index int) (e duit.Event) {
 				if list.Values[index].Selected {
 					selectName(colIndex, list.Values[index].Value.(string))
 					e.NeedLayout = true // xxx propagate to top?
 				} else {
 					selectName(colIndex, "")
 				}
+				return
 			},
-			Click: func(index int, m draw.Mouse, e *duit.Event) {
+			Click: func(index int, m draw.Mouse) (e duit.Event) {
 				if m.Buttons != 1<<2 {
 					return
 				}
 				path := composePath(colIndex, list.Values[index].Value.(string))
 				open(path)
 				e.Consumed = true
+				return
 			},
-			Keys: func(k rune, m draw.Mouse, e *duit.Event) {
+			Keys: func(k rune, m draw.Mouse) (e duit.Event) {
 				log.Printf("list.keys, k %x %c %v\n", k, k, k)
 				switch k {
 				case '\n':
@@ -255,6 +259,7 @@ func main() {
 						e.NeedLayout = true // xxx propagate?
 					}
 				}
+				return
 			},
 		}
 		return &duit.Box{
@@ -262,7 +267,7 @@ func main() {
 			Margin:  image.Pt(6, 4),
 			Kids: duit.NewKids(
 				&duit.Field{
-					Changed: func(newValue string, e *duit.Event) {
+					Changed: func(newValue string) (e duit.Event) {
 						nl := []*duit.ListValue{}
 						exactMatch := false
 						for _, name := range c.names {
@@ -279,6 +284,7 @@ func main() {
 						}
 						list.Values = nl
 						e.NeedLayout = true // xxx propagate?
+						return
 					},
 				},
 				duit.NewScroll(list),

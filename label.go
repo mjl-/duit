@@ -9,7 +9,7 @@ import (
 type Label struct {
 	Text  string
 	Font  *draw.Font `json:"-"`
-	Click func(e *Event)
+	Click func() (e Event)
 
 	lines []string
 	size  image.Point
@@ -69,8 +69,7 @@ func (ui *Label) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m 
 
 func (ui *Label) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
 	if m.In(rect(ui.size)) && ui.m.Buttons == 0 && m.Buttons == Button1 && ui.Click != nil {
-		var e Event
-		ui.Click(&e)
+		e := ui.Click()
 		propagateEvent(self, &r, e)
 	}
 	ui.m = m
@@ -81,8 +80,7 @@ func (ui *Label) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point
 	switch k {
 	case '\n':
 		if ui.Click != nil {
-			var e Event
-			ui.Click(&e)
+			e := ui.Click()
 			propagateEvent(self, &r, e)
 		}
 	case draw.KeyCmd + 'c':

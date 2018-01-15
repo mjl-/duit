@@ -12,7 +12,7 @@ type Radiobutton struct {
 	Disabled bool
 	Group    []*Radiobutton
 	Font     *draw.Font                    `json:"-"`
-	Changed  func(v interface{}, r *Event) `json:"-"` // only the change function of the newly selected radiobutton in the group will be called
+	Changed  func(v interface{}) (e Event) `json:"-"` // only the change function of the newly selected radiobutton in the group will be called
 
 	m draw.Mouse
 }
@@ -95,8 +95,7 @@ func (ui *Radiobutton) check(self *Kid, r *Result) {
 		}
 	}
 	if ui.Changed != nil {
-		var e Event
-		ui.Changed(ui.Value, &e)
+		e := ui.Changed(ui.Value)
 		propagateEvent(self, r, e)
 	}
 }

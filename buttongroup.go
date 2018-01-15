@@ -11,7 +11,7 @@ type Buttongroup struct {
 	Selected int
 	Disabled bool
 	Font     *draw.Font                `json:"-"`
-	Changed  func(index int, e *Event) `json:"-"`
+	Changed  func(index int) (e Event) `json:"-"`
 
 	m    draw.Mouse
 	size image.Point
@@ -122,8 +122,7 @@ func (ui *Buttongroup) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse
 		if index >= 0 {
 			ui.Selected = index
 			if ui.Changed != nil {
-				var e Event
-				ui.Changed(ui.Selected, &e)
+				e := ui.Changed(ui.Selected)
 				propagateEvent(self, &r, e)
 			}
 			self.Draw = Dirty
@@ -148,8 +147,7 @@ func (ui *Buttongroup) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image
 		self.Draw = Dirty
 		ui.Selected = index
 		if ui.Changed != nil {
-			var e Event
-			ui.Changed(ui.Selected, &e)
+			e := ui.Changed(ui.Selected)
 			propagateEvent(self, &r, e)
 		}
 	case '\t':
