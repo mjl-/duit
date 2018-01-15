@@ -213,10 +213,15 @@ func main() {
 				open(path)
 				e.Consumed = true
 			},
-			Keys: func(index int, k rune, m draw.Mouse, e *duit.Event) {
+			Keys: func(k rune, m draw.Mouse, e *duit.Event) {
 				log.Printf("list.keys, k %x %c %v\n", k, k, k)
 				switch k {
 				case '\n':
+					sel := list.Selected()
+					if len(sel) != 1 {
+						return
+					}
+					index := sel[0]
 					e.Consumed = true
 					path := composePath(colIndex, list.Values[index].Value.(string))
 					open(path)
@@ -230,6 +235,11 @@ func main() {
 						e.NeedDraw = true
 					}
 				case draw.KeyRight:
+					sel := list.Selected()
+					if len(sel) != 1 {
+						return
+					}
+					index := sel[0]
 					elem := list.Values[index].Value.(string)
 					log.Printf("arrow right, index %d, elem %s\n", index, elem)
 					if strings.HasSuffix(elem, "/") {

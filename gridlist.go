@@ -29,9 +29,9 @@ type Gridlist struct {
 	Striped  bool
 	Font     *draw.Font `json:"-"`
 
-	Changed func(index int, e *Event)                       `json:"-"`
-	Click   func(index int, m draw.Mouse, e *Event)         `json:"-"`
-	Keys    func(index int, k rune, m draw.Mouse, e *Event) `json:"-"`
+	Changed func(index int, e *Event)               `json:"-"`
+	Click   func(index int, m draw.Mouse, e *Event) `json:"-"`
+	Keys    func(k rune, m draw.Mouse, e *Event)    `json:"-"`
 
 	m                draw.Mouse
 	colWidths        []int // set the first time there are rows
@@ -493,14 +493,8 @@ func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 		return
 	}
 	if ui.Keys != nil {
-		// xxx what should "index" be? especially for multiple: true...
-		sel := ui.selectedIndices()
-		index := -1
-		if len(sel) == 1 {
-			index = sel[0]
-		}
 		var e Event
-		ui.Keys(index, k, m, &e)
+		ui.Keys(k, m, &e)
 		propagateEvent(self, &r, e)
 		if r.Consumed {
 			return

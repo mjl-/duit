@@ -15,10 +15,10 @@ type ListValue struct {
 type List struct {
 	Values   []*ListValue
 	Multiple bool
-	Font     *draw.Font                                      `json:"-"`
-	Changed  func(index int, e *Event)                       `json:"-"`
-	Click    func(index int, m draw.Mouse, e *Event)         `json:"-"`
-	Keys     func(index int, k rune, m draw.Mouse, e *Event) `json:"-"`
+	Font     *draw.Font                              `json:"-"`
+	Changed  func(index int, e *Event)               `json:"-"`
+	Click    func(index int, m draw.Mouse, e *Event) `json:"-"`
+	Keys     func(k rune, m draw.Mouse, e *Event)    `json:"-"`
 
 	m    draw.Mouse
 	size image.Point
@@ -126,14 +126,8 @@ func (ui *List) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		return
 	}
 	if ui.Keys != nil {
-		// xxx what should "index" be? especially for multiple: true...
-		sel := ui.selectedIndices()
-		index := -1
-		if len(sel) == 1 {
-			index = sel[0]
-		}
 		var e Event
-		ui.Keys(index, k, m, &e)
+		ui.Keys(k, m, &e)
 		propagateEvent(self, &r, e)
 		if r.Consumed {
 			return

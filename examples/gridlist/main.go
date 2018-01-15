@@ -58,8 +58,8 @@ func main() {
 			Click: func(index int, m draw.Mouse, e *duit.Event) {
 				log.Printf("gridlist, click, index %d, m %d\n", index, m)
 			},
-			Keys: func(index int, k rune, m draw.Mouse, e *duit.Event) {
-				log.Printf("gridlist, key %c at index %d, mouse %v\n", k, index, m)
+			Keys: func(k rune, m draw.Mouse, e *duit.Event) {
+				log.Printf("gridlist, key %c, mouse %v\n", k, m)
 			},
 		},
 	)
