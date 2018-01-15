@@ -17,7 +17,7 @@ func main() {
 	check(err, "new dui")
 
 	dui.Top.UI = &duit.Split{
-		Gutter: 1,
+		Gutter:   1,
 		Vertical: true,
 		Split: func(height int) []int {
 			p := height / 4

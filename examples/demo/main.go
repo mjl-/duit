@@ -61,7 +61,7 @@ func main() {
 
 	dui.Top.UI = duit.NewBox(
 		&duit.Split{
-			Gutter: 1,
+			Gutter:   1,
 			Vertical: true,
 			Split: func(height int) []int {
 				row1 := height / 4

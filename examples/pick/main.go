@@ -28,7 +28,7 @@ func main() {
 	}
 	vertical := &duit.Split{
 		Vertical: true,
-		Gutter: 1,
+		Gutter:   1,
 		Split: func(height int) []int {
 			return []int{height / 2, height - height/2}
 		},

@@ -7,19 +7,19 @@ import (
 )
 
 type Split struct {
-	Gutter int // in lowDPI pixels
+	Gutter   int // in lowDPI pixels
 	Vertical bool
-	Split  func(dim int) (dims []int) `json:"-"`
-	Kids   []*Kid
+	Split    func(dim int) (dims []int) `json:"-"`
+	Kids     []*Kid
 
 	size   image.Point
-	dims []int
+	dims   []int
 	manual struct {
 		uiDim int // total of dims + gutters, to see if we need to recalculate dims during layout
 		dims  []int
 	}
-	m draw.Mouse
-	dragging bool
+	m             draw.Mouse
+	dragging      bool
 	draggingIndex int
 }
 
@@ -175,7 +175,7 @@ func (ui *Split) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig
 			delta := ui.dim(m.Point) - ui.dim(ui.m.Point)
 			if delta != 0 {
 				ui.ensureManual(dui)
-				if ui.manual.dims[ui.draggingIndex] + delta >= 0 && ui.manual.dims[ui.draggingIndex+1] - delta >= 0 {
+				if ui.manual.dims[ui.draggingIndex]+delta >= 0 && ui.manual.dims[ui.draggingIndex+1]-delta >= 0 {
 					ui.manual.dims[ui.draggingIndex] += delta
 					ui.manual.dims[ui.draggingIndex+1] -= delta
 					dui.WriteSettings(self, ui.manual.dims)
