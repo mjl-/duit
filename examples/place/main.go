@@ -32,7 +32,7 @@ func main() {
 		flag.Usage()
 		os.Exit(2)
 	}
-	dui, err := duit.NewDUI("ex/place", "800x600")
+	dui, err := duit.NewDUI("ex/place", nil)
 	check(err, "new dui")
 
 	readImagePath := func(path string) *draw.Image {

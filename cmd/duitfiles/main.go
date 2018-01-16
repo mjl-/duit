@@ -103,7 +103,7 @@ func main() {
 	log.SetFlags(0)
 	log.SetPrefix("files: ")
 
-	dui, err := duit.NewDUI("files", "1200x700")
+	dui, err := duit.NewDUI("files", nil)
 	check(err, "new dui")
 
 	// layout: favorites on the left, fixed size. remainder on the right contains one or more listboxes.

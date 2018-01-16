@@ -13,7 +13,7 @@ func check(err error, msg string) {
 }
 
 func main() {
-	dui, err := duit.NewDUI("ex/button", "800x600")
+	dui, err := duit.NewDUI("ex/button", nil)
 	check(err, "new dui")
 
 	dui.Top.UI = &duit.Button{

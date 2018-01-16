@@ -14,7 +14,7 @@ func check(err error, msg string) {
 }
 
 func main() {
-	dui, err := duit.NewDUI("ex/pick", "800x600")
+	dui, err := duit.NewDUI("ex/pick", nil)
 	check(err, "new dui")
 
 	b1 := &duit.Button{Text: "b1"}

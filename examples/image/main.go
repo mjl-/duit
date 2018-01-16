@@ -28,7 +28,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	dui, err := duit.NewDUI("ex/image", "800x600")
+	dui, err := duit.NewDUI("ex/image", nil)
 	check(err, "new dui")
 
 	readImagePath := func(path string) *draw.Image {

@@ -20,7 +20,7 @@ func check(err error, msg string) {
 }
 
 func main() {
-	dui, err := duit.NewDUI("ex/demo", "600x400")
+	dui, err := duit.NewDUI("ex/demo", nil)
 	check(err, "new dui")
 
 	readImagePath := func(path string) *draw.Image {

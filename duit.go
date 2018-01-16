@@ -151,6 +151,11 @@ type DUI struct {
 	settingsWriters         map[string]*time.Timer // delayed writes of settings
 }
 
+type DUIOpts struct {
+	FontName   string // eg /mnt/font/Lato-Regular/15a/font
+	Dimensions string // eg 800x600
+}
+
 func check(err error, msg string) {
 	if err != nil {
 		log.Printf("duit: %s: %s\n", msg, err)
@@ -170,21 +175,28 @@ func configDir() string {
 	return appdata + "/duit"
 }
 
-func NewDUI(name, dim string) (*DUI, error) {
+func NewDUI(name string, opts *DUIOpts) (*DUI, error) {
+	if opts == nil {
+		opts = &DUIOpts{}
+	}
+	if opts.Dimensions == "" {
+		opts.Dimensions = "800x600"
+	}
+
 	var dimensionsPath string
 	if name != "" {
 		dimensionsPath = fmt.Sprintf("%s/%s/dimensions", configDir(), name)
 		buf, err := ioutil.ReadFile(dimensionsPath)
 		if err != nil {
 			os.MkdirAll(path.Dir(dimensionsPath), os.ModePerm)
-			ioutil.WriteFile(dimensionsPath, []byte(dim), os.ModePerm)
+			ioutil.WriteFile(dimensionsPath, []byte(opts.Dimensions), os.ModePerm)
 		} else {
-			dim = strings.TrimSpace(string(buf))
+			opts.Dimensions = strings.TrimSpace(string(buf))
 		}
 	}
 
 	errch := make(chan error, 1)
-	display, err := draw.Init(errch, "", name, dim)
+	display, err := draw.Init(errch, opts.FontName, name, opts.Dimensions)
 	if err != nil {
 		return nil, err
 	}
