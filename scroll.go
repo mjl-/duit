@@ -91,8 +91,8 @@ func (ui *Scroll) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m
 	if uih > h {
 		barR := ui.barR.Add(orig)
 		img.Draw(barR, bg, nil, image.ZP)
-		barH := int((float32(h) / float32(uih)) * float32(h))
-		barY := int((float32(ui.offset) / float32(uih)) * float32(h))
+		barH := h * h / uih
+		barY := ui.offset * h / uih
 		ui.barActiveR = ui.barR
 		ui.barActiveR.Min.Y += barY
 		ui.barActiveR.Max.Y = ui.barActiveR.Min.Y + barH
