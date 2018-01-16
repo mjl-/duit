@@ -81,9 +81,18 @@ func (ui *Split) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) 
 	}
 
 	split := func() {
-		ui.dims = ui.Split(ui.dim(sizeAvail) - (len(ui.Kids)-1)*gut)
-		if len(ui.dims) != len(ui.Kids) {
-			panic("bad number of dims from split")
+		if ui.Split == nil {
+			have := ui.dim(sizeAvail) - (len(ui.Kids)-1)*gut
+			ui.dims = make([]int, len(ui.Kids))
+			for i := range ui.dims {
+				ui.dims[i] = have / len(ui.Kids)
+			}
+			ui.dims[len(ui.dims)-1] = have - (len(ui.dims)-1)*(have/len(ui.Kids))
+		} else {
+			ui.dims = ui.Split(ui.dim(sizeAvail) - (len(ui.Kids)-1)*gut)
+			if len(ui.dims) != len(ui.Kids) {
+				panic("bad number of dims from split")
+			}
 		}
 		ui.manual.dims = nil
 		ui.manual.uiDim = 0

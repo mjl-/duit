@@ -20,10 +20,6 @@ func main() {
 		ID: "horizontal",
 		UI: &duit.Split{
 			Gutter: 1,
-			Split: func(height int) []int {
-				p := height / 4
-				return []int{p, p, height - 2*p}
-			},
 			Kids: duit.NewKids(
 				&duit.Button{Text: "button1"},
 				&duit.Button{Text: "button2"},
