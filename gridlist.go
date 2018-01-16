@@ -20,6 +20,13 @@ type Gridrow struct {
 	Value    interface{} `json:"-"`
 }
 
+type Gridfit byte
+
+const (
+	FitNormal = Gridfit(iota)
+	FitSlim
+)
+
 type Gridlist struct {
 	Header   *Gridrow
 	Rows     []*Gridrow
@@ -27,6 +34,7 @@ type Gridlist struct {
 	Halign   []Halign
 	Padding  Space // in low DPI pixels
 	Striped  bool
+	Fit      Gridfit
 	Font     *draw.Font `json:"-"`
 
 	Changed func(index int) (e Event)               `json:"-"`
@@ -64,7 +72,7 @@ func (ui *Gridlist) makeWidthOffsets(dui *DUI, widths []int) []int {
 
 func (ui *Gridlist) columnWidths(dui *DUI, width int) []int {
 	if ui.colWidths != nil {
-		if width == ui.size.X {
+		if width == ui.size.X || ui.Fit == FitSlim {
 			return ui.colWidths
 		}
 		// log.Printf("making new columns, ui.size.X %d, width %d\n", ui.size.X, width)
@@ -86,6 +94,37 @@ func (ui *Gridlist) columnWidths(dui *DUI, width int) []int {
 		}
 		ui.colWidths[0] += avail
 		return ui.colWidths
+	}
+
+	if ui.Fit == FitSlim {
+		row := ui.exampleRow()
+		if row == nil {
+			return nil
+		}
+
+		widths := make([]int, len(row.Values))
+		font := ui.font(dui)
+		updateWidths := func(row *Gridrow) {
+			for i, s := range row.Values {
+				widths[i] = maximum(widths[i], font.StringWidth(s))
+			}
+		}
+
+		if ui.Header != nil {
+			updateWidths(ui.Header)
+		}
+		for _, row := range ui.Rows {
+			updateWidths(row)
+		}
+		left := width
+		for i := range widths {
+			widths[i] = minimum(widths[i], left)
+			left -= widths[i]
+		}
+		if len(ui.Rows) > 0 {
+			ui.colWidths = widths
+		}
+		return widths
 	}
 
 	makeWidths := func(rows []*Gridrow) ([]int, bool) {
