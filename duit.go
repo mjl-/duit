@@ -125,6 +125,8 @@ type DUI struct {
 	ScrollVisibleNormal,
 	ScrollVisibleHover *draw.Image
 
+	Gutter *draw.Image
+
 	DebugDraw   int  // if 1, UIs print each draw they do, if 2, UIs print all calls to their Draw function. Cycle through 0-2 with F7
 	DebugLayout int  // if 1, UIs print each Layout they do, if 2, UIs print all calls to their Layout function. Cycle through 0-2 with F8
 	DebugKids   bool // whether to print distinct backgrounds in kids* functions
@@ -302,6 +304,8 @@ func NewDUI(name, dim string) (*DUI, error) {
 		ScrollBGHover:       makeColor(0xf0f0f0ff),
 		ScrollVisibleNormal: makeColor(0xbbbbbbff),
 		ScrollVisibleHover:  makeColor(0x999999ff),
+
+		Gutter: makeColor(0xbbbbbbff),
 
 		commandMode: makeColor(0x3272dcff),
 		visualMode:  makeColor(0x5cb85cff),

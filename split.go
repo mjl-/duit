@@ -137,13 +137,13 @@ func (ui *Split) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m 
 			r := image.Rect(0, -gut, ui.size.X, 0).Add(orig)
 			for _, d := range ui.dims[:len(ui.dims)-1] {
 				r = r.Add(image.Pt(0, d+gut))
-				img.Draw(r, dui.Display.White, nil, image.ZP)
+				img.Draw(r, dui.Gutter, nil, image.ZP)
 			}
 		} else {
 			r := image.Rect(-gut, 0, 0, ui.size.Y).Add(orig)
 			for _, d := range ui.dims[:len(ui.dims)-1] {
 				r = r.Add(image.Pt(d+gut, 0))
-				img.Draw(r, dui.Display.White, nil, image.ZP)
+				img.Draw(r, dui.Gutter, nil, image.ZP)
 			}
 		}
 	}
