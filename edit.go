@@ -680,11 +680,11 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 			return
 		}
 		if m.Buttons^om.Buttons != 0 {
-			log.Printf("in text, mouse buttons changed %v ->  %v\n", om, m)
+			// log.Printf("in text, mouse buttons changed %v ->  %v\n", om, m)
 		} else if m.Buttons != 0 && m.Buttons == om.Buttons {
-			log.Printf("in text, mouse drag %v\n", m)
+			// log.Printf("in text, mouse drag %v\n", m)
 		} else if om.Buttons != 0 && m.Buttons == 0 {
-			log.Printf("in text, button release %v -> %v\n", om, m)
+			// log.Printf("in text, button release %v -> %v\n", om, m)
 		}
 	}
 	r.Consumed = true
