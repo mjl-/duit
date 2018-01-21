@@ -33,7 +33,12 @@ const (
 	modeVisualLine                  // vi visual line mode, after 'V' in command mode
 )
 
+type EditColors struct {
+	Fg, Bg, SelFg, SelBg, ScrollVis, ScrollBg, HoverScrollVis, HoverScrollBg, CommandBorder, VisualBorder *draw.Image
+}
+
 type Edit struct {
+	Colors       *EditColors                          `json:"-"`
 	Font         *draw.Font                           `json:"-"`
 	Keys         func(k rune, m draw.Mouse) (e Event) `json:"-"`
 	Click        func(m draw.Mouse) (e Event)         `json:"-"`
@@ -59,6 +64,24 @@ type Edit struct {
 	prevTextB1 draw.Mouse
 
 	lastCursorPoint image.Point
+}
+
+func (ui *Edit) colors(dui *DUI) EditColors {
+	if ui.Colors != nil {
+		return *ui.Colors
+	}
+	return EditColors{
+		Fg:             dui.Regular.Normal.Text,
+		Bg:             dui.Regular.Normal.Background,
+		SelFg:          dui.Inverse.Text,
+		SelBg:          dui.Inverse.Background,
+		ScrollVis:      dui.ScrollVisibleNormal,
+		ScrollBg:       dui.ScrollBGNormal,
+		HoverScrollVis: dui.ScrollVisibleHover,
+		HoverScrollBg:  dui.ScrollBGHover,
+		CommandBorder:  dui.CommandMode,
+		VisualBorder:   dui.VisualMode,
+	}
 }
 
 func NewEdit(f SeekReaderAt) *Edit {
@@ -327,15 +350,17 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 		return
 	}
 
+	colors := ui.colors(dui)
 	pad := dui.ScaleSpace(EditPadding).Mul(-1)
 	switch ui.mode {
 	case modeInsert:
+		img.Draw(pad.Inset(ui.textR.Add(orig)), colors.Bg, nil, image.ZP)
 	case modeCommand:
-		img.Draw(pad.Inset(ui.textR.Add(orig)), dui.commandMode, nil, image.ZP)
+		img.Draw(pad.Inset(ui.textR.Add(orig)), colors.CommandBorder, nil, image.ZP)
 	case modeVisual, modeVisualLine:
-		img.Draw(pad.Inset(ui.textR.Add(orig)), dui.visualMode, nil, image.ZP)
+		img.Draw(pad.Inset(ui.textR.Add(orig)), colors.VisualBorder, nil, image.ZP)
 	}
-	img.Draw(ui.textR.Add(orig), dui.Regular.Normal.Background, nil, image.ZP)
+	img.Draw(ui.textR.Add(orig), colors.Bg, nil, image.ZP)
 
 	font := ui.font(dui)
 	s := ""
@@ -381,7 +406,7 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 		if offset < c0 {
 			nn := minimum64(int64(n), c0-offset)
 			// log.Printf("drawing %d before selection\n", nn)
-			pp := img.String(p, dui.Regular.Normal.Text, image.ZP, font, dropNewline(s[:nn]))
+			pp := img.String(p, colors.Fg, image.ZP, font, dropNewline(s[:nn]))
 			p.X = pp.X
 			s = s[nn:]
 			offset += nn
@@ -406,8 +431,8 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 			if toEnd {
 				selR.Max.X = ui.textR.Max.X
 			}
-			img.Draw(selR, dui.Inverse.Background, nil, image.ZP)
-			pp := img.String(p, dui.Inverse.Text, image.ZP, font, sels)
+			img.Draw(selR, colors.SelBg, nil, image.ZP)
+			pp := img.String(p, colors.SelFg, image.ZP, font, sels)
 			p.X = pp.X
 			s = s[nn:]
 			offset += nn
@@ -421,7 +446,7 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 		if offset >= c1 && offsetEnd > offset {
 			nn := int(offsetEnd - offset)
 			// log.Printf("drawing %d after selection\n", nn)
-			pp := img.String(p, dui.Regular.Normal.Text, image.ZP, font, dropNewline(s))
+			pp := img.String(p, colors.Fg, image.ZP, font, dropNewline(s))
 			p.X = pp.X
 			s = s[nn:]
 			offset += int64(nn)
@@ -458,11 +483,11 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 	}
 
 	barHover := m.In(ui.barR)
-	bg := dui.ScrollBGNormal
-	vis := dui.ScrollVisibleNormal
+	bg := colors.ScrollBg
+	vis := colors.ScrollVis
 	if barHover {
-		bg = dui.ScrollBGHover
-		vis = dui.ScrollVisibleHover
+		bg = colors.HoverScrollBg
+		vis = colors.HoverScrollVis
 	}
 
 	if size == 0 {
@@ -520,8 +545,11 @@ func (ui *Edit) expandNested(r *reader, up, down rune) int64 {
 
 // todo: maybe not have this here?
 func (ui *Edit) ExpandedText() string {
-	c0, c1 := ui.expand(ui.cursor, ui.reader(ui.cursor, ui.text.Size()), ui.revReader(ui.cursor))
-	return ui.readText(c0, c1)
+	br := ui.revReader(ui.cursor)
+	br.Nonwhitespace()
+	fr := ui.reader(ui.cursor, ui.text.Size())
+	fr.Nonwhitespace()
+	return ui.readText(br.Offset(), fr.Offset())
 }
 
 func (ui *Edit) expand(offset int64, fr, br *reader) (int64, int64) {
@@ -543,6 +571,17 @@ func (ui *Edit) expand(offset int64, fr, br *reader) (int64, int64) {
 		fr.Get()
 		n := ui.expandNested(br, rune(Ends[index]), rune(Starts[index]))
 		return offset - n, offset
+	}
+
+	c, eof = br.Peek()
+	if c == '\n' {
+		// at start of line, select to end of line
+		fr.Line(true)
+		return offset, fr.Offset()
+	} else if c, eof = fr.Peek(); c == '\n' || eof {
+		// at end of line, select to start of line
+		br.Line(false)
+		return br.Offset(), offset
 	}
 
 	const Space = " \t\r\n\f\r"
@@ -646,9 +685,7 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 			for ; line > 0 && !eof; line-- {
 				_, _, eof = rd.Line(true)
 			}
-			startLineOffset := rd.Offset()
 			sdx := 0
-			xchars := 0
 			for {
 				c, eof := rd.Peek()
 				if eof || c == '\n' {
@@ -660,26 +697,12 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 				}
 				sdx += dx
 				rd.Get()
-				xchars++
 			}
 			ui.cursor = rd.Offset()
 			ui.ScrollCursor(dui)
 			if om.Buttons == 0 {
 				if m.Msec-ui.prevTextB1.Msec < 300 {
-					if xchars == 0 {
-						// at start of line, select to end of line
-						rd.Line(true)
-						ui.cursor0 = rd.Offset()
-					} else {
-						c, eof := rd.Peek()
-						if eof || c == '\n' {
-							// at end of line, select to start of line
-							ui.cursor0 = startLineOffset
-						} else {
-							// somewhere else, try to expand
-							ui.cursor, ui.cursor0 = ui.expand(ui.cursor, ui.reader(ui.cursor, ui.text.Size()), ui.revReader(ui.cursor))
-						}
-					}
+					ui.cursor, ui.cursor0 = ui.expand(ui.cursor, ui.reader(ui.cursor, ui.text.Size()), ui.revReader(ui.cursor))
 				} else {
 					ui.cursor0 = ui.cursor
 				}

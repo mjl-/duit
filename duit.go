@@ -133,8 +133,8 @@ type DUI struct {
 	debugColors []*draw.Image
 
 	// for edit.  we might need a map where other UIs can store images (like colors) for caching purposes in the future...
-	commandMode,
-	visualMode *draw.Image
+	CommandMode,
+	VisualMode *draw.Image
 
 	stop                    chan struct{}
 	mousectl                *draw.Mousectl
@@ -319,8 +319,8 @@ func NewDUI(name string, opts *DUIOpts) (*DUI, error) {
 
 		Gutter: makeColor(0xbbbbbbff),
 
-		commandMode: makeColor(0x3272dcff),
-		visualMode:  makeColor(0x5cb85cff),
+		CommandMode: makeColor(0x3272dcff),
+		VisualMode:  makeColor(0x5cb85cff),
 
 		debugColors: []*draw.Image{
 			makeColor(0x40000040),
