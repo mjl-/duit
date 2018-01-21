@@ -40,7 +40,7 @@ var _ UI = &Box{}
 
 func (ui *Box) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	dui.debugLayout("Box", self)
-	if kidsLayout(dui, self, ui.Kids, force) {
+	if KidsLayout(dui, self, ui.Kids, force) {
 		return
 	}
 
@@ -133,15 +133,15 @@ func (ui *Box) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 }
 
 func (ui *Box) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	kidsDraw("Box", dui, self, ui.Kids, ui.size, img, orig, m, force)
+	KidsDraw("Box", dui, self, ui.Kids, ui.size, img, orig, m, force)
 }
 
 func (ui *Box) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
-	return kidsMouse(dui, self, ui.Kids, m, origM, orig)
+	return KidsMouse(dui, self, ui.Kids, m, origM, orig)
 }
 
 func (ui *Box) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
-	return kidsKey(dui, self, ui.orderedKids(), k, m, orig)
+	return KidsKey(dui, self, ui.orderedKids(), k, m, orig)
 }
 
 func (ui *Box) orderedKids() []*Kid {
@@ -157,18 +157,18 @@ func (ui *Box) orderedKids() []*Kid {
 }
 
 func (ui *Box) FirstFocus(dui *DUI) *image.Point {
-	return kidsFirstFocus(dui, ui.orderedKids())
+	return KidsFirstFocus(dui, ui.orderedKids())
 }
 
 func (ui *Box) Focus(dui *DUI, o UI) *image.Point {
-	return kidsFocus(dui, ui.Kids, o)
+	return KidsFocus(dui, ui.Kids, o)
 }
 
 func (ui *Box) Mark(self *Kid, o UI, forLayout bool) (marked bool) {
-	return kidsMark(self, ui.Kids, o, forLayout)
+	return KidsMark(self, ui.Kids, o, forLayout)
 }
 
 func (ui *Box) Print(self *Kid, indent int) {
 	PrintUI("Box", self, indent)
-	kidsPrint(ui.Kids, indent+1)
+	KidsPrint(ui.Kids, indent+1)
 }

@@ -24,7 +24,7 @@ var _ UI = &Grid{}
 
 func (ui *Grid) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	dui.debugLayout("Grid", self)
-	if kidsLayout(dui, self, ui.Kids, force) {
+	if KidsLayout(dui, self, ui.Kids, force) {
 		return
 	}
 
@@ -158,30 +158,30 @@ func (ui *Grid) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 }
 
 func (ui *Grid) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	kidsDraw("Grid", dui, self, ui.Kids, ui.size, img, orig, m, force)
+	KidsDraw("Grid", dui, self, ui.Kids, ui.size, img, orig, m, force)
 }
 
 func (ui *Grid) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
-	return kidsMouse(dui, self, ui.Kids, m, origM, orig)
+	return KidsMouse(dui, self, ui.Kids, m, origM, orig)
 }
 
 func (ui *Grid) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
-	return kidsKey(dui, self, ui.Kids, k, m, orig)
+	return KidsKey(dui, self, ui.Kids, k, m, orig)
 }
 
 func (ui *Grid) FirstFocus(dui *DUI) *image.Point {
-	return kidsFirstFocus(dui, ui.Kids)
+	return KidsFirstFocus(dui, ui.Kids)
 }
 
 func (ui *Grid) Focus(dui *DUI, o UI) *image.Point {
-	return kidsFocus(dui, ui.Kids, o)
+	return KidsFocus(dui, ui.Kids, o)
 }
 
 func (ui *Grid) Mark(self *Kid, o UI, forLayout bool) (marked bool) {
-	return kidsMark(self, ui.Kids, o, forLayout)
+	return KidsMark(self, ui.Kids, o, forLayout)
 }
 
 func (ui *Grid) Print(self *Kid, indent int) {
 	PrintUI(fmt.Sprintf("Grid columns=%d padding=%v", ui.Columns, ui.Padding), self, indent)
-	kidsPrint(ui.Kids, indent+1)
+	KidsPrint(ui.Kids, indent+1)
 }

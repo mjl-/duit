@@ -47,9 +47,9 @@ func NewKids(uis ...UI) []*Kid {
 	return kids
 }
 
-// kidsLayout is called by layout UIs before they do their actual layouts.
-// kidsLayout tells them if there is any work to do, by looking at self.Layout.
-func kidsLayout(dui *DUI, self *Kid, kids []*Kid, force bool) (done bool) {
+// KidsLayout is called by layout UIs before they do their actual layouts.
+// KidsLayout tells them if there is any work to do, by looking at self.Layout.
+func KidsLayout(dui *DUI, self *Kid, kids []*Kid, force bool) (done bool) {
 	if force {
 		self.Layout = Clean
 		self.Draw = Dirty
@@ -83,7 +83,7 @@ func kidsLayout(dui *DUI, self *Kid, kids []*Kid, force bool) (done bool) {
 	return true
 }
 
-func kidsDraw(name string, dui *DUI, self *Kid, kids []*Kid, uiSize image.Point, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+func KidsDraw(name string, dui *DUI, self *Kid, kids []*Kid, uiSize image.Point, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
 	dui.debugDraw(name, self)
 
 	force = force || self.Draw == Dirty
@@ -139,7 +139,7 @@ func propagateResult(dui *DUI, self, k *Kid) {
 	// log.Printf("propagateResult, done %#v, dirty %v\n", r, *dirty)
 }
 
-func kidsMouse(dui *DUI, self *Kid, kids []*Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
+func KidsMouse(dui *DUI, self *Kid, kids []*Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
 	for _, k := range kids {
 		if !origM.Point.In(k.R) {
 			continue
@@ -156,7 +156,7 @@ func kidsMouse(dui *DUI, self *Kid, kids []*Kid, m draw.Mouse, origM draw.Mouse,
 	return Result{}
 }
 
-func kidsKey(dui *DUI, self *Kid, kids []*Kid, key rune, m draw.Mouse, orig image.Point) (r Result) {
+func KidsKey(dui *DUI, self *Kid, kids []*Kid, key rune, m draw.Mouse, orig image.Point) (r Result) {
 	for i, k := range kids {
 		if !m.Point.In(k.R) {
 			continue
@@ -185,7 +185,7 @@ func kidsKey(dui *DUI, self *Kid, kids []*Kid, key rune, m draw.Mouse, orig imag
 	return Result{}
 }
 
-func kidsFirstFocus(dui *DUI, kids []*Kid) *image.Point {
+func KidsFirstFocus(dui *DUI, kids []*Kid) *image.Point {
 	if len(kids) == 0 {
 		return nil
 	}
@@ -199,7 +199,7 @@ func kidsFirstFocus(dui *DUI, kids []*Kid) *image.Point {
 	return nil
 }
 
-func kidsFocus(dui *DUI, kids []*Kid, ui UI) *image.Point {
+func KidsFocus(dui *DUI, kids []*Kid, ui UI) *image.Point {
 	if len(kids) == 0 {
 		return nil
 	}
@@ -213,7 +213,7 @@ func kidsFocus(dui *DUI, kids []*Kid, ui UI) *image.Point {
 	return nil
 }
 
-func kidsMark(self *Kid, kids []*Kid, o UI, forLayout bool) (marked bool) {
+func KidsMark(self *Kid, kids []*Kid, o UI, forLayout bool) (marked bool) {
 	if self.Mark(o, forLayout) {
 		return true
 	}
@@ -236,7 +236,7 @@ func kidsMark(self *Kid, kids []*Kid, o UI, forLayout bool) (marked bool) {
 	return false
 }
 
-func kidsPrint(kids []*Kid, indent int) {
+func KidsPrint(kids []*Kid, indent int) {
 	for _, k := range kids {
 		k.UI.Print(k, indent)
 	}

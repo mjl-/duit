@@ -42,5 +42,5 @@ func (ui *Tabs) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 func (ui *Tabs) Print(self *Kid, indent int) {
 	PrintUI("Tabs", self, indent)
 	PrintUI("Box", self, indent+1)
-	kidsPrint(ui.Box.Kids, indent+2)
+	KidsPrint(ui.Box.Kids, indent+2)
 }

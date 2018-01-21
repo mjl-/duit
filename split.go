@@ -65,7 +65,7 @@ func (ui *Split) Dimensions(dui *DUI, dims []int) []int {
 
 func (ui *Split) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	dui.debugLayout("Split", self)
-	if kidsLayout(dui, self, ui.Kids, force) {
+	if KidsLayout(dui, self, ui.Kids, force) {
 		return
 	}
 
@@ -158,7 +158,7 @@ func (ui *Split) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) 
 
 func (ui *Split) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
 	draw := self.Draw == Dirty || force
-	kidsDraw("Split", dui, self, ui.Kids, ui.size, img, orig, m, force)
+	KidsDraw("Split", dui, self, ui.Kids, ui.size, img, orig, m, force)
 	if draw && ui.Gutter > 0 {
 		gut := dui.Scale(ui.Gutter)
 		if ui.Vertical {
@@ -218,25 +218,25 @@ func (ui *Split) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig
 			ui.dragging = false
 		}
 	}
-	r = kidsMouse(dui, self, ui.Kids, m, origM, orig)
+	r = KidsMouse(dui, self, ui.Kids, m, origM, orig)
 	ui.m = m
 	return r
 }
 
 func (ui *Split) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
-	return kidsKey(dui, self, ui.Kids, k, m, orig)
+	return KidsKey(dui, self, ui.Kids, k, m, orig)
 }
 
 func (ui *Split) FirstFocus(dui *DUI) *image.Point {
-	return kidsFirstFocus(dui, ui.Kids)
+	return KidsFirstFocus(dui, ui.Kids)
 }
 
 func (ui *Split) Focus(dui *DUI, o UI) *image.Point {
-	return kidsFocus(dui, ui.Kids, o)
+	return KidsFocus(dui, ui.Kids, o)
 }
 
 func (ui *Split) Mark(self *Kid, o UI, forLayout bool) (marked bool) {
-	return kidsMark(self, ui.Kids, o, forLayout)
+	return KidsMark(self, ui.Kids, o, forLayout)
 }
 
 func (ui *Split) Print(self *Kid, indent int) {
@@ -245,5 +245,5 @@ func (ui *Split) Print(self *Kid, indent int) {
 		how = "vertical"
 	}
 	PrintUI("Split "+how, self, indent)
-	kidsPrint(ui.Kids, indent+1)
+	KidsPrint(ui.Kids, indent+1)
 }

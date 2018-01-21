@@ -38,30 +38,30 @@ func (ui *Place) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m 
 	if self.Draw == DirtyKid {
 		force = true
 	}
-	kidsDraw("Place", dui, self, ui.Kids, ui.size, img, orig, m, force)
+	KidsDraw("Place", dui, self, ui.Kids, ui.size, img, orig, m, force)
 }
 
 func (ui *Place) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
-	return kidsMouse(dui, self, ui.kidsReversed, m, origM, orig)
+	return KidsMouse(dui, self, ui.kidsReversed, m, origM, orig)
 }
 
 func (ui *Place) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
-	return kidsKey(dui, self, ui.kidsReversed, k, m, orig)
+	return KidsKey(dui, self, ui.kidsReversed, k, m, orig)
 }
 
 func (ui *Place) FirstFocus(dui *DUI) (warp *image.Point) {
-	return kidsFirstFocus(dui, ui.Kids)
+	return KidsFirstFocus(dui, ui.Kids)
 }
 
 func (ui *Place) Focus(dui *DUI, o UI) (warp *image.Point) {
-	return kidsFocus(dui, ui.Kids, o)
+	return KidsFocus(dui, ui.Kids, o)
 }
 
 func (ui *Place) Mark(self *Kid, o UI, forLayout bool) (marked bool) {
-	return kidsMark(self, ui.Kids, o, forLayout)
+	return KidsMark(self, ui.Kids, o, forLayout)
 }
 
 func (ui *Place) Print(self *Kid, indent int) {
 	PrintUI("Place", self, indent)
-	kidsPrint(ui.Kids, indent+1)
+	KidsPrint(ui.Kids, indent+1)
 }
