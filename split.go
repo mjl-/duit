@@ -7,10 +7,11 @@ import (
 )
 
 type Split struct {
-	Gutter   int // in lowDPI pixels
-	Vertical bool
-	Split    func(dim int) (dims []int) `json:"-"`
-	Kids     []*Kid
+	Gutter     int         // in lowDPI pixels
+	Background *draw.Image `json:"-"`
+	Vertical   bool
+	Split      func(dim int) (dims []int) `json:"-"`
+	Kids       []*Kid
 
 	size   image.Point
 	dims   []int
@@ -157,24 +158,7 @@ func (ui *Split) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) 
 }
 
 func (ui *Split) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	draw := self.Draw == Dirty || force
-	KidsDraw("Split", dui, self, ui.Kids, ui.size, img, orig, m, force)
-	if draw && ui.Gutter > 0 {
-		gut := dui.Scale(ui.Gutter)
-		if ui.Vertical {
-			r := image.Rect(0, -gut, ui.size.X, 0).Add(orig)
-			for _, d := range ui.dims[:len(ui.dims)-1] {
-				r = r.Add(image.Pt(0, d+gut))
-				img.Draw(r, dui.Gutter, nil, image.ZP)
-			}
-		} else {
-			r := image.Rect(-gut, 0, 0, ui.size.Y).Add(orig)
-			for _, d := range ui.dims[:len(ui.dims)-1] {
-				r = r.Add(image.Pt(d+gut, 0))
-				img.Draw(r, dui.Gutter, nil, image.ZP)
-			}
-		}
-	}
+	KidsDraw("Split", dui, self, ui.Kids, ui.size, ui.Background, img, orig, m, force)
 }
 
 func (ui *Split) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {

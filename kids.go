@@ -83,7 +83,7 @@ func KidsLayout(dui *DUI, self *Kid, kids []*Kid, force bool) (done bool) {
 	return true
 }
 
-func KidsDraw(name string, dui *DUI, self *Kid, kids []*Kid, uiSize image.Point, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+func KidsDraw(name string, dui *DUI, self *Kid, kids []*Kid, uiSize image.Point, bg, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
 	dui.debugDraw(name, self)
 
 	force = force || self.Draw == Dirty
@@ -91,8 +91,11 @@ func KidsDraw(name string, dui *DUI, self *Kid, kids []*Kid, uiSize image.Point,
 		self.Draw = Dirty
 	}
 
+	if bg == nil {
+		bg = dui.Background
+	}
 	if force {
-		img.Draw(rect(uiSize).Add(orig), dui.Background, nil, image.ZP)
+		img.Draw(rect(uiSize).Add(orig), bg, nil, image.ZP)
 	}
 	for i, k := range kids {
 		if !force && k.Draw == Clean {
@@ -101,7 +104,7 @@ func KidsDraw(name string, dui *DUI, self *Kid, kids []*Kid, uiSize image.Point,
 		if dui.DebugKids {
 			img.Draw(k.R.Add(orig), dui.debugColors[i%len(dui.debugColors)], nil, image.ZP)
 		} else if !force && k.Draw == Dirty {
-			img.Draw(k.R.Add(orig), dui.Background, nil, image.ZP)
+			img.Draw(k.R.Add(orig), bg, nil, image.ZP)
 		}
 
 		mm := m

@@ -8,12 +8,13 @@ import (
 )
 
 type Grid struct {
-	Kids    []*Kid
-	Columns int
-	Valign  []Valign
-	Halign  []Halign
-	Padding []Space // in low DPI pixels
-	Width   int     // -1 means full width, 0 means automatic width, >0 means exactly that many lowdpi pixels
+	Kids       []*Kid
+	Columns    int
+	Valign     []Valign
+	Halign     []Halign
+	Padding    []Space     // in low DPI pixels
+	Width      int         // -1 means full width, 0 means automatic width, >0 means exactly that many lowdpi pixels
+	Background *draw.Image `json:"-"`
 
 	widths  []int
 	heights []int
@@ -158,7 +159,7 @@ func (ui *Grid) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 }
 
 func (ui *Grid) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	KidsDraw("Grid", dui, self, ui.Kids, ui.size, img, orig, m, force)
+	KidsDraw("Grid", dui, self, ui.Kids, ui.size, ui.Background, img, orig, m, force)
 }
 
 func (ui *Grid) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {

@@ -7,8 +7,9 @@ import (
 )
 
 type Place struct {
-	Place func(self *Kid, sizeAvail image.Point) `json:"-"`
-	Kids  []*Kid
+	Place      func(self *Kid, sizeAvail image.Point) `json:"-"`
+	Kids       []*Kid
+	Background *draw.Image `json:"-"`
 
 	kidsReversed []*Kid
 	size         image.Point
@@ -38,7 +39,7 @@ func (ui *Place) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m 
 	if self.Draw == DirtyKid {
 		force = true
 	}
-	KidsDraw("Place", dui, self, ui.Kids, ui.size, img, orig, m, force)
+	KidsDraw("Place", dui, self, ui.Kids, ui.size, ui.Background, img, orig, m, force)
 }
 
 func (ui *Place) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {

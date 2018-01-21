@@ -8,7 +8,8 @@ import (
 
 // Middle lays out a single child in the middle of the available space, both vertically and horizontally.
 type Middle struct {
-	Kid *Kid
+	Kid        *Kid
+	Background *draw.Image `json:"-"`
 
 	kids []*Kid
 	size image.Point
@@ -50,7 +51,7 @@ func (ui *Middle) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool)
 func (ui *Middle) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
 	ui.ensure()
 	dui.debugDraw("Middle", self)
-	KidsDraw("Middle", dui, self, ui.kids, ui.size, img, orig, m, force)
+	KidsDraw("Middle", dui, self, ui.kids, ui.size, ui.Background, img, orig, m, force)
 }
 
 func (ui *Middle) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
