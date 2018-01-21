@@ -202,9 +202,7 @@ func (r *reader) RevLine() (s string, eof bool) {
 	return
 }
 
-// xxx todo: better (non)whitespace functions
-func (r *reader) Whitespace() (s string, eof bool) {
-	const Space = " \t\r\n\f\r"
+func (r *reader) gather(keep func(c rune) bool) (s string, eof bool) {
 	var c rune
 	for {
 		c, eof = r.Peek()
@@ -212,48 +210,38 @@ func (r *reader) Whitespace() (s string, eof bool) {
 			eof = s == ""
 			break
 		}
-		if !strings.ContainsAny(string(c), Space) {
+		if !keep(c) {
 			break
 		}
 		r.Get()
 		s += string(c)
 	}
 	return
+}
+
+// xxx todo: better (non)whitespace functions
+func (r *reader) Whitespace() (s string, eof bool) {
+	return r.gather(func(c rune) (keep bool) {
+		return unicode.IsSpace(c)
+	})
 }
 
 func (r *reader) Nonwhitespace() (s string, eof bool) {
-	const Space = " \t\r\n\f\r"
-	var c rune
-	for {
-		c, eof = r.Peek()
-		if eof {
-			eof = s == ""
-			break
-		}
-		if strings.ContainsAny(string(c), Space) {
-			break
-		}
-		r.Get()
-		s += string(c)
-	}
-	return
+	return r.gather(func(c rune) (keep bool) {
+		return !unicode.IsSpace(c)
+	})
+}
+
+func (r *reader) Whitespacepunct() (s string, eof bool) {
+	return r.gather(func(c rune) (keep bool) {
+		return unicode.IsSpace(c) || unicode.IsPunct(c)
+	})
 }
 
 func (r *reader) Nonwhitespacepunct() (s string, eof bool) {
-	var c rune
-	for {
-		c, eof = r.Peek()
-		if eof {
-			eof = s == ""
-			break
-		}
-		if unicode.IsSpace(c) || unicode.IsPunct(c) {
-			break
-		}
-		r.Get()
-		s += string(c)
-	}
-	return
+	return r.gather(func(c rune) (keep bool) {
+		return !unicode.IsSpace(c) && !unicode.IsPunct(c)
+	})
 }
 
 func (ui *Edit) ensureInit() {
@@ -893,14 +881,23 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		ui.cursor0 = ui.cursor
 		ui.ScrollCursor(dui)
 	case Ctrl & 'w':
-		br.Whitespace()
-		br.Nonwhitespace()
+		c, _ := br.Peek()
+		if c == '\n' {
+			br.Get()
+		} else {
+			br.Whitespacepunct()
+			br.Nonwhitespacepunct()
+		}
 		ui.text.Replace(&ui.dirty, br.Offset(), fr.Offset(), nil)
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
 		ui.ScrollCursor(dui)
 	case Ctrl & 'u':
+		o := br.Offset()
 		br.Line(false)
+		if o == br.Offset() && o > 0 {
+			br.TryGet()
+		}
 		ui.text.Replace(&ui.dirty, br.Offset(), fr.Offset(), nil)
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
