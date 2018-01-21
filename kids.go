@@ -165,13 +165,13 @@ func KidsKey(dui *DUI, self *Kid, kids []*Kid, key rune, m draw.Mouse, orig imag
 		r = k.UI.Key(dui, k, key, m, orig.Add(k.R.Min))
 		if !r.Consumed && key == '\t' {
 			for next := i + 1; next < len(kids); next++ {
-				first := kids[next].UI.FirstFocus(dui)
+				k := kids[next]
+				first := k.UI.FirstFocus(dui, k)
 				if first != nil {
-					kR := kids[next].R
-					p := first.Add(orig).Add(kR.Min)
+					p := first.Add(orig).Add(k.R.Min)
 					r.Warp = &p
 					r.Consumed = true
-					r.Hit = kids[next].UI
+					r.Hit = k.UI
 					break
 				}
 			}
@@ -185,12 +185,12 @@ func KidsKey(dui *DUI, self *Kid, kids []*Kid, key rune, m draw.Mouse, orig imag
 	return Result{}
 }
 
-func KidsFirstFocus(dui *DUI, kids []*Kid) *image.Point {
+func KidsFirstFocus(dui *DUI, self *Kid, kids []*Kid) *image.Point {
 	if len(kids) == 0 {
 		return nil
 	}
 	for _, k := range kids {
-		first := k.UI.FirstFocus(dui)
+		first := k.UI.FirstFocus(dui, k)
 		if first != nil {
 			p := first.Add(k.R.Min)
 			return &p
@@ -199,12 +199,12 @@ func KidsFirstFocus(dui *DUI, kids []*Kid) *image.Point {
 	return nil
 }
 
-func KidsFocus(dui *DUI, kids []*Kid, ui UI) *image.Point {
+func KidsFocus(dui *DUI, self *Kid, kids []*Kid, ui UI) *image.Point {
 	if len(kids) == 0 {
 		return nil
 	}
 	for _, k := range kids {
-		p := k.UI.Focus(dui, ui)
+		p := k.UI.Focus(dui, k, ui)
 		if p != nil {
 			pp := p.Add(k.R.Min)
 			return &pp

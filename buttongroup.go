@@ -166,17 +166,17 @@ func (ui *Buttongroup) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image
 	return
 }
 
-func (ui *Buttongroup) FirstFocus(dui *DUI) *image.Point {
+func (ui *Buttongroup) FirstFocus(dui *DUI, self *Kid) *image.Point {
 	p := ui.padding(dui)
 	// todo: move to active item
 	return &p
 }
 
-func (ui *Buttongroup) Focus(dui *DUI, o UI) *image.Point {
+func (ui *Buttongroup) Focus(dui *DUI, self *Kid, o UI) *image.Point {
 	if o != ui {
 		return nil
 	}
-	return ui.FirstFocus(dui)
+	return ui.FirstFocus(dui, self)
 }
 
 func (ui *Buttongroup) Mark(self *Kid, o UI, forLayout bool) (marked bool) {

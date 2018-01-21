@@ -63,14 +63,14 @@ func (ui *Middle) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Poin
 	return KidsKey(dui, self, ui.kids, k, m, orig)
 }
 
-func (ui *Middle) FirstFocus(dui *DUI) (warp *image.Point) {
+func (ui *Middle) FirstFocus(dui *DUI, self *Kid) (warp *image.Point) {
 	ui.ensure()
-	return KidsFirstFocus(dui, ui.kids)
+	return KidsFirstFocus(dui, self, ui.kids)
 }
 
-func (ui *Middle) Focus(dui *DUI, o UI) (warp *image.Point) {
+func (ui *Middle) Focus(dui *DUI, self *Kid, o UI) (warp *image.Point) {
 	ui.ensure()
-	return KidsFocus(dui, ui.kids, o)
+	return KidsFocus(dui, self, ui.kids, o)
 }
 
 func (ui *Middle) Mark(self *Kid, o UI, forLayout bool) (marked bool) {

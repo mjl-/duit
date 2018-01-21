@@ -191,16 +191,16 @@ func (ui *List) firstSelected() int {
 	return -1
 }
 
-func (ui *List) FirstFocus(dui *DUI) *image.Point {
+func (ui *List) FirstFocus(dui *DUI, self *Kid) *image.Point {
 	p := image.Pt(0, maximum(0, ui.firstSelected())*ui.rowHeight(dui))
 	return &p
 }
 
-func (ui *List) Focus(dui *DUI, o UI) *image.Point {
+func (ui *List) Focus(dui *DUI, self *Kid, o UI) *image.Point {
 	if o != ui {
 		return nil
 	}
-	return ui.FirstFocus(dui)
+	return ui.FirstFocus(dui, self)
 }
 
 func (ui *List) Mark(self *Kid, o UI, forLayout bool) (marked bool) {

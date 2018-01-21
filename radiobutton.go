@@ -139,16 +139,16 @@ func (ui *Radiobutton) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image
 	return
 }
 
-func (ui *Radiobutton) FirstFocus(dui *DUI) *image.Point {
+func (ui *Radiobutton) FirstFocus(dui *DUI, self *Kid) *image.Point {
 	p := ui.size(dui).Mul(3).Div(4)
 	return &p
 }
 
-func (ui *Radiobutton) Focus(dui *DUI, o UI) *image.Point {
+func (ui *Radiobutton) Focus(dui *DUI, self *Kid, o UI) *image.Point {
 	if o != ui {
 		return nil
 	}
-	return ui.FirstFocus(dui)
+	return ui.FirstFocus(dui, self)
 }
 
 func (ui *Radiobutton) Mark(self *Kid, o UI, forLayout bool) (marked bool) {

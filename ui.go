@@ -44,10 +44,10 @@ type UI interface {
 	Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result)
 
 	// FirstFocus returns where the focus should go next when "tab" is hit, if anything.
-	FirstFocus(dui *DUI) (warp *image.Point)
+	FirstFocus(dui *DUI, self *Kid) (warp *image.Point)
 
 	// Focus returns the focus-point for `ui`.
-	Focus(dui *DUI, o UI) (warp *image.Point)
+	Focus(dui *DUI, self *Kid, o UI) (warp *image.Point)
 
 	// Mark looks for ui (itself or children), marks it as dirty for layout or draw (forLayout), and propagates whether it marked anything back to the caller.
 	Mark(self *Kid, o UI, forLayout bool) (marked bool)

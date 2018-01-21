@@ -116,16 +116,16 @@ func (ui *Checkbox) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 	return
 }
 
-func (ui *Checkbox) FirstFocus(dui *DUI) *image.Point {
+func (ui *Checkbox) FirstFocus(dui *DUI, self *Kid) *image.Point {
 	p := ui.size(dui).Mul(3).Div(4)
 	return &p
 }
 
-func (ui *Checkbox) Focus(dui *DUI, o UI) *image.Point {
+func (ui *Checkbox) Focus(dui *DUI, self *Kid, o UI) *image.Point {
 	if o != ui {
 		return nil
 	}
-	return ui.FirstFocus(dui)
+	return ui.FirstFocus(dui, self)
 }
 
 func (ui *Checkbox) Mark(self *Kid, o UI, forLayout bool) (marked bool) {

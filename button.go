@@ -117,16 +117,16 @@ func (ui *Button) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Poin
 	return
 }
 
-func (ui *Button) FirstFocus(dui *DUI) *image.Point {
+func (ui *Button) FirstFocus(dui *DUI, self *Kid) *image.Point {
 	p := ui.space(dui)
 	return &p
 }
 
-func (ui *Button) Focus(dui *DUI, o UI) *image.Point {
+func (ui *Button) Focus(dui *DUI, self *Kid, o UI) *image.Point {
 	if o != ui {
 		return nil
 	}
-	return ui.FirstFocus(dui)
+	return ui.FirstFocus(dui, self)
 }
 
 func (ui *Button) Mark(self *Kid, o UI, forLayout bool) (marked bool) {

@@ -90,11 +90,11 @@ func (ui *Label) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point
 	return
 }
 
-func (ui *Label) FirstFocus(dui *DUI) *image.Point {
+func (ui *Label) FirstFocus(dui *DUI, self *Kid) *image.Point {
 	return nil
 }
 
-func (ui *Label) Focus(dui *DUI, o UI) *image.Point {
+func (ui *Label) Focus(dui *DUI, self *Kid, o UI) *image.Point {
 	if ui != o {
 		return nil
 	}

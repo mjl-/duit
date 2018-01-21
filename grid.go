@@ -169,12 +169,12 @@ func (ui *Grid) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 	return KidsKey(dui, self, ui.Kids, k, m, orig)
 }
 
-func (ui *Grid) FirstFocus(dui *DUI) *image.Point {
-	return KidsFirstFocus(dui, ui.Kids)
+func (ui *Grid) FirstFocus(dui *DUI, self *Kid) *image.Point {
+	return KidsFirstFocus(dui, self, ui.Kids)
 }
 
-func (ui *Grid) Focus(dui *DUI, o UI) *image.Point {
-	return KidsFocus(dui, ui.Kids, o)
+func (ui *Grid) Focus(dui *DUI, self *Kid, o UI) *image.Point {
+	return KidsFocus(dui, self, ui.Kids, o)
 }
 
 func (ui *Grid) Mark(self *Kid, o UI, forLayout bool) (marked bool) {

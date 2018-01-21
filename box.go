@@ -156,12 +156,12 @@ func (ui *Box) orderedKids() []*Kid {
 	return kids
 }
 
-func (ui *Box) FirstFocus(dui *DUI) *image.Point {
-	return KidsFirstFocus(dui, ui.orderedKids())
+func (ui *Box) FirstFocus(dui *DUI, self *Kid) *image.Point {
+	return KidsFirstFocus(dui, self, ui.orderedKids())
 }
 
-func (ui *Box) Focus(dui *DUI, o UI) *image.Point {
-	return KidsFocus(dui, ui.Kids, o)
+func (ui *Box) Focus(dui *DUI, self *Kid, o UI) *image.Point {
+	return KidsFocus(dui, self, ui.Kids, o)
 }
 
 func (ui *Box) Mark(self *Kid, o UI, forLayout bool) (marked bool) {

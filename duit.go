@@ -530,7 +530,7 @@ func (d *DUI) Key(k rune) {
 	if !r.Consumed {
 		switch k {
 		case '\t':
-			first := d.Top.UI.FirstFocus(d)
+			first := d.Top.UI.FirstFocus(d, &d.Top)
 			if first != nil {
 				r.Warp = first
 				r.Consumed = true
@@ -545,7 +545,7 @@ func (d *DUI) Key(k rune) {
 }
 
 func (d *DUI) Focus(ui UI) {
-	p := d.Top.UI.Focus(d, ui)
+	p := d.Top.UI.Focus(d, &d.Top, ui)
 	if p == nil {
 		log.Printf("duit: focus: no ui found for %T %p\n", ui, ui)
 		return

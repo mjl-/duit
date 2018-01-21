@@ -38,11 +38,11 @@ func (ui *Image) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point
 	return
 }
 
-func (ui *Image) FirstFocus(dui *DUI) *image.Point {
+func (ui *Image) FirstFocus(dui *DUI, self *Kid) *image.Point {
 	return nil
 }
 
-func (ui *Image) Focus(dui *DUI, o UI) *image.Point {
+func (ui *Image) Focus(dui *DUI, self *Kid, o UI) *image.Point {
 	if ui != o {
 		return nil
 	}

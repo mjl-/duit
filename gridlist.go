@@ -624,7 +624,7 @@ func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 	return
 }
 
-func (ui *Gridlist) FirstFocus(dui *DUI) (warp *image.Point) {
+func (ui *Gridlist) FirstFocus(dui *DUI, self *Kid) (warp *image.Point) {
 	i := maximum(0, ui.firstSelected())
 	if ui.Header != nil {
 		i++
@@ -634,11 +634,11 @@ func (ui *Gridlist) FirstFocus(dui *DUI) (warp *image.Point) {
 	return &p
 }
 
-func (ui *Gridlist) Focus(dui *DUI, o UI) (warp *image.Point) {
+func (ui *Gridlist) Focus(dui *DUI, self *Kid, o UI) (warp *image.Point) {
 	if o != ui {
 		return nil
 	}
-	return ui.FirstFocus(dui)
+	return ui.FirstFocus(dui, self)
 }
 
 func (ui *Gridlist) Mark(self *Kid, o UI, forLayout bool) (marked bool) {

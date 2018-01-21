@@ -962,16 +962,16 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 	return
 }
 
-func (ui *Edit) FirstFocus(dui *DUI) (warp *image.Point) {
+func (ui *Edit) FirstFocus(dui *DUI, self *Kid) (warp *image.Point) {
 	p := ui.lastCursorPoint
 	return &p
 }
 
-func (ui *Edit) Focus(dui *DUI, o UI) (warp *image.Point) {
+func (ui *Edit) Focus(dui *DUI, self *Kid, o UI) (warp *image.Point) {
 	if o != ui {
 		return nil
 	}
-	return ui.FirstFocus(dui)
+	return ui.FirstFocus(dui, self)
 }
 
 func (ui *Edit) Mark(self *Kid, o UI, forLayout bool) (marked bool) {

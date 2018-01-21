@@ -37,12 +37,12 @@ func (ui *Pick) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 	return ui.ui.Key(dui, self, k, m, orig)
 }
 
-func (ui *Pick) FirstFocus(dui *DUI) (warp *image.Point) {
-	return ui.ui.FirstFocus(dui)
+func (ui *Pick) FirstFocus(dui *DUI, self *Kid) (warp *image.Point) {
+	return ui.ui.FirstFocus(dui, self)
 }
 
-func (ui *Pick) Focus(dui *DUI, o UI) (warp *image.Point) {
-	return ui.ui.Focus(dui, o)
+func (ui *Pick) Focus(dui *DUI, self *Kid, o UI) (warp *image.Point) {
+	return ui.ui.Focus(dui, self, o)
 }
 
 func (ui *Pick) Mark(self *Kid, o UI, forLayout bool) (marked bool) {
