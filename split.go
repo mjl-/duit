@@ -44,6 +44,25 @@ func (ui *Split) dim(p image.Point) int {
 	return p.X
 }
 
+func (ui *Split) Dimensions(dui *DUI, dims []int) []int {
+	if dims != nil {
+		if len(dims) != len(ui.Kids) {
+			panic("bad dimensions")
+		}
+		if len(ui.dims) != len(dims) {
+			ui.dims = make([]int, len(dims))
+		}
+		copy(ui.dims, dims)
+		if len(ui.manual.dims) != len(dims) {
+			ui.manual.dims = make([]int, len(dims))
+		}
+		copy(ui.manual.dims, dims)
+	}
+	r := make([]int, len(ui.dims))
+	copy(r, ui.dims)
+	return r
+}
+
 func (ui *Split) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	dui.debugLayout("Split", self)
 	if kidsLayout(dui, self, ui.Kids, force) {
