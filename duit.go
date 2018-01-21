@@ -547,6 +547,7 @@ func (d *DUI) Key(k rune) {
 func (d *DUI) Focus(ui UI) {
 	p := d.Top.UI.Focus(d, ui)
 	if p == nil {
+		log.Printf("duit: focus: no ui found for %T %p\n", ui, ui)
 		return
 	}
 	err := d.Display.MoveTo(*p)
@@ -577,7 +578,7 @@ func PrintUI(s string, self *Kid, indent int) {
 	if indent > 0 {
 		indentStr = fmt.Sprintf("%*s", indent*2, " ")
 	}
-	log.Printf("duit: %s%s r %v layout=%d draw=%d\n", indentStr, s, self.R, self.Layout, self.Draw)
+	log.Printf("duit: %s%s r %v size %s layout=%d draw=%d %p\n", indentStr, s, self.R, self.R.Size(), self.Layout, self.Draw, self.UI)
 }
 
 func scale(d *draw.Display, n int) int {
