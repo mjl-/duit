@@ -66,7 +66,7 @@ func (t *text) TryMergeWithBefore(i int) bool {
 	return ok
 }
 
-func (t *text) Replace(s, e int64, buf []byte) {
+func (t *text) Replace(dirty *bool, s, e int64, buf []byte) {
 	// log.Printf("replace s %d, e %d, buf %v\n", s, e, buf)
 
 	if s == e && len(buf) == 0 {
@@ -76,6 +76,8 @@ func (t *text) Replace(s, e int64, buf []byte) {
 	if s > e {
 		panic("bad replace")
 	}
+
+	*dirty = true
 
 	// insert at i
 	insert := func(i int, tp textPart) {

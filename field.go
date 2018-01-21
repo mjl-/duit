@@ -476,7 +476,7 @@ func (ui *Field) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point
 			cursor0 = 1 + cursor0 + len(t)
 		}
 
-	case draw.KeyCmd + 't':
+	case draw.KeyCmd + 'm':
 		p := ui.lastCursorPoint.Add(orig)
 		r.Warp = &p
 

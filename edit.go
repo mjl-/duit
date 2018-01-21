@@ -30,8 +30,10 @@ const (
 )
 
 type Edit struct {
-	Font *draw.Font                           `json:"-"`
-	Keys func(k rune, m draw.Mouse) (e Event) `json:"-"`
+	Font         *draw.Font                           `json:"-"`
+	Keys         func(k rune, m draw.Mouse) (e Event) `json:"-"`
+	Click        func(m draw.Mouse) (e Event)         `json:"-"`
+	DirtyChanged func(dirty bool)                     `json:"-"`
 
 	text    *text // what we are rendering.  offset & cursors index into this text
 	offset  int64 // byte offset of first line we draw
@@ -41,6 +43,8 @@ type Edit struct {
 	mode    editMode
 	command string // vi command so far
 	visual  string // vi visual command so far
+
+	dirty bool
 
 	r,
 	barR,
@@ -257,6 +261,7 @@ func (ui *Edit) ensureInit() {
 type EditReader interface {
 	Peek() (rune, bool)
 	Get() rune
+	TryGet() (rune, error)
 	Offset() int64
 }
 
@@ -318,7 +323,7 @@ func (ui *Edit) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	ui.barActiveR = ui.barR // Y's are filled in during draw
 	ui.textR = ui.r
 	ui.textR.Min.X = ui.barR.Max.X
-	ui.textR = ui.textR.Inset(dui.Scale(4))
+	ui.textR = ui.textR.Inset(dui.Scale(3))
 	self.R = ui.r
 }
 
@@ -333,9 +338,9 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 	switch ui.mode {
 	case modeInsert:
 	case modeCommand:
-		img.Draw(ui.textR.Add(orig).Inset(dui.Scale(-4)), dui.commandMode, nil, image.ZP)
+		img.Draw(ui.textR.Add(orig).Inset(dui.Scale(-3)), dui.commandMode, nil, image.ZP)
 	case modeVisual, modeVisualLine:
-		img.Draw(ui.textR.Add(orig).Inset(dui.Scale(-4)), dui.visualMode, nil, image.ZP)
+		img.Draw(ui.textR.Add(orig).Inset(dui.Scale(-3)), dui.visualMode, nil, image.ZP)
 	}
 	img.Draw(ui.textR.Add(orig), dui.Regular.Normal.Background, nil, image.ZP)
 
@@ -520,6 +525,12 @@ func (ui *Edit) expandNested(r *reader, up, down rune) int64 {
 	}
 }
 
+// todo: maybe not have this here?
+func (ui *Edit) ExpandedText() string {
+	c0, c1 := ui.expand(ui.cursor, ui.reader(ui.cursor, ui.text.Size()), ui.revReader(ui.cursor))
+	return ui.readText(c0, c1)
+}
+
 func (ui *Edit) expand(offset int64, fr, br *reader) (int64, int64) {
 	const (
 		Starts = "[{(<\"'`"
@@ -572,6 +583,12 @@ func (ui *Edit) expand(offset int64, fr, br *reader) (int64, int64) {
 	return offset - br.n, offset + fr.n
 }
 
+func (ui *Edit) checkDirty(odirty bool) {
+	if odirty != ui.dirty && ui.DirtyChanged != nil {
+		ui.DirtyChanged(ui.dirty)
+	}
+}
+
 func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
 	ui.ensureInit()
 	font := ui.font(dui)
@@ -613,6 +630,7 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 	if !origM.In(ui.textR) {
 		return
 	}
+	defer ui.checkDirty(ui.dirty)
 	origM.Point = origM.Point.Sub(ui.textR.Min)
 	m.Point = m.Point.Sub(ui.textR.Min)
 	om := ui.textM
@@ -652,7 +670,7 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 				xchars++
 			}
 			ui.cursor = rd.Offset()
-			ui.scrollCursor(dui)
+			ui.ScrollCursor(dui)
 			if om.Buttons == 0 {
 				if m.Msec-ui.prevTextB1.Msec < 300 {
 					if xchars == 0 {
@@ -678,6 +696,10 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 			self.Draw = Dirty
 			r.Consumed = true
 			return
+		}
+		if m.Buttons == 0 && om.Buttons&(Button1|Button2|Button3) != 0 && ui.Click != nil {
+			e := ui.Click(om)
+			propagateEvent(self, &r, e)
 		}
 		if m.Buttons^om.Buttons != 0 {
 			// log.Printf("in text, mouse buttons changed %v ->  %v\n", om, m)
@@ -710,8 +732,8 @@ func (ui *Edit) Selection() string {
 	return ui.selectionText()
 }
 
-func (ui *Edit) Cursor() int64 {
-	return ui.cursor
+func (ui *Edit) Cursor() (current, start int64) {
+	return ui.cursor, ui.cursor0
 }
 
 // SetCursor sets the new cursor or selection.
@@ -725,8 +747,21 @@ func (ui *Edit) SetCursor(current, start int64) {
 	ui.cursor0 = start
 }
 
-// ensure cursor is visible
-func (ui *Edit) scrollCursor(dui *DUI) {
+func (ui *Edit) Append(buf []byte) {
+	defer ui.checkDirty(ui.dirty)
+	size := ui.text.Size()
+	ui.text.Replace(&ui.dirty, size, size, buf)
+	ui.cursor = size + int64(len(buf))
+	ui.cursor0 = ui.cursor
+}
+
+func (ui *Edit) Replace(c0, c1 int64, buf []byte) {
+	defer ui.checkDirty(ui.dirty)
+	ui.text.Replace(&ui.dirty, c0, c1, buf)
+}
+
+// ScrollCursor ensure cursor is visible, scrolling if necessary.
+func (ui *Edit) ScrollCursor(dui *DUI) {
 	nbr := ui.revReader(ui.cursor)
 	if ui.cursor < ui.offset {
 		nbr.Line(false)
@@ -761,7 +796,7 @@ func (ui *Edit) indent(c0, c1 int64) int64 {
 		}
 	}
 	rbuf := r.Bytes()
-	ui.text.Replace(c0, c1, rbuf)
+	ui.text.Replace(&ui.dirty, c0, c1, rbuf)
 	return int64(len(rbuf))
 }
 
@@ -771,7 +806,7 @@ func (ui *Edit) unindent(c0, c1 int64) int64 {
 	if len(ns) > 0 && ns[0] == '\t' {
 		ns = ns[1:]
 	}
-	ui.text.Replace(c0, c1, []byte(ns))
+	ui.text.Replace(&ui.dirty, c0, c1, []byte(ns))
 	return int64(len(ns))
 }
 
@@ -784,6 +819,8 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 	if !m.In(ui.textR) {
 		return
 	}
+
+	defer ui.checkDirty(ui.dirty)
 
 	if ui.Keys != nil {
 		e := ui.Keys(k, m)
@@ -828,49 +865,49 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		br.TryGet()
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(dui)
+		ui.ScrollCursor(dui)
 	case draw.KeyRight:
 		fr.TryGet()
 		ui.cursor = fr.Offset()
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(dui)
+		ui.ScrollCursor(dui)
 	case Ctrl & 'a':
 		br.Line(false)
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(dui)
+		ui.ScrollCursor(dui)
 	case Ctrl & 'e':
 		fr.Line(false)
 		ui.cursor = fr.Offset()
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(dui)
+		ui.ScrollCursor(dui)
 	case Ctrl & 'h':
 		br.TryGet()
-		ui.text.Replace(br.Offset(), fr.Offset(), nil)
+		ui.text.Replace(&ui.dirty, br.Offset(), fr.Offset(), nil)
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(dui)
+		ui.ScrollCursor(dui)
 	case Ctrl & 'w':
 		br.Whitespace()
 		br.Nonwhitespace()
-		ui.text.Replace(br.Offset(), fr.Offset(), nil)
+		ui.text.Replace(&ui.dirty, br.Offset(), fr.Offset(), nil)
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(dui)
+		ui.ScrollCursor(dui)
 	case Ctrl & 'u':
 		br.Line(false)
-		ui.text.Replace(br.Offset(), fr.Offset(), nil)
+		ui.text.Replace(&ui.dirty, br.Offset(), fr.Offset(), nil)
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(dui)
+		ui.ScrollCursor(dui)
 	case Ctrl & 'k':
 		fr.Line(false)
-		ui.text.Replace(br.Offset(), fr.Offset(), nil)
-		ui.scrollCursor(dui)
+		ui.text.Replace(&ui.dirty, br.Offset(), fr.Offset(), nil)
+		ui.ScrollCursor(dui)
 	case draw.KeyDelete:
 		fr.TryGet()
-		ui.text.Replace(br.Offset(), fr.Offset(), nil)
-		ui.scrollCursor(dui)
+		ui.text.Replace(&ui.dirty, br.Offset(), fr.Offset(), nil)
+		ui.ScrollCursor(dui)
 	case draw.KeyCmd + 'a':
 		ui.cursor = 0
 		ui.cursor0 = ui.text.Size()
@@ -880,11 +917,11 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		dui.WriteSnarf([]byte(ui.selectionText()))
 	case draw.KeyCmd + 'x':
 		dui.WriteSnarf([]byte(ui.selectionText()))
-		ui.text.Replace(c0, c1, nil)
+		ui.text.Replace(&ui.dirty, c0, c1, nil)
 	case draw.KeyCmd + 'v':
 		buf, ok := dui.ReadSnarf()
 		if ok {
-			ui.text.Replace(c0, c1, buf)
+			ui.text.Replace(&ui.dirty, c0, c1, buf)
 		}
 	case draw.KeyCmd + 'z':
 		// xxx todo: undo
@@ -900,7 +937,7 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		n := ui.indent(br.Offset(), fr.Offset())
 		ui.cursor = br.Offset()
 		ui.cursor0 = ui.cursor + n
-	case draw.KeyCmd + 't':
+	case draw.KeyCmd + 'm':
 		p := ui.lastCursorPoint.Add(orig)
 		r.Warp = &p
 	case draw.KeyEscape:
@@ -916,10 +953,10 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 			r.Consumed = false
 			return
 		}
-		ui.text.Replace(c0, c1, []byte(string(k)))
+		ui.text.Replace(&ui.dirty, c0, c1, []byte(string(k)))
 		ui.cursor = c0 + int64(len(string(k)))
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(dui)
+		ui.ScrollCursor(dui)
 	}
 
 	return

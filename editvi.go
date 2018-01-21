@@ -251,11 +251,11 @@ func (ui *Edit) visualKey(dui *DUI, k rune, line bool, result *Result) {
 	case 'i':
 		ui.mode = modeInsert
 	case 'd':
-		ui.text.Replace(c0, c1, nil)
+		ui.text.Replace(&ui.dirty, c0, c1, nil)
 		ui.cursor0 = c0
 		ui.cursor = c0
 	case 's':
-		ui.text.Replace(c0, c1, nil)
+		ui.text.Replace(&ui.dirty, c0, c1, nil)
 		ui.mode = modeInsert
 		ui.cursor0 = c0
 		ui.cursor = c0
@@ -265,7 +265,7 @@ func (ui *Edit) visualKey(dui *DUI, k rune, line bool, result *Result) {
 	case 'p':
 		buf, ok := dui.ReadSnarf()
 		if ok {
-			ui.text.Replace(c0, c1, buf)
+			ui.text.Replace(&ui.dirty, c0, c1, buf)
 			ui.cursor0 = c0
 			ui.cursor = c0 + int64(len(buf))
 		}
@@ -287,7 +287,7 @@ func (ui *Edit) visualKey(dui *DUI, k rune, line bool, result *Result) {
 		if newline {
 			s += "\n"
 		}
-		ui.text.Replace(c0, c1, []byte(s))
+		ui.text.Replace(&ui.dirty, c0, c1, []byte(s))
 		ui.cursor0 = c0
 		ui.cursor = ui.cursor0 + int64(len(s))
 	case '~':
@@ -300,7 +300,7 @@ func (ui *Edit) visualKey(dui *DUI, k rune, line bool, result *Result) {
 			}
 			s += string(r)
 		}
-		ui.text.Replace(c0, c1, []byte(s))
+		ui.text.Replace(&ui.dirty, c0, c1, []byte(s))
 		ui.cursor0 = c0
 		ui.cursor = ui.cursor0 + int64(len(s))
 	case 'o':
@@ -353,7 +353,7 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 	cursor := func(offset int64) {
 		ui.cursor = offset
 		ui.cursor0 = ui.cursor
-		ui.scrollCursor(dui)
+		ui.ScrollCursor(dui)
 	}
 
 	order := func(c0, c1 int64) (int64, int64) {
@@ -384,46 +384,46 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 		ui.mode = modeInsert
 	case 'o':
 		fr.Line(true)
-		ui.text.Replace(fr.Offset(), fr.Offset(), []byte("\n"))
+		ui.text.Replace(&ui.dirty, fr.Offset(), fr.Offset(), []byte("\n"))
 		cursor(fr.Offset())
 		ui.mode = modeInsert
 	case 'O':
 		br.Line(false)
-		ui.text.Replace(br.Offset(), br.Offset(), []byte("\n"))
+		ui.text.Replace(&ui.dirty, br.Offset(), br.Offset(), []byte("\n"))
 		cursor(br.Offset())
 		ui.mode = modeInsert
 	case 's':
 		cmd.Times(func() {
 			fr.TryGet()
 		})
-		ui.text.Replace(br.Offset(), fr.Offset(), nil)
+		ui.text.Replace(&ui.dirty, br.Offset(), fr.Offset(), nil)
 		cursor(fr.Offset())
 		ui.mode = modeInsert
 	case 'S':
 		cmd.Times(func() {
 			fr.Line(true)
 		})
-		ui.text.Replace(br.Offset(), fr.Offset(), []byte("\n"))
+		ui.text.Replace(&ui.dirty, br.Offset(), fr.Offset(), []byte("\n"))
 		cursor(fr.Offset())
 		ui.mode = modeInsert
 	// case 'R': // replace, not sure if this is a useful enough
 	case 'D':
 		// delete to end of line
 		fr.Line(false)
-		ui.text.Replace(ui.cursor, fr.Offset(), nil)
+		ui.text.Replace(&ui.dirty, ui.cursor, fr.Offset(), nil)
 	case 'd':
 		// delete movement
 		cmd.Get()
 		cmd.Number()
 		c0, c1 := order(ui.cursor, ui.commandMove(dui, cmd, br, fr, 'd'))
-		ui.text.Replace(c0, c1, nil)
+		ui.text.Replace(&ui.dirty, c0, c1, nil)
 		cursor(br.Offset())
 	case 'c':
 		// replace movement
 		cmd.Get()
 		cmd.Number()
 		c0, c1 := order(ui.cursor, ui.commandMove(dui, cmd, br, fr, 'c'))
-		ui.text.Replace(c0, c1, nil)
+		ui.text.Replace(&ui.dirty, c0, c1, nil)
 		ui.mode = modeInsert
 	case 'x':
 		// delete
@@ -431,14 +431,14 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 		cmd.Times(func() {
 			fr.TryGet()
 		})
-		ui.text.Replace(ui.cursor, fr.Offset(), nil)
+		ui.text.Replace(&ui.dirty, ui.cursor, fr.Offset(), nil)
 	case 'X':
 		// backspace
 		cmd.Get()
 		cmd.Times(func() {
 			br.TryGet()
 		})
-		ui.text.Replace(br.Offset(), ui.cursor, nil)
+		ui.text.Replace(&ui.dirty, br.Offset(), ui.cursor, nil)
 		cursor(br.Offset())
 	case 'y':
 		// yank
@@ -459,7 +459,7 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 		cmd.Get()
 		buf, ok := dui.ReadSnarf()
 		if ok {
-			ui.text.Replace(ui.cursor, ui.cursor, buf)
+			ui.text.Replace(&ui.dirty, ui.cursor, ui.cursor, buf)
 		}
 	case 'P':
 		// paste before
@@ -467,7 +467,7 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 		buf, ok := dui.ReadSnarf()
 		if ok {
 			br.TryGet()
-			ui.text.Replace(br.Offset(), br.Offset(), buf)
+			ui.text.Replace(&ui.dirty, br.Offset(), br.Offset(), buf)
 			cursor(br.Offset())
 		}
 	case '<':
@@ -492,7 +492,7 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 		o := fr.Offset()
 		fr.TryGet()
 		if o != fr.Offset() {
-			ui.text.Replace(o, fr.Offset(), []byte(" "))
+			ui.text.Replace(&ui.dirty, o, fr.Offset(), []byte(" "))
 		}
 	case '~':
 		// swap case of single char
@@ -506,7 +506,7 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 				r = unicode.ToUpper(r)
 			}
 			if or != r {
-				ui.text.Replace(start, fr.Offset(), []byte(string(r)))
+				ui.text.Replace(&ui.dirty, start, fr.Offset(), []byte(string(r)))
 				cursor(start + int64(len(string(r))))
 			}
 		}
