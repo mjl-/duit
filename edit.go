@@ -20,6 +20,10 @@ type SeekReaderAt interface {
 	io.ReaderAt
 }
 
+var (
+	EditPadding = Space{0, 3, 0, 3} // lowDPI padding
+)
+
 type editMode int
 
 const (
@@ -323,7 +327,7 @@ func (ui *Edit) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	ui.barActiveR = ui.barR // Y's are filled in during draw
 	ui.textR = ui.r
 	ui.textR.Min.X = ui.barR.Max.X
-	ui.textR = ui.textR.Inset(dui.Scale(3))
+	ui.textR = dui.ScaleSpace(EditPadding).Inset(ui.textR)
 	self.R = ui.r
 }
 
@@ -335,12 +339,13 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 		return
 	}
 
+	pad := dui.ScaleSpace(EditPadding).Mul(-1)
 	switch ui.mode {
 	case modeInsert:
 	case modeCommand:
-		img.Draw(ui.textR.Add(orig).Inset(dui.Scale(-3)), dui.commandMode, nil, image.ZP)
+		img.Draw(pad.Inset(ui.textR.Add(orig)), dui.commandMode, nil, image.ZP)
 	case modeVisual, modeVisualLine:
-		img.Draw(ui.textR.Add(orig).Inset(dui.Scale(-3)), dui.visualMode, nil, image.ZP)
+		img.Draw(pad.Inset(ui.textR.Add(orig)), dui.visualMode, nil, image.ZP)
 	}
 	img.Draw(ui.textR.Add(orig), dui.Regular.Normal.Background, nil, image.ZP)
 

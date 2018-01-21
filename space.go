@@ -20,6 +20,14 @@ func (s Space) Size() image.Point {
 	return image.Pt(s.Dx(), s.Dy())
 }
 
+func (s Space) Mul(n int) Space {
+	s.Top *= n
+	s.Right *= n
+	s.Bottom *= n
+	s.Left *= n
+	return s
+}
+
 func (s Space) Topleft() image.Point {
 	return image.Pt(s.Left, s.Top)
 }
