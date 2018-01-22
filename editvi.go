@@ -195,19 +195,20 @@ func (ui *Edit) commandMove(dui *DUI, cmd *cmd, br, fr *reader, endLineChar rune
 	case '%':
 		// to matching struct key
 		cmd.NoNumber()
-		c, eof := fr.Peek()
-		if eof {
-			break
-		}
 		const Starts = "{[(<"
 		const Ends = "}])>"
-		if index := strings.IndexRune(Starts, c); index >= 0 {
+
+		c, eof := fr.Peek()
+		if index := strings.IndexRune(Starts, c); !eof && index >= 0 {
+			fr.Get()
 			if ui.expandNested(fr, rune(Starts[index]), rune(Ends[index])) > 0 {
 				return fr.Offset()
 			}
-
-		} else if index = strings.IndexRune(Ends, c); index >= 0 {
+		}
+		if index := strings.IndexRune(Ends, c); !eof && index >= 0 {
+			br.Get()
 			if ui.expandNested(br, rune(Ends[index]), rune(Starts[index])) > 0 {
+				br.TryGet()
 				return br.Offset()
 			}
 		}
