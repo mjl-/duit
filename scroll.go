@@ -96,7 +96,9 @@ func (ui *Scroll) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m
 		ui.barActiveR = ui.barR
 		ui.barActiveR.Min.Y += barY
 		ui.barActiveR.Max.Y = ui.barActiveR.Min.Y + barH
-		img.Draw(ui.barActiveR.Add(orig), vis, nil, image.ZP)
+		barActiveR := ui.barActiveR.Add(orig)
+		barActiveR.Max.X -= 1 // unscaled
+		img.Draw(barActiveR, vis, nil, image.ZP)
 	}
 
 	// draw child ui

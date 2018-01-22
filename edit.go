@@ -502,8 +502,10 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 		ui.barActiveR.Max.Y = int(int64(ui.barR.Dy()) * rd.Offset() / size)
 	}
 	if ui.barR.Dx() > 0 {
+		barActiveR := ui.barActiveR.Add(orig)
+		barActiveR.Max.X -= 1 // unscaled
 		img.Draw(ui.barR.Add(orig), bg, nil, image.ZP)
-		img.Draw(ui.barActiveR.Add(orig), vis, nil, image.ZP)
+		img.Draw(barActiveR, vis, nil, image.ZP)
 	}
 }
 
