@@ -438,7 +438,7 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 			seldx := font.StringWidth(sels)
 			selR := rect(image.Pt(seldx, font.Height)).Add(p)
 			if toEnd {
-				selR.Max.X = ui.textR.Max.X
+				selR.Max.X = ui.textR.Max.X + orig.X
 			}
 			img.Draw(selR, colors.SelBg, nil, image.ZP)
 			pp := img.String(p, colors.SelFg, image.ZP, font, sels)
