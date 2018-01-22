@@ -659,12 +659,14 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 		}
 		return
 	}
-	if !origM.In(ui.textR) {
+	if !origM.In(dui.ScaleSpace(EditPadding).Mul(-1).Inset(ui.textR)) {
 		return
 	}
 	defer ui.checkDirty(ui.dirty)
 	origM.Point = origM.Point.Sub(ui.textR.Min)
+	origM.Point.X = maximum(0, origM.Point.X)
 	m.Point = m.Point.Sub(ui.textR.Min)
+	m.Point.X = maximum(0, m.Point.X)
 	om := ui.textM
 	ui.textM = m
 	switch m.Buttons {
