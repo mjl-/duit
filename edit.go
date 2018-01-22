@@ -38,6 +38,7 @@ type EditColors struct {
 }
 
 type Edit struct {
+	NoScrollbar  bool
 	Colors       *EditColors                          `json:"-"`
 	Font         *draw.Font                           `json:"-"`
 	Keys         func(k rune, m draw.Mouse) (e Event) `json:"-"`
@@ -334,7 +335,11 @@ func (ui *Edit) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	ui.ensureInit()
 	ui.r = rect(sizeAvail)
 	ui.barR = ui.r
-	ui.barR.Max.X = ui.barR.Min.X + dui.Scale(ScrollbarSize)
+	if ui.NoScrollbar {
+		ui.barR.Max.X = ui.barR.Min.X
+	} else {
+		ui.barR.Max.X = ui.barR.Min.X + dui.Scale(ScrollbarSize)
+	}
 	ui.barActiveR = ui.barR // Y's are filled in during draw
 	ui.textR = ui.r
 	ui.textR.Min.X = ui.barR.Max.X
@@ -496,8 +501,10 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 		ui.barActiveR.Min.Y = int(int64(ui.barR.Dy()) * ui.offset / size)
 		ui.barActiveR.Max.Y = int(int64(ui.barR.Dy()) * rd.Offset() / size)
 	}
-	img.Draw(ui.barR.Add(orig), bg, nil, image.ZP)
-	img.Draw(ui.barActiveR.Add(orig), vis, nil, image.ZP)
+	if ui.barR.Dx() > 0 {
+		img.Draw(ui.barR.Add(orig), bg, nil, image.ZP)
+		img.Draw(ui.barActiveR.Add(orig), vis, nil, image.ZP)
+	}
 }
 
 func (ui *Edit) scroll(lines int, self *Kid) {
