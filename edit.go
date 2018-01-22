@@ -42,7 +42,7 @@ type Edit struct {
 	Colors       *EditColors                          `json:"-"`
 	Font         *draw.Font                           `json:"-"`
 	Keys         func(k rune, m draw.Mouse) (e Event) `json:"-"`
-	Click        func(m draw.Mouse) (e Event)         `json:"-"`
+	Click        func(m draw.Mouse, offset int64) (e Event)         `json:"-"`
 	DirtyChanged func(dirty bool)                     `json:"-"`
 
 	text    *text // what we are rendering.  offset & cursors index into this text
@@ -279,6 +279,10 @@ type EditReader interface {
 	Get() rune
 	TryGet() (rune, error)
 	Offset() int64
+	Whitespace() (s string, eof bool)
+	Nonwhitespace() (s string, eof bool)
+	Whitespacepunct() (s string, eof bool)
+	Nonwhitespacepunct() (s string, eof bool)
 }
 
 type ReaderReaderAt interface {
@@ -684,7 +688,7 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 	case Button5:
 		ui.scroll(scrollLines(m.Y/4), self)
 	default:
-		if m.Buttons == Button1 {
+		mouseOffset := func() int64 {
 			rrd := ui.revReader(ui.offset)
 			line := m.Y / ui.font(dui).Height
 			eof := false
@@ -709,7 +713,10 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 				sdx += dx
 				rd.Get()
 			}
-			ui.cursor = rd.Offset()
+			return rd.Offset()
+		}
+		if m.Buttons == Button1 {
+			ui.cursor = mouseOffset()
 			ui.ScrollCursor(dui)
 			if om.Buttons == 0 {
 				if m.Msec-ui.prevTextB1.Msec < 300 {
@@ -725,7 +732,7 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 			return
 		}
 		if m.Buttons == 0 && om.Buttons&(Button1|Button2|Button3) != 0 && ui.Click != nil {
-			e := ui.Click(om)
+			e := ui.Click(om, mouseOffset())
 			propagateEvent(self, &r, e)
 		}
 		if m.Buttons^om.Buttons != 0 {
