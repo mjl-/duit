@@ -408,9 +408,11 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 		ui.mode = modeInsert
 	// case 'R': // replace, not sure if this is a useful enough
 	case 'D':
-		// delete to end of line
-		fr.Line(false)
-		ui.text.Replace(&ui.dirty, ui.cursor, fr.Offset(), nil)
+		// delete lines
+		cmd.Times(func() {
+			fr.Line(true)
+		})
+		ui.text.Replace(&ui.dirty, ui.cursor, fr.Offset(), []byte("\n"))
 	case 'd':
 		// delete movement
 		cmd.Get()
@@ -418,6 +420,13 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 		c0, c1 := order(ui.cursor, ui.commandMove(dui, cmd, br, fr, 'd'))
 		ui.text.Replace(&ui.dirty, c0, c1, nil)
 		cursor(br.Offset())
+	case 'C':
+		// replace lines
+		cmd.Times(func() {
+			fr.Line(true)
+		})
+		ui.text.Replace(&ui.dirty, ui.cursor, fr.Offset(), []byte("\n"))
+		ui.mode = modeInsert
 	case 'c':
 		// replace movement
 		cmd.Get()
