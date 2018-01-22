@@ -39,11 +39,11 @@ type EditColors struct {
 
 type Edit struct {
 	NoScrollbar  bool
-	Colors       *EditColors                          `json:"-"`
-	Font         *draw.Font                           `json:"-"`
-	Keys         func(k rune, m draw.Mouse) (e Event) `json:"-"`
-	Click        func(m draw.Mouse, offset int64) (e Event)         `json:"-"`
-	DirtyChanged func(dirty bool)                     `json:"-"`
+	Colors       *EditColors                                `json:"-"`
+	Font         *draw.Font                                 `json:"-"`
+	Keys         func(k rune, m draw.Mouse) (e Event)       `json:"-"`
+	Click        func(m draw.Mouse, offset int64) (e Event) `json:"-"`
+	DirtyChanged func(dirty bool)                           `json:"-"`
 
 	text    *text // what we are rendering.  offset & cursors index into this text
 	offset  int64 // byte offset of first line we draw
