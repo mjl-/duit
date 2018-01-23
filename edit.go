@@ -690,29 +690,82 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 		ui.scroll(scrollLines(m.Y/4), self)
 	default:
 		mouseOffset := func() int64 {
-			rrd := ui.revReader(ui.offset)
 			line := m.Y / ui.font(dui).Height
-			eof := false
-			for ; line < 0 && !eof; line++ {
-				_, eof = rrd.RevLine()
+			xmax := ui.textR.Dx()
+			if line < 0 {
+				rd := ui.revReader(ui.offset)
+				var s []rune // in reverse
+				x := 0
+				finishLine := func() (offset int64, done bool) {
+					if line < 0 {
+						line++
+						s = nil
+						x = 0
+						return rd.Offset(), false
+					}
+					x := 0
+					o := 0
+					for i := len(s) - 1; i >= 0; i-- {
+						dx := font.StringWidth(string(s[i]))
+						if x+2*dx/3 > xmax {
+							break
+						}
+						o += len(string(s[i]))
+					}
+					return rd.Offset() + int64(o), true
+				}
+				for {
+					c, eof := rd.Peek()
+					if eof {
+						r, _ := finishLine()
+						return r
+					}
+					if c == '\n' {
+						if r, done := finishLine(); done {
+							return r
+						}
+						rd.Get()
+						continue
+					}
+					dx := font.StringWidth(string(c))
+					if x+dx > xmax {
+						if r, done := finishLine(); done {
+							return r
+						}
+					}
+					rd.Get()
+					s = append(s, c)
+					x += dx
+				}
 			}
-			rd := ui.reader(rrd.Offset(), ui.text.Size())
-			eof = false
-			for ; line > 0 && !eof; line-- {
-				_, _, eof = rd.Line(true)
-			}
-			sdx := 0
+			rd := ui.reader(ui.offset, ui.text.Size())
+			x := 0
+			mX := m.X
 			for {
 				c, eof := rd.Peek()
-				if eof || c == '\n' {
+				if eof {
 					break
+				}
+				if c == '\n' {
+					if line == 0 {
+						break
+					}
+					rd.Get()
+					line--
+					x = 0
+					continue
 				}
 				dx := font.StringWidth(string(c))
-				if sdx+dx/2 > m.X {
+				if line == 0 && (x+2*dx/3 > mX || x+dx > xmax) {
 					break
 				}
-				sdx += dx
-				rd.Get()
+				x += dx
+				if x > xmax {
+					line--
+					x = 0
+				} else {
+					rd.Get()
+				}
 			}
 			return rd.Offset()
 		}
@@ -727,7 +780,6 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 				}
 				ui.prevTextB1 = m
 			}
-			// xxx ensure cursor is visible, can happen when dragging outside UI, or through key commands
 			self.Draw = Dirty
 			r.Consumed = true
 			return
