@@ -487,6 +487,7 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 			continue
 		}
 		drawLine(rd.Offset(), false)
+		rd.Get()
 		s = string(c)
 		sdx = dx
 	}
