@@ -127,6 +127,7 @@ type DUI struct {
 
 	Gutter *draw.Image
 
+	Debug       bool // log errors interesting to developers
 	DebugDraw   int  // if 1, UIs print each draw they do, if 2, UIs print all calls to their Draw function. Cycle through 0-2 with F7
 	DebugLayout int  // if 1, UIs print each Layout they do, if 2, UIs print all calls to their Layout function. Cycle through 0-2 with F8
 	DebugKids   bool // whether to print distinct backgrounds in kids* functions
@@ -332,6 +333,8 @@ func NewDUI(name string, opts *DUIOpts) (*DUI, error) {
 		name:            name,
 		settings:        map[string][]byte{},
 		settingsWriters: map[string]*time.Timer{},
+
+		Debug: true,
 	}
 
 	go func() {
@@ -476,7 +479,12 @@ func (d *DUI) Resize() {
 		}
 		size := d.Display.ScreenImage.R.Size()
 		d.dimensionsDelayedWriter = time.AfterFunc(2*time.Second, func() {
-			ioutil.WriteFile(d.dimensionsPath, []byte(fmt.Sprintf("%dx%d", size.X, size.Y)), os.ModePerm)
+			x := size.X / d.Scale(1)
+			y := size.Y / d.Scale(1)
+			err := ioutil.WriteFile(d.dimensionsPath, []byte(fmt.Sprintf("%dx%d", x, y)), os.ModePerm)
+			if d.Debug && err != nil {
+				log.Printf("duit: write dimensions: %s\n", err)
+			}
 		})
 	}
 }
