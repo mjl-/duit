@@ -397,10 +397,11 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 		offset := offsetEnd - int64(n)
 		// log.Printf("drawLine, offset %d, offsetEnd %d, n %d\n", offset, offsetEnd, n)
 		p := orig.Add(ui.textR.Min).Add(image.Pt(0, line*font.Height))
+		cursorp := image.Pt(-1, -1)
 
 		drawCursor := func() {
 			// log.Printf("drawCursor, line %d c0 %d, c1 %d, cursor %d, cursor0 %d, offset %d, offsetEnd %d, s %s, n %d\n", line, c0, c1, ui.cursor, ui.cursor0, offset, offsetEnd, s, n)
-			p0 := p
+			p0 := cursorp
 			p1 := p0
 			p1.Y += font.Height
 			thick := 0
@@ -422,8 +423,8 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 		}
 
 		if offset == ui.cursor && ui.cursor == c0 && c0 != c1 && offset < offsetEnd {
-			// log.Printf("cursor A, offset %d, ui.cursor %d, c1 %d, offsetEnd %d, size %d\n", offset, ui.cursor, c1, offsetEnd, size)
-			drawCursor()
+			//log.Printf("cursor A, offset %d, ui.cursor %d, c1 %d, offsetEnd %d, size %d\n", offset, ui.cursor, c1, offsetEnd, size)
+			cursorp = p
 		}
 
 		// then selected text
@@ -448,6 +449,9 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 		}
 		if offset == ui.cursor && ui.cursor == c1 && (offset < offsetEnd || (offset == size && eof)) {
 			// log.Printf("cursor B, offset %d, ui.cursor %d, c1 %d, offsetEnd %d, size %d\n", offset, ui.cursor, c1, offsetEnd, size)
+			cursorp = p
+		}
+		if cursorp.X >= 0 {
 			drawCursor()
 		}
 
