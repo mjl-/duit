@@ -436,6 +436,11 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 			if toEnd {
 				sels = sels[:len(sels)-1]
 			}
+			s = s[nn:]
+			offset += nn
+			if !(offset >= c1 && offsetEnd > offset) {
+				toEnd = true
+			}
 			seldx := font.StringWidth(sels)
 			selR := rect(image.Pt(seldx, font.Height)).Add(p)
 			if toEnd {
@@ -444,8 +449,6 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 			img.Draw(selR, colors.SelBg, nil, image.ZP)
 			pp := img.String(p, colors.SelFg, image.ZP, font, sels)
 			p.X = pp.X
-			s = s[nn:]
-			offset += nn
 		}
 		if offset == ui.cursor && ui.cursor == c1 && (offset < offsetEnd || (offset == size && eof)) {
 			// log.Printf("cursor B, offset %d, ui.cursor %d, c1 %d, offsetEnd %d, size %d\n", offset, ui.cursor, c1, offsetEnd, size)
