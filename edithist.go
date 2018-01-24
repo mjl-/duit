@@ -3,6 +3,7 @@ package duit
 import (
 	"fmt"
 	"io"
+	"log"
 	"strings"
 )
 
@@ -23,11 +24,53 @@ type textPart interface {
 	fmt.Stringer
 }
 
+type textHist struct {
+	c, undo, redo Cursor
+	obuf, nbuf    []byte
+}
+
 type text struct {
-	l []textPart
+	l       []textPart
+	history []textHist
+	future  []textHist
+	open    bool // whether next replace can be added to the top history
 }
 
 var _ textSource = &text{}
+
+func (t *text) undo(ui *Edit) {
+	// log.Printf("undo, history %#v\n", t.history)
+	if len(t.history) == 0 {
+		return
+	}
+	h := t.history[len(t.history)-1]
+	h.redo = ui.cursor
+	t.history = t.history[:len(t.history)-1]
+	t.future = append(t.future, h)
+	t.open = false
+	var dirty bool
+	c0, _ := h.c.ordered()
+	c1 := c0 + int64(len(h.nbuf))
+	buf := h.obuf
+	t.ReplaceHist(&dirty, Cursor{c0, c1}, buf, false)
+	t.open = false
+	ui.cursor = h.undo
+}
+
+func (t *text) redo(ui *Edit) {
+	if len(t.future) == 0 {
+		return
+	}
+	h := t.future[len(t.future)-1]
+	h.undo = ui.cursor
+	t.future = t.future[:len(t.future)-1]
+	t.history = append(t.history, h)
+	t.open = false
+	var dirty bool
+	t.ReplaceHist(&dirty, h.c, h.nbuf, false)
+	t.open = false
+	ui.cursor = h.redo
+}
 
 func (t *text) ReadAt(buf []byte, offset int64) (int, error) {
 	// log.Printf("text.ReadAt n %d, offset %d, t %v\n", len(buf), offset, t)
@@ -66,8 +109,15 @@ func (t *text) TryMergeWithBefore(i int) bool {
 	return ok
 }
 
-func (t *text) Replace(dirty *bool, s, e int64, buf []byte) {
-	// log.Printf("replace s %d, e %d, buf %v\n", s, e, buf)
+func (t *text) Replace(dirty *bool, c Cursor, buf []byte, open bool) {
+	t.open = t.open && open && len(t.future) == 0
+	t.ReplaceHist(dirty, c, buf, true)
+	t.open = open
+}
+
+func (t *text) ReplaceHist(dirty *bool, c Cursor, buf []byte, recordHist bool) {
+	s, e := c.ordered()
+	log.Printf("replaceHist s %d, e %d, buf %v\n", s, e, buf)
 
 	if s == e && len(buf) == 0 {
 		return
@@ -78,6 +128,38 @@ func (t *text) Replace(dirty *bool, s, e int64, buf []byte) {
 	}
 
 	*dirty = true
+
+	if recordHist {
+		var obuf []byte
+		if e > s {
+			// read current content, we'll put it in history
+			obuf = make([]byte, int(e-s))
+			n, err := readAtFull(t, obuf, s)
+			if n != len(obuf) {
+				panic(fmt.Sprintf("short read for history buffer, n %d != len buf %d", n, len(obuf)))
+			}
+			if err != nil && err != io.EOF {
+				panic("error reading for history")
+			}
+		}
+		recorded := false
+		if t.open && len(t.history) > 0 {
+			i := len(t.history) - 1
+			h := t.history[i]
+			c0, _ := h.c.ordered()
+			if c0+int64(len(h.nbuf)) == s {
+				t.history[i].nbuf = append(h.nbuf, buf...)
+				recorded = true
+			}
+		}
+		if !recorded {
+			h := textHist{c: c, undo: c, obuf: obuf}
+			h.nbuf = make([]byte, len(buf))
+			copy(h.nbuf, buf)
+			t.history = append(t.history, h)
+		}
+		t.future = nil
+	}
 
 	// insert at i
 	insert := func(i int, tp textPart) {
