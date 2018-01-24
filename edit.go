@@ -104,6 +104,24 @@ type reverseReader struct {
 
 var _ io.Reader = &reverseReader{}
 
+func readAtFull(src io.ReaderAt, buf []byte, offset int64) (read int, err error) {
+	want := len(buf)
+	for want > 0 {
+		var n int
+		n, err = src.ReadAt(buf, offset)
+		if n > 0 {
+			read += n
+			offset += int64(n)
+			want -= n
+			buf = buf[n:]
+		}
+		if err == io.EOF {
+			return
+		}
+	}
+	return
+}
+
 func (r *reverseReader) Read(buf []byte) (int, error) {
 	// log.Printf("reverseReader.Read, len buf %d, offset %d\n", len(buf), r.offset)
 	want := int64(len(buf))
@@ -113,15 +131,16 @@ func (r *reverseReader) Read(buf []byte) (int, error) {
 	if want == 0 {
 		return 0, io.EOF
 	}
-	have, err := r.src.ReadAt(buf[:want], r.offset-want)
-	if have >= 0 {
-		buf = buf[:have]
+	have, err := readAtFull(r.src, buf[:want], r.offset-want)
+	if err != nil && err != io.EOF {
+		return have, err
 	}
+	buf = buf[:have]
 
 	// reverse the bytes, but keep utf8 valid
 	// todo: should probably provide a reader like bufio that has ReadRune and UnReadRune and others and read backwards on demand.
-	onbuf := make([]byte, have)
-	nbuf := onbuf
+	orignbuf := make([]byte, have)
+	nbuf := orignbuf
 	obuf := buf
 	for len(buf) > 0 {
 		_, size := utf8.DecodeLastRune(buf)
@@ -133,7 +152,7 @@ func (r *reverseReader) Read(buf []byte) (int, error) {
 		nbuf = nbuf[size:]
 	}
 	have -= len(buf)
-	copy(obuf[:], onbuf[:have])
+	copy(obuf[:], orignbuf[:have])
 	if have > 0 {
 		r.offset -= int64(have)
 	}
