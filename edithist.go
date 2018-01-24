@@ -48,7 +48,7 @@ func (t *text) undo(ui *Edit) {
 	t.future = append(t.future, h)
 	t.open = false
 	var dirty bool
-	c0, _ := h.c.ordered()
+	c0, _ := h.c.Ordered()
 	c1 := c0 + int64(len(h.nbuf))
 	buf := h.obuf
 	t.ReplaceHist(&dirty, Cursor{c0, c1}, buf, false)
@@ -115,7 +115,7 @@ func (t *text) Replace(dirty *bool, c Cursor, buf []byte, open bool) {
 }
 
 func (t *text) ReplaceHist(dirty *bool, c Cursor, buf []byte, recordHist bool) {
-	s, e := c.ordered()
+	s, e := c.Ordered()
 	// log.Printf("replaceHist s %d, e %d, buf %v\n", s, e, buf)
 
 	if s == e && len(buf) == 0 {
@@ -145,7 +145,7 @@ func (t *text) ReplaceHist(dirty *bool, c Cursor, buf []byte, recordHist bool) {
 		if t.open && len(t.history) > 0 {
 			i := len(t.history) - 1
 			h := t.history[i]
-			c0, _ := h.c.ordered()
+			c0, _ := h.c.Ordered()
 			if c0+int64(len(h.nbuf)) == s {
 				t.history[i].nbuf = append(h.nbuf, buf...)
 				recorded = true

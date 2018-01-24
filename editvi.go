@@ -246,7 +246,7 @@ func (ui *Edit) visualKey(dui *DUI, k rune, line bool, result *Result) {
 	fr := ui.reader(ui.cursor.Cur, ui.text.Size())
 	br := ui.revReader(ui.cursor.Cur)
 
-	c0, _ := ui.cursor.ordered()
+	c0, _ := ui.cursor.Ordered()
 
 	switch k {
 	case 'i':

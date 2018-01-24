@@ -71,7 +71,7 @@ type Edit struct {
 	lastCursorPoint image.Point
 }
 
-func (c Cursor) ordered() (int64, int64) {
+func (c Cursor) Ordered() (int64, int64) {
 	if c.Cur > c.Start {
 		return c.Start, c.Cur
 	}
@@ -411,7 +411,7 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 		return s
 	}
 
-	c0, c1 := ui.cursor.ordered()
+	c0, c1 := ui.cursor.Ordered()
 	// log.Printf("drawing... c0 %d, c1 %d\n", c0, c1)
 	drawLine := func(offsetEnd int64, eof bool) {
 		origS := s
@@ -832,7 +832,7 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 }
 
 func (ui *Edit) readText(c Cursor) string {
-	c0, c1 := c.ordered()
+	c0, c1 := c.Ordered()
 	r := io.NewSectionReader(ui.text, c0, c1-c0)
 	buf, err := ioutil.ReadAll(r)
 	check(err, "read selection")
@@ -840,7 +840,7 @@ func (ui *Edit) readText(c Cursor) string {
 }
 
 func (ui *Edit) selectionText() string {
-	c0, c1 := ui.cursor.ordered()
+	c0, c1 := ui.cursor.Ordered()
 	r := io.NewSectionReader(ui.text, c0, c1-c0)
 	buf, err := ioutil.ReadAll(r)
 	check(err, "read selection")
@@ -966,7 +966,7 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		return
 	}
 
-	c0, c1 := ui.cursor.ordered()
+	c0, c1 := ui.cursor.Ordered()
 	fr := ui.reader(c1, ui.text.Size())
 	br := ui.revReader(c0)
 	font := ui.font(dui)
@@ -1090,7 +1090,7 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		ui.ScrollCursor(dui)
 	}
 
-	c0, c1 = ui.cursor.ordered()
+	c0, c1 = ui.cursor.Ordered()
 	if c0 < 0 || c1 > ui.text.Size() {
 		log.Printf("duit: edit: bug, bad cursor cur %d,start %d after key, size of text %d\n", ui.cursor.Cur, ui.cursor.Start, ui.text.Size())
 		c0 = maximum64(0, c0)
