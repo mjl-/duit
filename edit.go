@@ -38,8 +38,8 @@ type EditColors struct {
 }
 
 type Cursor struct {
-	cur   int64
-	start int64
+	Cur   int64 // current location/end of selection
+	Start int64 // start of selection, not necessarily larger than Cur!
 }
 
 type Edit struct {
@@ -72,10 +72,10 @@ type Edit struct {
 }
 
 func (c Cursor) ordered() (int64, int64) {
-	if c.cur > c.start {
-		return c.start, c.cur
+	if c.Cur > c.Start {
+		return c.Start, c.Cur
 	}
-	return c.cur, c.start
+	return c.Cur, c.Start
 }
 
 func (ui *Edit) colors(dui *DUI) EditColors {
@@ -445,8 +445,8 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 			offset += nn
 		}
 
-		if offset == ui.cursor.cur && ui.cursor.cur == c0 && c0 != c1 && offset < offsetEnd {
-			//log.Printf("cursor A, offset %d, ui.cursor %d, c1 %d, offsetEnd %d, size %d\n", offset, ui.cursor.cur, c1, offsetEnd, size)
+		if offset == ui.cursor.Cur && ui.cursor.Cur == c0 && c0 != c1 && offset < offsetEnd {
+			//log.Printf("cursor A, offset %d, ui.cursor %d, c1 %d, offsetEnd %d, size %d\n", offset, ui.cursor.Cur, c1, offsetEnd, size)
 			cursorp = p
 		}
 
@@ -473,8 +473,8 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 			pp := img.String(p, colors.SelFg, image.ZP, font, sels)
 			p.X = pp.X
 		}
-		if offset == ui.cursor.cur && ui.cursor.cur == c1 && (offset < offsetEnd || (offset == size && eof)) {
-			// log.Printf("cursor B, offset %d, ui.cursor %d, c1 %d, offsetEnd %d, size %d\n", offset, ui.cursor.cur, c1, offsetEnd, size)
+		if offset == ui.cursor.Cur && ui.cursor.Cur == c1 && (offset < offsetEnd || (offset == size && eof)) {
+			// log.Printf("cursor B, offset %d, ui.cursor %d, c1 %d, offsetEnd %d, size %d\n", offset, ui.cursor.Cur, c1, offsetEnd, size)
 			cursorp = p
 		}
 		if cursorp.X >= 0 {
@@ -589,9 +589,9 @@ func (ui *Edit) expandNested(r *reader, up, down rune) int64 {
 
 // todo: maybe not have this here?
 func (ui *Edit) ExpandedText() string {
-	br := ui.revReader(ui.cursor.cur)
+	br := ui.revReader(ui.cursor.Cur)
 	br.Nonwhitespace()
-	fr := ui.reader(ui.cursor.cur, ui.text.Size())
+	fr := ui.reader(ui.cursor.Cur, ui.text.Size())
 	fr.Nonwhitespace()
 	return ui.readText(Cursor{br.Offset(), fr.Offset()})
 }
@@ -800,13 +800,13 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 			return rd.Offset()
 		}
 		if m.Buttons == Button1 {
-			ui.cursor.cur = mouseOffset()
+			ui.cursor.Cur = mouseOffset()
 			ui.ScrollCursor(dui)
 			if om.Buttons == 0 {
 				if m.Msec-ui.prevTextB1.Msec < 300 {
-					ui.cursor = ui.expand(ui.cursor.cur, ui.reader(ui.cursor.cur, ui.text.Size()), ui.revReader(ui.cursor.cur))
+					ui.cursor = ui.expand(ui.cursor.Cur, ui.reader(ui.cursor.Cur, ui.text.Size()), ui.revReader(ui.cursor.Cur))
 				} else {
-					ui.cursor.start = ui.cursor.cur
+					ui.cursor.Start = ui.cursor.Cur
 				}
 				ui.prevTextB1 = m
 			}
@@ -859,8 +859,8 @@ func (ui *Edit) Cursor() Cursor {
 // Current is the new cursor. start is the start of the selection.
 // If start < 0, it is set to current.
 func (ui *Edit) SetCursor(c Cursor) {
-	if c.start < 0 {
-		c.start = c.cur
+	if c.Start < 0 {
+		c.Start = c.Cur
 	}
 	ui.cursor = c
 }
@@ -869,8 +869,8 @@ func (ui *Edit) Append(buf []byte) {
 	defer ui.checkDirty(ui.dirty)
 	size := ui.text.Size()
 	ui.text.Replace(&ui.dirty, Cursor{size, size}, buf, false)
-	ui.cursor.cur = size + int64(len(buf))
-	ui.cursor.start = ui.cursor.cur
+	ui.cursor.Cur = size + int64(len(buf))
+	ui.cursor.Start = ui.cursor.Cur
 }
 
 func (ui *Edit) Replace(c Cursor, buf []byte) {
@@ -880,8 +880,8 @@ func (ui *Edit) Replace(c Cursor, buf []byte) {
 
 // ScrollCursor ensure cursor is visible, scrolling if necessary.
 func (ui *Edit) ScrollCursor(dui *DUI) {
-	nbr := ui.revReader(ui.cursor.cur)
-	if ui.cursor.cur < ui.offset {
+	nbr := ui.revReader(ui.cursor.Cur)
+	if ui.cursor.Cur < ui.offset {
 		nbr.Line(false)
 		ui.offset = nbr.Offset()
 		return
@@ -984,29 +984,29 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		ui.scroll(lines/5, self)
 	case draw.KeyLeft:
 		br.TryGet()
-		ui.cursor.cur = br.Offset()
-		ui.cursor.start = ui.cursor.cur
+		ui.cursor.Cur = br.Offset()
+		ui.cursor.Start = ui.cursor.Cur
 		ui.ScrollCursor(dui)
 	case draw.KeyRight:
 		fr.TryGet()
-		ui.cursor.cur = fr.Offset()
-		ui.cursor.start = ui.cursor.cur
+		ui.cursor.Cur = fr.Offset()
+		ui.cursor.Start = ui.cursor.Cur
 		ui.ScrollCursor(dui)
 	case Ctrl & 'a':
 		br.Line(false)
-		ui.cursor.cur = br.Offset()
-		ui.cursor.start = ui.cursor.cur
+		ui.cursor.Cur = br.Offset()
+		ui.cursor.Start = ui.cursor.Cur
 		ui.ScrollCursor(dui)
 	case Ctrl & 'e':
 		fr.Line(false)
-		ui.cursor.cur = fr.Offset()
-		ui.cursor.start = ui.cursor.cur
+		ui.cursor.Cur = fr.Offset()
+		ui.cursor.Start = ui.cursor.Cur
 		ui.ScrollCursor(dui)
 	case Ctrl & 'h':
 		br.TryGet()
 		ui.text.Replace(&ui.dirty, Cursor{br.Offset(), fr.Offset()}, nil, false)
-		ui.cursor.cur = br.Offset()
-		ui.cursor.start = ui.cursor.cur
+		ui.cursor.Cur = br.Offset()
+		ui.cursor.Start = ui.cursor.Cur
 		ui.ScrollCursor(dui)
 	case Ctrl & 'w':
 		c, _ := br.Peek()
@@ -1017,8 +1017,8 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 			br.Nonwhitespacepunct()
 		}
 		ui.text.Replace(&ui.dirty, Cursor{br.Offset(), fr.Offset()}, nil, false)
-		ui.cursor.cur = br.Offset()
-		ui.cursor.start = ui.cursor.cur
+		ui.cursor.Cur = br.Offset()
+		ui.cursor.Start = ui.cursor.Cur
 		ui.ScrollCursor(dui)
 	case Ctrl & 'u':
 		o := br.Offset()
@@ -1027,8 +1027,8 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 			br.TryGet()
 		}
 		ui.text.Replace(&ui.dirty, Cursor{br.Offset(), fr.Offset()}, nil, false)
-		ui.cursor.cur = br.Offset()
-		ui.cursor.start = ui.cursor.cur
+		ui.cursor.Cur = br.Offset()
+		ui.cursor.Start = ui.cursor.Cur
 		ui.ScrollCursor(dui)
 	case Ctrl & 'k':
 		fr.Line(false)
@@ -1041,7 +1041,7 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 	case draw.KeyCmd + 'a':
 		ui.cursor = Cursor{0, ui.text.Size()}
 	case draw.KeyCmd + 'n':
-		ui.cursor.start = ui.cursor.cur
+		ui.cursor.Start = ui.cursor.Cur
 	case draw.KeyCmd + 'c':
 		dui.WriteSnarf([]byte(ui.selectionText()))
 	case draw.KeyCmd + 'x':
@@ -1073,7 +1073,7 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		r.Warp = &p
 	case draw.KeyEscape:
 		// oh yeah
-		if ui.cursor.cur == ui.cursor.start {
+		if ui.cursor.Cur == ui.cursor.Start {
 			ui.mode = modeCommand
 		} else {
 			ui.mode = modeVisual
@@ -1085,14 +1085,14 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 			return
 		}
 		ui.text.Replace(&ui.dirty, ui.cursor, []byte(string(k)), true)
-		ui.cursor.cur += int64(len(string(k)))
-		ui.cursor.start = ui.cursor.cur
+		ui.cursor.Cur += int64(len(string(k)))
+		ui.cursor.Start = ui.cursor.Cur
 		ui.ScrollCursor(dui)
 	}
 
 	c0, c1 = ui.cursor.ordered()
 	if c0 < 0 || c1 > ui.text.Size() {
-		log.Printf("duit: edit: bug, bad cursor cur %d,start %d after key, size of text %d\n", ui.cursor.cur, ui.cursor.start, ui.text.Size())
+		log.Printf("duit: edit: bug, bad cursor cur %d,start %d after key, size of text %d\n", ui.cursor.Cur, ui.cursor.Start, ui.text.Size())
 		c0 = maximum64(0, c0)
 		c1 = minimum64(c1, ui.text.Size())
 	}

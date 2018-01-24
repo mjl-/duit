@@ -243,8 +243,8 @@ func (ui *Edit) visualKey(dui *DUI, k rune, line bool, result *Result) {
 	}()
 	cmd := &cmd{r: strings.NewReader(ui.visual), number: 1}
 
-	fr := ui.reader(ui.cursor.cur, ui.text.Size())
-	br := ui.revReader(ui.cursor.cur)
+	fr := ui.reader(ui.cursor.Cur, ui.text.Size())
+	br := ui.revReader(ui.cursor.Cur)
 
 	c0, _ := ui.cursor.ordered()
 
@@ -298,22 +298,22 @@ func (ui *Edit) visualKey(dui *DUI, k rune, line bool, result *Result) {
 		ui.text.Replace(&ui.dirty, ui.cursor, []byte(s), false)
 		ui.cursor = Cursor{c0 + int64(len(s)), c0}
 	case 'o':
-		ui.cursor = Cursor{ui.cursor.start, ui.cursor.cur}
+		ui.cursor = Cursor{ui.cursor.Start, ui.cursor.Cur}
 	default:
 		cmd.Number()
 		offset := ui.commandMove(dui, cmd, br, fr, -1)
 		if line {
-			if offset < ui.cursor.cur {
+			if offset < ui.cursor.Cur {
 				r := ui.revReader(offset)
 				r.Line(false)
-				ui.cursor = Cursor{r.Offset(), ui.cursor.cur}
+				ui.cursor = Cursor{r.Offset(), ui.cursor.Cur}
 			} else {
 				r := ui.reader(offset, ui.text.Size())
 				r.Line(false)
-				ui.cursor.cur = r.Offset()
+				ui.cursor.Cur = r.Offset()
 			}
 		} else {
-			ui.cursor.cur = offset
+			ui.cursor.Cur = offset
 		}
 	}
 
@@ -340,8 +340,8 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 	}()
 	cmd := &cmd{r: strings.NewReader(ui.command), number: 1}
 
-	fr := ui.reader(ui.cursor.cur, ui.text.Size())
-	br := ui.revReader(ui.cursor.cur)
+	fr := ui.reader(ui.cursor.Cur, ui.text.Size())
+	br := ui.revReader(ui.cursor.Cur)
 
 	setCursor := func(offset int64) {
 		ui.cursor = Cursor{offset, offset}
@@ -397,12 +397,12 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 		cmd.Times(func() {
 			fr.Line(true)
 		})
-		ui.text.Replace(&ui.dirty, Cursor{ui.cursor.cur, fr.Offset()}, []byte("\n"), false)
+		ui.text.Replace(&ui.dirty, Cursor{ui.cursor.Cur, fr.Offset()}, []byte("\n"), false)
 	case 'd':
 		// delete movement
 		cmd.Get()
 		cmd.Number()
-		c := Cursor{ui.cursor.cur, ui.commandMove(dui, cmd, br, fr, 'd')}
+		c := Cursor{ui.cursor.Cur, ui.commandMove(dui, cmd, br, fr, 'd')}
 		ui.text.Replace(&ui.dirty, c, nil, false)
 		setCursor(br.Offset())
 	case 'C':
@@ -410,13 +410,13 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 		cmd.Times(func() {
 			fr.Line(true)
 		})
-		ui.text.Replace(&ui.dirty, Cursor{ui.cursor.cur, fr.Offset()}, []byte("\n"), false)
+		ui.text.Replace(&ui.dirty, Cursor{ui.cursor.Cur, fr.Offset()}, []byte("\n"), false)
 		ui.mode = modeInsert
 	case 'c':
 		// replace movement
 		cmd.Get()
 		cmd.Number()
-		c := Cursor{ui.cursor.cur, ui.commandMove(dui, cmd, br, fr, 'c')}
+		c := Cursor{ui.cursor.Cur, ui.commandMove(dui, cmd, br, fr, 'c')}
 		ui.text.Replace(&ui.dirty, c, nil, false)
 		ui.mode = modeInsert
 	case 'x':
@@ -425,20 +425,20 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 		cmd.Times(func() {
 			fr.TryGet()
 		})
-		ui.text.Replace(&ui.dirty, Cursor{ui.cursor.cur, fr.Offset()}, nil, false)
+		ui.text.Replace(&ui.dirty, Cursor{ui.cursor.Cur, fr.Offset()}, nil, false)
 	case 'X':
 		// backspace
 		cmd.Get()
 		cmd.Times(func() {
 			br.TryGet()
 		})
-		ui.text.Replace(&ui.dirty, Cursor{br.Offset(), ui.cursor.cur}, nil, false)
+		ui.text.Replace(&ui.dirty, Cursor{br.Offset(), ui.cursor.Cur}, nil, false)
 		setCursor(br.Offset())
 	case 'y':
 		// yank
 		cmd.Get()
 		cmd.Number()
-		c := Cursor{ui.cursor.cur, ui.commandMove(dui, cmd, br, fr, 'y')}
+		c := Cursor{ui.cursor.Cur, ui.commandMove(dui, cmd, br, fr, 'y')}
 		dui.WriteSnarf([]byte(ui.readText(c)))
 	case 'Y':
 		// whole lines
@@ -469,7 +469,7 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 		cmd.Get()
 		cmd.Number()
 		br.Line(false)
-		c := Cursor{ui.cursor.cur, ui.commandMove(dui, cmd, br, fr, '<')}
+		c := Cursor{ui.cursor.Cur, ui.commandMove(dui, cmd, br, fr, '<')}
 		ui.unindent(c)
 		setCursor(br.Offset())
 	case '>':
@@ -477,7 +477,7 @@ func (ui *Edit) commandKey(dui *DUI, k rune, result *Result) {
 		cmd.Get()
 		cmd.Number()
 		br.Line(false)
-		c := Cursor{ui.cursor.cur, ui.commandMove(dui, cmd, br, fr, '>')}
+		c := Cursor{ui.cursor.Cur, ui.commandMove(dui, cmd, br, fr, '>')}
 		ui.indent(c)
 		setCursor(br.Offset())
 	case 'J':
