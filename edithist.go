@@ -3,7 +3,6 @@ package duit
 import (
 	"fmt"
 	"io"
-	"log"
 	"strings"
 )
 
@@ -117,7 +116,7 @@ func (t *text) Replace(dirty *bool, c Cursor, buf []byte, open bool) {
 
 func (t *text) ReplaceHist(dirty *bool, c Cursor, buf []byte, recordHist bool) {
 	s, e := c.ordered()
-	log.Printf("replaceHist s %d, e %d, buf %v\n", s, e, buf)
+	// log.Printf("replaceHist s %d, e %d, buf %v\n", s, e, buf)
 
 	if s == e && len(buf) == 0 {
 		return
