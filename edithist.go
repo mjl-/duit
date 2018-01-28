@@ -24,11 +24,13 @@ type textPart interface {
 }
 
 type textHist struct {
-	c, undo, redo Cursor
-	obuf, nbuf    []byte
+	clean      bool // not dirty
+	c          Cursor
+	obuf, nbuf []byte
 }
 
 type text struct {
+	file    SeekReaderAt
 	l       []textPart
 	history []textHist
 	future  []textHist
@@ -37,23 +39,49 @@ type text struct {
 
 var _ textSource = &text{}
 
+func (t *text) saved(ui *Edit) {
+	if t.file != nil {
+		size, err := t.file.Seek(0, io.SeekEnd)
+		check(err, "seek")
+		if size > 0 {
+			t.l = []textPart{&file{t.file, 0, size}}
+		}
+	} else if t.Size() > 0 {
+		t.l = []textPart{stretch([]byte(ui.Text()))}
+	} else {
+		t.l = nil
+	}
+	t.closeHist(ui)
+	if len(t.history) > 0 {
+		last := len(t.history) - 1
+		for i := range t.history {
+			t.history[i].clean = i == last
+		}
+	}
+	// xxx modify the offsets for the histories instead of trashing them
+	t.history = nil
+	t.future = nil
+}
+
 func (t *text) undo(ui *Edit) {
 	// log.Printf("undo, history %#v\n", t.history)
 	if len(t.history) == 0 {
 		return
 	}
 	h := t.history[len(t.history)-1]
-	h.redo = ui.cursor
 	t.history = t.history[:len(t.history)-1]
 	t.future = append(t.future, h)
-	t.open = false
+	t.closeHist(ui)
 	var dirty bool
 	c0, _ := h.c.Ordered()
 	c1 := c0 + int64(len(h.nbuf))
 	buf := h.obuf
 	t.ReplaceHist(&dirty, Cursor{c0, c1}, buf, false)
 	t.open = false
-	ui.cursor = h.undo
+	c := c0 + int64(len(buf))
+	ui.cursor = Cursor{c, c}
+	defer ui.checkDirty(ui.dirty)
+	ui.dirty = !h.clean
 }
 
 func (t *text) redo(ui *Edit) {
@@ -61,14 +89,16 @@ func (t *text) redo(ui *Edit) {
 		return
 	}
 	h := t.future[len(t.future)-1]
-	h.undo = ui.cursor
 	t.future = t.future[:len(t.future)-1]
 	t.history = append(t.history, h)
-	t.open = false
+	t.closeHist(ui)
 	var dirty bool
 	t.ReplaceHist(&dirty, h.c, h.nbuf, false)
 	t.open = false
-	ui.cursor = h.redo
+	c := h.c.Start + int64(len(h.nbuf))
+	ui.cursor = Cursor{c, c}
+	defer ui.checkDirty(ui.dirty)
+	ui.dirty = !h.clean
 }
 
 func (t *text) ReadAt(buf []byte, offset int64) (int, error) {
@@ -108,10 +138,39 @@ func (t *text) TryMergeWithBefore(i int) bool {
 	return ok
 }
 
-func (t *text) Replace(dirty *bool, c Cursor, buf []byte, open bool) {
+func (t *text) closeHist(ui *Edit) {
+	t.open = false
+	if ui.needLastCommandText {
+		ui.needLastCommandText = false
+		if len(t.history) > 0 {
+			buf := t.history[len(t.history)-1].nbuf
+			nbuf := make([]byte, len(buf))
+			copy(nbuf, buf)
+			ui.lastCommandText = nbuf
+		}
+	}
+}
+
+func (t *text) Replace(ui *Edit, dirty *bool, c Cursor, buf []byte, open bool) {
+	wasOpen := t.open
 	t.open = t.open && open && len(t.future) == 0
+	if wasOpen && !t.open {
+		t.closeHist(ui)
+	}
 	t.ReplaceHist(dirty, c, buf, true)
 	t.open = open
+}
+
+func (t *text) get(c Cursor) (buf []byte, err error) {
+	c0, c1 := c.Ordered()
+	buf = make([]byte, int(c1-c0))
+	n, err := readAtFull(t, buf, c0)
+	if n != len(buf) && (err == nil || err == io.EOF) {
+		err = fmt.Errorf("short read for history buffer, n %d != len buf %d", n, len(buf))
+	} else {
+		err = nil
+	}
+	return
 }
 
 func (t *text) ReplaceHist(dirty *bool, c Cursor, buf []byte, recordHist bool) {
@@ -132,13 +191,10 @@ func (t *text) ReplaceHist(dirty *bool, c Cursor, buf []byte, recordHist bool) {
 		var obuf []byte
 		if e > s {
 			// read current content, we'll put it in history
-			obuf = make([]byte, int(e-s))
-			n, err := readAtFull(t, obuf, s)
-			if n != len(obuf) {
-				panic(fmt.Sprintf("short read for history buffer, n %d != len buf %d", n, len(obuf)))
-			}
-			if err != nil && err != io.EOF {
-				panic("error reading for history")
+			var err error
+			obuf, err = t.get(Cursor{e, s})
+			if err != nil {
+				panic("error reading for history: " + err.Error())
 			}
 		}
 		recorded := false
@@ -152,7 +208,7 @@ func (t *text) ReplaceHist(dirty *bool, c Cursor, buf []byte, recordHist bool) {
 			}
 		}
 		if !recorded {
-			h := textHist{c: c, undo: c, obuf: obuf}
+			h := textHist{c: c, obuf: obuf}
 			h.nbuf = make([]byte, len(buf))
 			copy(h.nbuf, buf)
 			t.history = append(t.history, h)
@@ -335,18 +391,3 @@ func (f *file) Merge(tp textPart) (nf textPart, merged bool) {
 func (f *file) String() string {
 	return fmt.Sprintf("file(o %d, n %d)", f.offset, f.size)
 }
-
-/*
-type Alteration struct {
-	s, e int64
-	buf []byte
-}
-
-type Change struct {
-	alts []Alteration
-}
-
-type History struct {
-	prev, next []Changes
-}
-*/

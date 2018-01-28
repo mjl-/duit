@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"regexp"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -44,6 +45,7 @@ type Cursor struct {
 
 type Edit struct {
 	NoScrollbar  bool
+	LastSearch   string                                     // if starting with slash, the remainder is interpreted as regexp. used by cmd+[/?] and vi [*nN] commands. literal text search should start with a space
 	Colors       *EditColors                                `json:"-"`
 	Font         *draw.Font                                 `json:"-"`
 	Keys         func(k rune, m draw.Mouse) (e Event)       `json:"-"`
@@ -54,9 +56,17 @@ type Edit struct {
 	offset int64 // byte offset of first line we draw
 	cursor Cursor
 
+	lastSearchRegexpString string // string used to create lastSearchRegexp
+	lastSearchRegexp       *regexp.Regexp
+
 	mode    editMode
 	command string // vi command so far
 	visual  string // vi visual command so far
+
+	// for repeat
+	lastCommand         string
+	needLastCommandText bool
+	lastCommandText     []byte // text inserted as part of last command.  used by vi repeat, filled by ui.text.
 
 	dirty bool
 
@@ -104,7 +114,7 @@ func NewEdit(f SeekReaderAt) *Edit {
 		parts = append(parts, &file{f, 0, size})
 	}
 	return &Edit{
-		text: &text{l: parts},
+		text: &text{file: f, l: parts},
 	}
 }
 
@@ -274,9 +284,9 @@ func (r *reader) gather(keep func(c rune) bool) (s string, eof bool) {
 }
 
 // xxx todo: better (non)whitespace functions
-func (r *reader) Whitespace() (s string, eof bool) {
+func (r *reader) Whitespace(newline bool) (s string, eof bool) {
 	return r.gather(func(c rune) (keep bool) {
-		return unicode.IsSpace(c)
+		return (c != '\n' || newline) && unicode.IsSpace(c)
 	})
 }
 
@@ -286,15 +296,21 @@ func (r *reader) Nonwhitespace() (s string, eof bool) {
 	})
 }
 
-func (r *reader) Whitespacepunct() (s string, eof bool) {
+func (r *reader) Whitespacepunct(newline bool) (s string, eof bool) {
 	return r.gather(func(c rune) (keep bool) {
-		return unicode.IsSpace(c) || unicode.IsPunct(c)
+		return (c != '\n' || newline) && (unicode.IsSpace(c) || unicode.IsPunct(c))
 	})
 }
 
 func (r *reader) Nonwhitespacepunct() (s string, eof bool) {
 	return r.gather(func(c rune) (keep bool) {
 		return !unicode.IsSpace(c) && !unicode.IsPunct(c)
+	})
+}
+
+func (r *reader) Punctuation() (s string, eof bool) {
+	return r.gather(func(c rune) (keep bool) {
+		return unicode.IsPunct(c)
 	})
 }
 
@@ -309,10 +325,13 @@ type EditReader interface {
 	Get() rune
 	TryGet() (rune, error)
 	Offset() int64
-	Whitespace() (s string, eof bool)
+	Whitespace(newline bool) (s string, eof bool)
 	Nonwhitespace() (s string, eof bool)
-	Whitespacepunct() (s string, eof bool)
+	Whitespacepunct(newline bool) (s string, eof bool)
 	Nonwhitespacepunct() (s string, eof bool)
+	Punctuation() (s string, eof bool)
+	Line(includeNewline bool) (runes int, s string, eof bool)
+	RevLine() (s string, eof bool)
 }
 
 type ReaderReaderAt interface {
@@ -422,7 +441,7 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 		p := orig.Add(ui.textR.Min).Add(image.Pt(0, line*font.Height))
 		cursorp := image.Pt(-1, -1)
 
-		drawCursor := func() {
+		drawCursor := func(haveSel, cursorAtBegin bool) {
 			// log.Printf("drawCursor, line %d c0 %d, c1 %d, cursor %d, cursor0 %d, offset %d, offsetEnd %d, s %s, n %d\n", line, c0, c1, ui.cursor, ui.cursor0, offset, offsetEnd, s, n)
 			p0 := cursorp
 			p1 := p0
@@ -433,6 +452,13 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 			}
 			img.Line(p0, p1, 0, 0, thick, dui.Display.Black, image.ZP)
 			ui.lastCursorPoint = p1.Sub(orig)
+			if haveSel {
+				pp := pt(dui.Scale(-2))
+				if cursorAtBegin {
+					pp.X *= -1
+				}
+				ui.lastCursorPoint = ui.lastCursorPoint.Add(pp)
+			}
 		}
 
 		// we draw text before selection
@@ -451,7 +477,8 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 		}
 
 		// then selected text
-		if offset >= c0 && offset < c1 && c1-c0 > 0 && offset < offsetEnd {
+		haveSelection := offset >= c0 && offset < c1 && c1-c0 > 0 && offset < offsetEnd
+		if haveSelection {
 			nn := minimum64(c1, offsetEnd) - offset
 			// log.Printf("drawing %d as selection\n", nn)
 			sels := s[:nn]
@@ -478,7 +505,7 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 			cursorp = p
 		}
 		if cursorp.X >= 0 {
-			drawCursor()
+			drawCursor(haveSelection, ui.cursor.Cur < ui.cursor.Start)
 		}
 
 		// then text after cursor
@@ -607,56 +634,40 @@ func (ui *Edit) expand(offset int64, fr, br *reader) Cursor {
 	if !eof && index >= 0 {
 		br.Get()
 		n := ui.expandNested(fr, rune(Starts[index]), rune(Ends[index]))
-		return Cursor{offset, offset + n}
+		return Cursor{offset + n, offset}
 	}
 	c, eof = fr.Peek()
 	index = strings.IndexRune(Ends, c)
 	if !eof && index >= 0 {
 		fr.Get()
 		n := ui.expandNested(br, rune(Ends[index]), rune(Starts[index]))
-		return Cursor{offset - n, offset}
+		return Cursor{offset, offset - n}
 	}
 
 	c, eof = br.Peek()
 	if c == '\n' {
 		// at start of line, select to end of line
 		fr.Line(true)
-		return Cursor{offset, fr.Offset()}
+		return Cursor{fr.Offset(), offset}
 	} else if c, eof = fr.Peek(); c == '\n' || eof {
 		// at end of line, select to start of line
+		if !eof {
+			fr.Get()
+		}
 		br.Line(false)
-		return Cursor{br.Offset(), offset}
-	}
-
-	const Space = " \t\r\n\f\r"
-	skip := func(isSpace bool) bool {
-		return !isSpace
+		return Cursor{fr.Offset(), br.Offset()}
 	}
 
 	bc, _ := br.Peek()
 	fc, _ := fr.Peek()
-	if strings.ContainsAny(string(bc), Space) && strings.ContainsAny(string(fc), Space) {
-		skip = func(isSpace bool) bool {
-			return isSpace
-		}
+	if unicode.IsSpace(bc) && unicode.IsSpace(fc) {
+		br.Whitespace(true)
+		fr.Whitespace(true)
+	} else {
+		br.Nonwhitespacepunct()
+		fr.Nonwhitespacepunct()
 	}
-	for {
-		c, eof := br.Peek()
-		if !eof && skip(strings.ContainsAny(string(c), Space)) && !strings.ContainsAny(string(c), Starts+Ends) {
-			br.Get()
-		} else {
-			break
-		}
-	}
-	for {
-		c, eof := fr.Peek()
-		if !eof && skip(strings.ContainsAny(string(c), Space)) && !strings.ContainsAny(string(c), Starts+Ends) {
-			fr.Get()
-		} else {
-			break
-		}
-	}
-	return Cursor{offset - br.n, offset + fr.n}
+	return Cursor{fr.Offset(), br.Offset()}
 }
 
 func (ui *Edit) checkDirty(odirty bool) {
@@ -799,11 +810,16 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 			}
 			return rd.Offset()
 		}
+		if m.Buttons^om.Buttons != 0 && ui.mode != modeInsert {
+			ui.mode = modeInsert
+			ui.command = ""
+			ui.visual = ""
+		}
 		if m.Buttons == Button1 {
 			ui.cursor.Cur = mouseOffset()
 			ui.ScrollCursor(dui)
 			if om.Buttons == 0 {
-				if m.Msec-ui.prevTextB1.Msec < 300 {
+				if m.Msec-ui.prevTextB1.Msec < 350 {
 					ui.cursor = ui.expand(ui.cursor.Cur, ui.reader(ui.cursor.Cur, ui.text.Size()), ui.revReader(ui.cursor.Cur))
 				} else {
 					ui.cursor.Start = ui.cursor.Cur
@@ -819,7 +835,7 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 			propagateEvent(self, &r, e)
 		}
 		if m.Buttons^om.Buttons != 0 {
-			ui.text.open = false
+			ui.text.closeHist(ui)
 			// log.Printf("in text, mouse buttons changed %v ->  %v\n", om, m)
 		} else if m.Buttons != 0 && m.Buttons == om.Buttons {
 			// log.Printf("in text, mouse drag %v\n", m)
@@ -868,14 +884,21 @@ func (ui *Edit) SetCursor(c Cursor) {
 func (ui *Edit) Append(buf []byte) {
 	defer ui.checkDirty(ui.dirty)
 	size := ui.text.Size()
-	ui.text.Replace(&ui.dirty, Cursor{size, size}, buf, false)
+	ui.text.Replace(ui, &ui.dirty, Cursor{size, size}, buf, false)
 	ui.cursor.Cur = size + int64(len(buf))
 	ui.cursor.Start = ui.cursor.Cur
 }
 
 func (ui *Edit) Replace(c Cursor, buf []byte) {
 	defer ui.checkDirty(ui.dirty)
-	ui.text.Replace(&ui.dirty, c, buf, false)
+	ui.text.Replace(ui, &ui.dirty, c, buf, false)
+}
+
+// Saved marks content as saved, calling the DirtyChanged callback if set, and updating the history state.
+func (ui *Edit) Saved() {
+	defer ui.checkDirty(ui.dirty)
+	ui.dirty = false
+	ui.text.saved(ui)
 }
 
 // ScrollCursor ensure cursor is visible, scrolling if necessary.
@@ -898,6 +921,92 @@ func (ui *Edit) ScrollCursor(dui *DUI) {
 	ui.offset = nbr.Offset()
 }
 
+func (ui *Edit) searchRegexp(re *regexp.Regexp, reverse bool) (match bool) {
+	// todo: implement reverse search
+
+	// xxx reading entire file is ridiculous, won't work for big files. regexp needs a better reader interface...
+	buf := []byte(ui.Text())
+	c0, c1 := ui.cursor.Ordered()
+	m := re.FindIndex(buf[c1:])
+	if m != nil {
+		m[0] += int(c1)
+		m[1] += int(c1)
+	} else {
+		m = re.FindIndex(buf[:c0])
+	}
+	if m == nil {
+		return
+	}
+	ui.SetCursor(Cursor{Cur: int64(m[1]), Start: int64(m[0])})
+	match = true
+	return
+}
+
+func (ui *Edit) searchText(t string, reverse bool) (match bool) {
+	// todo: implement reverse search
+
+	c := ui.cursor
+	if c.Cur > c.Start {
+		c.Start = c.Cur
+	}
+	first := c.Start
+	restarted := false
+	r := ui.EditReader(c.Start)
+	seen := ""
+	for !restarted || c.Start != first {
+		k, err := r.TryGet()
+		if err == io.EOF {
+			restarted = true
+			c.Start = 0
+			r = ui.EditReader(c.Start)
+			seen = ""
+			continue
+		}
+		check(err, "tryget")
+		seen += string(k)
+		if t == seen {
+			c.Cur = c.Start + int64(len(seen))
+			ui.SetCursor(c)
+			match = true
+			return
+		}
+		if strings.HasPrefix(t, seen) {
+			continue
+		}
+		found := false
+		for o := range seen {
+			if strings.HasPrefix(t, seen[o:]) {
+				c.Start += int64(o)
+				seen = seen[o:]
+				found = true
+				break
+			}
+		}
+		if !found {
+			c.Start += int64(len(seen))
+			seen = ""
+		}
+	}
+	return
+}
+
+func (ui *Edit) Search(reverse bool) (match bool) {
+	if ui.LastSearch == "" {
+		return
+	}
+	t := ui.LastSearch[1:]
+	if ui.LastSearch[0] != '/' {
+		return ui.searchText(t, reverse)
+	}
+	if t != ui.lastSearchRegexpString {
+		var err error
+		ui.lastSearchRegexp, err = regexp.Compile(t)
+		check(err, "compile regexp")
+		ui.lastSearchRegexpString = t
+	}
+	return ui.searchRegexp(ui.lastSearchRegexp, reverse)
+}
+
 func (ui *Edit) indent(c Cursor) int64 {
 	s := ui.readText(c)
 	buf := []byte(s)
@@ -914,7 +1023,7 @@ func (ui *Edit) indent(c Cursor) int64 {
 		}
 	}
 	rbuf := r.Bytes()
-	ui.text.Replace(&ui.dirty, c, rbuf, false)
+	ui.text.Replace(ui, &ui.dirty, c, rbuf, false)
 	return int64(len(rbuf))
 }
 
@@ -924,7 +1033,7 @@ func (ui *Edit) unindent(c Cursor) int64 {
 	if len(ns) > 0 && ns[0] == '\t' {
 		ns = ns[1:]
 	}
-	ui.text.Replace(&ui.dirty, c, []byte(ns), false)
+	ui.text.Replace(ui, &ui.dirty, c, []byte(ns), false)
 	return int64(len(ns))
 }
 
@@ -952,17 +1061,20 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 	self.Draw = Dirty
 
 	if ui.mode != modeInsert {
-		ui.text.open = false
+		ui.text.closeHist(ui)
 	}
 	switch ui.mode {
 	case modeCommand:
-		ui.commandKey(dui, k, &r)
+		ui.command += string(k)
+		ui.commandKey(dui, &r)
 		return
 	case modeVisual:
-		ui.visualKey(dui, k, false, &r)
+		ui.visual += string(k)
+		ui.visualKey(dui, false, &r)
 		return
 	case modeVisualLine:
-		ui.visualKey(dui, k, true, &r)
+		ui.visual += string(k)
+		ui.visualKey(dui, true, &r)
 		return
 	}
 
@@ -1004,7 +1116,7 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		ui.ScrollCursor(dui)
 	case Ctrl & 'h':
 		br.TryGet()
-		ui.text.Replace(&ui.dirty, Cursor{br.Offset(), fr.Offset()}, nil, false)
+		ui.text.Replace(ui, &ui.dirty, Cursor{br.Offset(), fr.Offset()}, nil, false)
 		ui.cursor.Cur = br.Offset()
 		ui.cursor.Start = ui.cursor.Cur
 		ui.ScrollCursor(dui)
@@ -1013,10 +1125,10 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		if c == '\n' {
 			br.Get()
 		} else {
-			br.Whitespacepunct()
+			br.Whitespacepunct(false)
 			br.Nonwhitespacepunct()
 		}
-		ui.text.Replace(&ui.dirty, Cursor{br.Offset(), fr.Offset()}, nil, false)
+		ui.text.Replace(ui, &ui.dirty, Cursor{br.Offset(), fr.Offset()}, nil, false)
 		ui.cursor.Cur = br.Offset()
 		ui.cursor.Start = ui.cursor.Cur
 		ui.ScrollCursor(dui)
@@ -1026,17 +1138,17 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		if o == br.Offset() && o > 0 {
 			br.TryGet()
 		}
-		ui.text.Replace(&ui.dirty, Cursor{br.Offset(), fr.Offset()}, nil, false)
+		ui.text.Replace(ui, &ui.dirty, Cursor{br.Offset(), fr.Offset()}, nil, false)
 		ui.cursor.Cur = br.Offset()
 		ui.cursor.Start = ui.cursor.Cur
 		ui.ScrollCursor(dui)
 	case Ctrl & 'k':
 		fr.Line(false)
-		ui.text.Replace(&ui.dirty, Cursor{br.Offset(), fr.Offset()}, nil, false)
+		ui.text.Replace(ui, &ui.dirty, Cursor{br.Offset(), fr.Offset()}, nil, false)
 		ui.ScrollCursor(dui)
 	case draw.KeyDelete:
 		fr.TryGet()
-		ui.text.Replace(&ui.dirty, Cursor{br.Offset(), fr.Offset()}, nil, false)
+		ui.text.Replace(ui, &ui.dirty, Cursor{br.Offset(), fr.Offset()}, nil, false)
 		ui.ScrollCursor(dui)
 	case draw.KeyCmd + 'a':
 		ui.cursor = Cursor{0, ui.text.Size()}
@@ -1046,12 +1158,12 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 		dui.WriteSnarf([]byte(ui.selectionText()))
 	case draw.KeyCmd + 'x':
 		dui.WriteSnarf([]byte(ui.selectionText()))
-		ui.text.Replace(&ui.dirty, ui.cursor, nil, false)
+		ui.text.Replace(ui, &ui.dirty, ui.cursor, nil, false)
 		ui.cursor = Cursor{c0, c0}
 	case draw.KeyCmd + 'v':
 		buf, ok := dui.ReadSnarf()
 		if ok {
-			ui.text.Replace(&ui.dirty, ui.cursor, buf, false)
+			ui.text.Replace(ui, &ui.dirty, ui.cursor, buf, false)
 			ui.cursor = Cursor{c0, c0 + int64(len(buf))} // todo: keep same order in cursor
 		}
 	case draw.KeyCmd + 'z':
@@ -1071,6 +1183,17 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 	case draw.KeyCmd + 'm':
 		p := ui.lastCursorPoint.Add(orig)
 		r.Warp = &p
+	case draw.KeyCmd + 'y':
+		if len(ui.text.history) > 0 {
+			h := ui.text.history[len(ui.text.history)-1]
+			c0, _ := h.c.Ordered()
+			c1 := c0 + int64(len(h.nbuf))
+			ui.cursor = Cursor{c0, c1}
+		}
+	case draw.KeyCmd + '/':
+		ui.Search(false)
+	case draw.KeyCmd + '?':
+		ui.Search(true)
 	case draw.KeyEscape:
 		// oh yeah
 		if ui.cursor.Cur == ui.cursor.Start {
@@ -1084,9 +1207,10 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 			r.Consumed = false
 			return
 		}
-		ui.text.Replace(&ui.dirty, ui.cursor, []byte(string(k)), true)
-		ui.cursor.Cur += int64(len(string(k)))
-		ui.cursor.Start = ui.cursor.Cur
+		ui.text.Replace(ui, &ui.dirty, ui.cursor, []byte(string(k)), true)
+		c, _ := ui.cursor.Ordered()
+		c += int64(len(string(k)))
+		ui.cursor = Cursor{c, c}
 		ui.ScrollCursor(dui)
 	}
 
