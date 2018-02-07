@@ -31,7 +31,8 @@ func main() {
 				Text: "click me to create an alert",
 				Click: func() (e duit.Event) {
 					go func() {
-						duit.Alert(field.Text)
+						err := duit.Alert(field.Text)
+						check(err, "alert")
 						log.Printf("alert is done\n")
 					}()
 					return

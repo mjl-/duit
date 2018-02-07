@@ -1,14 +1,17 @@
 package duit
 
 import (
+	"fmt"
 	"image"
 )
 
-func Alert(s string) {
+func Alert(s string) (err error) {
 	stop := make(chan struct{}, 1)
 
 	dui, err := NewDUI("alert", &DUIOpts{Dimensions: "300x200"})
-	check(err, "alert")
+	if err != nil {
+		return fmt.Errorf("new alert window: %s", err)
+	}
 
 	dui.Top.UI = NewMiddle(SpaceXY(20, 10),
 		&Box{
