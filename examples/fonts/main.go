@@ -31,7 +31,8 @@ func main() {
 
 	src := bytes.NewReader([]byte(`0 1 2 3 4 5 6 7 8 9
 a b c d e f g h i j k l m n o p q r s t u v w x y z`))
-	edit := duit.NewEdit(src)
+	edit, err := duit.NewEdit(src)
+	check(err, "new edit")
 
 	var fontList *duit.List
 	fontList = &duit.List{
@@ -98,7 +99,8 @@ a b c d e f g h i j k l m n o p q r s t u v w x y z`))
 		case e := <-dui.Inputs:
 			dui.Input(e)
 
-		case <-dui.Done:
+		case err := <-dui.Error:
+			check(err, "dui")
 			return
 		}
 	}

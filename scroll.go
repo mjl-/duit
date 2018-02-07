@@ -111,9 +111,11 @@ func (ui *Scroll) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m
 			ui.img.Free()
 			ui.img = nil
 		}
-		ui.img, err = dui.Display.AllocImage(ui.Kid.R, draw.ARGB32, false, dui.BackgroundColor)
-		check(err, "allocimage")
 		ui.Kid.Draw = Dirty
+		ui.img, err = dui.Display.AllocImage(ui.Kid.R, draw.ARGB32, false, dui.BackgroundColor)
+		if dui.error(err, "allocimage") {
+			return
+		}
 	} else if ui.Kid.Draw == Dirty {
 		ui.img.Draw(ui.img.R, dui.Background, nil, image.ZP)
 	}

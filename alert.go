@@ -43,8 +43,11 @@ func Alert(s string) (err error) {
 		case e := <-dui.Inputs:
 			dui.Input(e)
 
-		case <-dui.Done:
-			return
+		case err := <-dui.Error:
+			if err != nil {
+				dui.Close()
+			}
+			return err
 
 		case <-stop:
 			dui.Close()

@@ -98,8 +98,8 @@ const (
 type DUI struct {
 	Inputs  chan Input
 	Top     Kid
-	Call    chan func()   // functions sent here will go through DUI.Inputs and run by DUI.Input() in the main event loop. for code that changes UI state.
-	Done    chan struct{} // closed when window is closed
+	Call    chan func() // functions sent here will go through DUI.Inputs and run by DUI.Input() in the main event loop. for code that changes UI state.
+	Error   chan error  // closed when window is closed, receives errors from UIs
 	Display *draw.Display
 
 	// colors
@@ -157,13 +157,6 @@ type DUIOpts struct {
 	Dimensions string // eg 800x600
 }
 
-func check(err error, msg string) {
-	if err != nil {
-		log.Printf("duit: %s: %s\n", msg, err)
-		panic(err)
-	}
-}
-
 func configDir() string {
 	appdata := os.Getenv("APPDATA") // windows, but more helpful than just homedir
 	if appdata == "" {
@@ -176,7 +169,12 @@ func configDir() string {
 	return appdata + "/duit"
 }
 
-func NewDUI(name string, opts *DUIOpts) (*DUI, error) {
+func NewDUI(name string, opts *DUIOpts) (dui *DUI, err error) {
+	lcheck, handle := errorHandler(func(xerr error) {
+		err = xerr
+	})
+	defer handle()
+
 	if opts == nil {
 		opts = &DUIOpts{}
 	}
@@ -204,17 +202,17 @@ func NewDUI(name string, opts *DUIOpts) (*DUI, error) {
 
 	makeColor := func(v draw.Color) *draw.Image {
 		c, err := display.AllocImage(image.Rect(0, 0, 1, 1), draw.ARGB32, true, v)
-		check(err, "allocimage")
+		lcheck(err, "allocimage")
 		return c
 	}
 
-	dui := &DUI{
+	dui = &DUI{
 		mousectl: display.InitMouse(),
 		keyctl:   display.InitKeyboard(),
 		stop:     make(chan struct{}, 1),
 		Inputs:   make(chan Input, 1),
 		Call:     make(chan func(), 1),
-		Done:     make(chan struct{}, 1),
+		Error:    make(chan error, 1),
 
 		Display: display,
 
@@ -353,7 +351,7 @@ func NewDUI(name string, opts *DUIOpts) (*DUI, error) {
 			case e := <-errch:
 				if e == io.EOF {
 					// devdraw disappeared, typically because window was closed (either by user, or by duit)
-					close(dui.Done)
+					close(dui.Error)
 					return
 				} else {
 					dui.Inputs <- Input{Type: InputError, Error: e}
@@ -469,7 +467,11 @@ func (d *DUI) Resize() {
 	if d.logInputs {
 		log.Printf("duit: resize")
 	}
-	check(d.Display.Attach(draw.Refmesg), "attach after resize")
+	err := d.Display.Attach(draw.Refmesg)
+	if d.error(err, "attach after resize") {
+		return
+	}
+
 	d.Top.Layout = Dirty
 	d.Top.Draw = Dirty
 	d.Render()
@@ -545,7 +547,7 @@ func (d *DUI) Key(k rune) {
 			}
 		case draw.KeyCmd + 'w':
 			d.Close()
-			d.Done <- struct{}{}
+			d.Error <- nil
 			return
 		}
 	}
@@ -579,6 +581,16 @@ func (d *DUI) debugDraw(what string, self *Kid) {
 	if d.DebugDraw > 0 {
 		log.Printf("duit: Draw %s %s layout=%d draw=%d\n", what, self.R, self.Layout, self.Draw)
 	}
+}
+
+func (d *DUI) error(err error, msg string) bool {
+	if err == nil {
+		return false
+	}
+	go func() {
+		d.Error <- fmt.Errorf("%s: %s", msg, err)
+	}()
+	return true
 }
 
 func PrintUI(s string, self *Kid, indent int) {

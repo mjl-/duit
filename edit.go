@@ -46,11 +46,14 @@ type Cursor struct {
 type Edit struct {
 	NoScrollbar  bool
 	LastSearch   string                                     // if starting with slash, the remainder is interpreted as regexp. used by cmd+[/?] and vi [*nN] commands. literal text search should start with a space
+	Error        chan error                                 // if set, errors from Edit (including read errors from underlying files) are sent here. if nil, errors go to dui.Error
 	Colors       *EditColors                                `json:"-"`
 	Font         *draw.Font                                 `json:"-"`
 	Keys         func(k rune, m draw.Mouse) (e Event)       `json:"-"`
 	Click        func(m draw.Mouse, offset int64) (e Event) `json:"-"`
 	DirtyChanged func(dirty bool)                           `json:"-"`
+
+	dui *DUI // set at beginning of UI interface functions, for not having to pass dui around all the time
 
 	text   *text // what we are rendering.  offset & cursors index into this text
 	offset int64 // byte offset of first line we draw
@@ -88,10 +91,31 @@ func (c Cursor) Ordered() (int64, int64) {
 	return c.Cur, c.Start
 }
 
-func (ui *Edit) colors(dui *DUI) EditColors {
+func (c Cursor) size() int64 {
+	c0, c1 := c.Ordered()
+	return c1 - c0
+}
+
+func (ui *Edit) error(err error, msg string) bool {
+	if err == nil {
+		return false
+	}
+	err = fmt.Errorf("%s: %s", msg, err)
+	go func() {
+		if ui.Error != nil {
+			ui.Error <- err
+		} else {
+			ui.dui.Error <- err
+		}
+	}()
+	return true
+}
+
+func (ui *Edit) colors() EditColors {
 	if ui.Colors != nil {
 		return *ui.Colors
 	}
+	dui := ui.dui
 	return EditColors{
 		Fg:             dui.Regular.Normal.Text,
 		Bg:             dui.Regular.Normal.Background,
@@ -106,16 +130,19 @@ func (ui *Edit) colors(dui *DUI) EditColors {
 	}
 }
 
-func NewEdit(f SeekReaderAt) *Edit {
+func NewEdit(f SeekReaderAt) (ui *Edit, err error) {
 	size, err := f.Seek(0, io.SeekEnd)
-	check(err, "seek")
+	if err != nil {
+		return
+	}
 	parts := []textPart{}
 	if size > 0 {
 		parts = append(parts, &file{f, 0, size})
 	}
-	return &Edit{
+	ui = &Edit{
 		text: &text{file: f, l: parts},
 	}
+	return
 }
 
 type reverseReader struct {
@@ -201,14 +228,18 @@ func (r *reader) Peek() (rune, bool) {
 	if size <= 0 && err == io.EOF {
 		return 0, true
 	}
-	check(err, "readrune")
+	if r.ui.error(err, "readrune") {
+		return -1, true
+	}
 	r.r.UnreadRune()
 	return c, false
 }
 
 func (r *reader) Get() rune {
 	c, size, err := r.r.ReadRune()
-	check(err, "readrune")
+	if r.ui.error(err, "readrune") {
+		return -1
+	}
 	r.n += int64(size)
 	return c
 }
@@ -339,10 +370,8 @@ type ReaderReaderAt interface {
 	io.ReaderAt
 }
 
-func (ui *Edit) Text() string {
-	buf, err := ioutil.ReadAll(ui.Reader())
-	check(err, "read all text")
-	return string(buf)
+func (ui *Edit) Text() ([]byte, error) {
+	return ioutil.ReadAll(ui.Reader())
 }
 
 // Reader from which contents of edit can be read.
@@ -371,11 +400,12 @@ func (ui *Edit) revReader(offset int64) *reader {
 	return &reader{ui, 0, bufio.NewReader(&reverseReader{ui.text, offset}), offset, false}
 }
 
-func (ui *Edit) font(dui *DUI) *draw.Font {
-	return dui.Font(ui.Font)
+func (ui *Edit) font() *draw.Font {
+	return ui.dui.Font(ui.Font)
 }
 
 func (ui *Edit) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
+	ui.dui = dui
 	dui.debugLayout("Edit", self)
 
 	ui.ensureInit()
@@ -394,6 +424,7 @@ func (ui *Edit) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 }
 
 func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
+	ui.dui = dui
 	dui.debugDraw("Edit", self)
 
 	ui.ensureInit()
@@ -401,7 +432,7 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 		return
 	}
 
-	colors := ui.colors(dui)
+	colors := ui.colors()
 	pad := dui.ScaleSpace(EditPadding).Mul(-1)
 	switch ui.mode {
 	case modeInsert:
@@ -413,7 +444,7 @@ func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m d
 	}
 	img.Draw(ui.textR.Add(orig), colors.Bg, nil, image.ZP)
 
-	font := ui.font(dui)
+	font := ui.font()
 	s := ""
 	sdx := 0
 	lineWidth := ui.textR.Dx()
@@ -615,7 +646,7 @@ func (ui *Edit) expandNested(r *reader, up, down rune) int64 {
 }
 
 // todo: maybe not have this here?
-func (ui *Edit) ExpandedText() string {
+func (ui *Edit) ExpandedText() ([]byte, error) {
 	br := ui.revReader(ui.cursor.Cur)
 	br.Nonwhitespace()
 	fr := ui.reader(ui.cursor.Cur, ui.text.Size())
@@ -677,8 +708,9 @@ func (ui *Edit) checkDirty(odirty bool) {
 }
 
 func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
+	ui.dui = dui
 	ui.ensureInit()
-	font := ui.font(dui)
+	font := ui.font()
 	scrollLines := func(y int) int {
 		lines := ui.textR.Dy() / font.Height
 		n := lines * y / ui.textR.Dy()
@@ -731,7 +763,7 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 		ui.scroll(scrollLines(m.Y/4), self)
 	default:
 		mouseOffset := func() int64 {
-			line := m.Y / ui.font(dui).Height
+			line := m.Y / ui.font().Height
 			xmax := ui.textR.Dx()
 			if line < 0 {
 				rd := ui.revReader(ui.offset)
@@ -847,23 +879,19 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 	return
 }
 
-func (ui *Edit) readText(c Cursor) string {
+func (ui *Edit) readText(c Cursor) ([]byte, error) {
 	c0, c1 := c.Ordered()
 	r := io.NewSectionReader(ui.text, c0, c1-c0)
-	buf, err := ioutil.ReadAll(r)
-	check(err, "read selection")
-	return string(buf)
+	return ioutil.ReadAll(r)
 }
 
-func (ui *Edit) selectionText() string {
+func (ui *Edit) selectionText() ([]byte, error) {
 	c0, c1 := ui.cursor.Ordered()
 	r := io.NewSectionReader(ui.text, c0, c1-c0)
-	buf, err := ioutil.ReadAll(r)
-	check(err, "read selection")
-	return string(buf)
+	return ioutil.ReadAll(r)
 }
 
-func (ui *Edit) Selection() string {
+func (ui *Edit) Selection() ([]byte, error) {
 	return ui.selectionText()
 }
 
@@ -903,6 +931,7 @@ func (ui *Edit) Saved() {
 
 // ScrollCursor ensure cursor is visible, scrolling if necessary.
 func (ui *Edit) ScrollCursor(dui *DUI) {
+	ui.dui = dui
 	nbr := ui.revReader(ui.cursor.Cur)
 	if ui.cursor.Cur < ui.offset {
 		nbr.Line(false)
@@ -911,7 +940,7 @@ func (ui *Edit) ScrollCursor(dui *DUI) {
 	}
 
 	nbr.Line(false)
-	for lines := ui.textR.Dy() / ui.font(dui).Height; lines > 1; lines-- {
+	for lines := ui.textR.Dy() / ui.font().Height; lines > 1; lines-- {
 		if nbr.Offset() <= ui.offset {
 			return
 		}
@@ -925,7 +954,10 @@ func (ui *Edit) searchRegexp(re *regexp.Regexp, reverse bool) (match bool) {
 	// todo: implement reverse search
 
 	// xxx reading entire file is ridiculous, won't work for big files. regexp needs a better reader interface...
-	buf := []byte(ui.Text())
+	buf, err := ui.Text()
+	if ui.error(err, "read all text") {
+		return
+	}
 	c0, c1 := ui.cursor.Ordered()
 	m := re.FindIndex(buf[c1:])
 	if m != nil {
@@ -962,7 +994,9 @@ func (ui *Edit) searchText(t string, reverse bool) (match bool) {
 			seen = ""
 			continue
 		}
-		check(err, "tryget")
+		if ui.error(err, "read") {
+			return
+		}
 		seen += string(k)
 		if t == seen {
 			c.Cur = c.Start + int64(len(seen))
@@ -990,7 +1024,8 @@ func (ui *Edit) searchText(t string, reverse bool) (match bool) {
 	return
 }
 
-func (ui *Edit) Search(reverse bool) (match bool) {
+func (ui *Edit) Search(dui *DUI, reverse bool) (match bool) {
+	ui.dui = dui
 	if ui.LastSearch == "" {
 		return
 	}
@@ -1001,15 +1036,19 @@ func (ui *Edit) Search(reverse bool) (match bool) {
 	if t != ui.lastSearchRegexpString {
 		var err error
 		ui.lastSearchRegexp, err = regexp.Compile(t)
-		check(err, "compile regexp")
+		if dui.error(err, "compile regexp") {
+			return
+		}
 		ui.lastSearchRegexpString = t
 	}
 	return ui.searchRegexp(ui.lastSearchRegexp, reverse)
 }
 
 func (ui *Edit) indent(c Cursor) int64 {
-	s := ui.readText(c)
-	buf := []byte(s)
+	buf, err := ui.readText(c)
+	if ui.error(err, "readText") {
+		return c.size()
+	}
 	r := &bytes.Buffer{}
 	if len(buf) >= 1 && buf[0] != '\n' {
 		r.WriteByte('\t')
@@ -1028,16 +1067,20 @@ func (ui *Edit) indent(c Cursor) int64 {
 }
 
 func (ui *Edit) unindent(c Cursor) int64 {
-	s := ui.readText(c)
-	ns := strings.Replace(s, "\n\t", "\n", -1)
+	buf, err := ui.readText(c)
+	if ui.error(err, "readText") {
+		return c.size()
+	}
+	ns := bytes.Replace(buf, []byte{'\n', '\t'}, []byte{'\n'}, -1)
 	if len(ns) > 0 && ns[0] == '\t' {
 		ns = ns[1:]
 	}
-	ui.text.Replace(ui, &ui.dirty, c, []byte(ns), false)
+	ui.text.Replace(ui, &ui.dirty, c, ns, false)
 	return int64(len(ns))
 }
 
 func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result) {
+	ui.dui = dui
 	ui.ensureInit()
 	if m.In(ui.barR) {
 		log.Printf("key in scrollbar\n")
@@ -1081,7 +1124,7 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 	c0, c1 := ui.cursor.Ordered()
 	fr := ui.reader(c1, ui.text.Size())
 	br := ui.revReader(c0)
-	font := ui.font(dui)
+	font := ui.font()
 	lines := ui.textR.Dy() / font.Height
 	const Ctrl = 0x1f
 
@@ -1155,9 +1198,17 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 	case draw.KeyCmd + 'n':
 		ui.cursor.Start = ui.cursor.Cur
 	case draw.KeyCmd + 'c':
-		dui.WriteSnarf([]byte(ui.selectionText()))
+		buf, err := ui.selectionText()
+		if ui.error(err, "selectionText") {
+			break
+		}
+		dui.WriteSnarf(buf)
 	case draw.KeyCmd + 'x':
-		dui.WriteSnarf([]byte(ui.selectionText()))
+		buf, err := ui.selectionText()
+		if ui.error(err, "selectionText") {
+			break
+		}
+		dui.WriteSnarf(buf)
 		ui.text.Replace(ui, &ui.dirty, ui.cursor, nil, false)
 		ui.cursor = Cursor{c0, c0}
 	case draw.KeyCmd + 'v':
@@ -1191,9 +1242,9 @@ func (ui *Edit) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point)
 			ui.cursor = Cursor{c0, c1}
 		}
 	case draw.KeyCmd + '/':
-		ui.Search(false)
+		ui.Search(dui, false)
 	case draw.KeyCmd + '?':
-		ui.Search(true)
+		ui.Search(dui, true)
 	case draw.KeyEscape:
 		// oh yeah
 		if ui.cursor.Cur == ui.cursor.Start {

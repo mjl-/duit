@@ -261,8 +261,11 @@ func (ui *Edit) visualKey(dui *DUI, line bool, result *Result) {
 		ui.mode = modeInsert
 		ui.cursor = Cursor{c0, c0}
 	case 'y':
-		s := ui.readText(ui.cursor)
-		dui.WriteSnarf([]byte(s))
+		buf, err := ui.readText(ui.cursor)
+		if ui.error(err, "readText") {
+			break
+		}
+		dui.WriteSnarf(buf)
 	case 'p':
 		buf, ok := dui.ReadSnarf()
 		if ok {
@@ -276,7 +279,11 @@ func (ui *Edit) visualKey(dui *DUI, line bool, result *Result) {
 		n := ui.indent(ui.cursor)
 		ui.cursor = Cursor{c0 + n, c0}
 	case 'J':
-		s := ui.readText(ui.cursor)
+		buf, err := ui.readText(ui.cursor)
+		if ui.error(err, "readText") {
+			break
+		}
+		s := string(buf)
 		newline := s != "" && s[len(s)-1] == '\n'
 		if newline {
 			s = s[:len(s)-1]
@@ -289,7 +296,11 @@ func (ui *Edit) visualKey(dui *DUI, line bool, result *Result) {
 		ui.cursor = Cursor{c0 + int64(len(s)), c0}
 	case '~':
 		s := ""
-		for _, r := range ui.readText(ui.cursor) {
+		buf, err := ui.readText(ui.cursor)
+		if ui.error(err, "readText") {
+			break
+		}
+		for _, r := range string(buf) {
 			if unicode.IsUpper(r) {
 				r = unicode.ToLower(r)
 			} else if unicode.IsLower(r) {
@@ -439,7 +450,11 @@ func (ui *Edit) commandKey(dui *DUI, result *Result) (modified bool) {
 		cmd.Get()
 		cmd.Number()
 		c := Cursor{ui.cursor.Cur, ui.commandMove(dui, cmd, br, fr, 'y')}
-		dui.WriteSnarf([]byte(ui.readText(c)))
+		buf, err := ui.readText(c)
+		if ui.error(err, "readText") {
+			break
+		}
+		dui.WriteSnarf(buf)
 	case 'Y':
 		// whole lines
 		cmd.Get()
@@ -447,7 +462,11 @@ func (ui *Edit) commandKey(dui *DUI, result *Result) (modified bool) {
 		cmd.Times(func() {
 			fr.Line(true)
 		})
-		dui.WriteSnarf([]byte(ui.readText(Cursor{br.Offset(), fr.Offset()})))
+		buf, err := ui.readText(Cursor{br.Offset(), fr.Offset()})
+		if ui.error(err, "readText") {
+			break
+		}
+		dui.WriteSnarf(buf)
 	case 'p':
 		// paste
 		cmd.Get()
@@ -535,13 +554,15 @@ func (ui *Edit) commandKey(dui *DUI, result *Result) (modified bool) {
 		br.Nonwhitespacepunct()
 		fr.Nonwhitespacepunct()
 		buf, err := ui.text.get(Cursor{br.Offset(), fr.Offset()})
-		check(err, "get")
+		if ui.error(err, "read") {
+			return
+		}
 		ui.LastSearch = " " + string(buf)
-		ui.Search(false)
+		ui.Search(dui, false)
 	case 'n':
-		ui.Search(true)
+		ui.Search(dui, true)
 	case 'N':
-		ui.Search(false)
+		ui.Search(dui, false)
 	case '.':
 		cmd, lastText := ui.lastCommand, ui.lastCommandText
 		ui.command = cmd

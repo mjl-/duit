@@ -42,12 +42,18 @@ var _ textSource = &text{}
 func (t *text) saved(ui *Edit) {
 	if t.file != nil {
 		size, err := t.file.Seek(0, io.SeekEnd)
-		check(err, "seek")
+		if ui.error(err, "seek") {
+			return
+		}
 		if size > 0 {
 			t.l = []textPart{&file{t.file, 0, size}}
 		}
 	} else if t.Size() > 0 {
-		t.l = []textPart{stretch([]byte(ui.Text()))}
+		buf, err := ui.Text()
+		if ui.error(err, "text") {
+			return
+		}
+		t.l = []textPart{stretch(buf)}
 	} else {
 		t.l = nil
 	}

@@ -348,7 +348,9 @@ func (ui *Gridlist) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point,
 		}
 		var err error
 		ui.cellImage, err = dui.Display.AllocImage(rect(image.Pt(maxDx, size.Y)), draw.ARGB32, false, draw.Transparent)
-		check(err, "allocimage")
+		if dui.error(err, "allocimage") {
+			return nil
+		}
 		return ui.cellImage
 	}
 
@@ -385,6 +387,9 @@ func (ui *Gridlist) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point,
 			}
 			if dx > widths[i] {
 				cellImg := ensureCellImage(cellR.Size())
+				if cellImg == nil {
+					return
+				}
 				cellImg.Draw(cellImg.R, colors.Background, nil, image.ZP)
 				cellImg.String(alignOffset, colors.Text, image.ZP, font, s)
 				img.Draw(cellR, cellImg, nil, image.ZP)

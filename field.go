@@ -189,7 +189,9 @@ func (ui *Field) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m 
 		if ui.img == nil || !ui.img.R.Size().Eq(ui.size) {
 			var err error
 			ui.img, err = dui.Display.AllocImage(rect(ui.size), draw.ARGB32, false, draw.Transparent)
-			check(err, "allocimage")
+			if dui.error(err, "allocimage") {
+				return
+			}
 		}
 		ui.img.Draw(ui.img.R, colors.Background, nil, image.ZP)
 

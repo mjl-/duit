@@ -41,7 +41,8 @@ func main() {
 		case e := <-dui.Inputs:
 			dui.Input(e)
 
-		case <-dui.Done:
+		case err := <-dui.Error:
+			check(err, "dui")
 			return
 		}
 	}

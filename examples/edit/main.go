@@ -34,7 +34,8 @@ func main() {
 	dui, err := duit.NewDUI("ex/edit", nil)
 	check(err, "new dui")
 
-	edit := duit.NewEdit(f)
+	edit, err := duit.NewEdit(f)
+	check(err, "new edit")
 
 	print := &duit.Button{
 		Text: "print",
@@ -57,7 +58,8 @@ func main() {
 		case e := <-dui.Inputs:
 			dui.Input(e)
 
-		case <-dui.Done:
+		case err := <-dui.Error:
+			check(err, "dui")
 			return
 		}
 	}
