@@ -17,16 +17,26 @@ func main() {
 	check(err, "new dui")
 
 	dui.Top.UI = &duit.Split{
-		Gutter:   1,
-		Vertical: true,
+		Gutter:     1,
+		Vertical:   true,
+		Background: dui.Gutter,
 		Split: func(height int) []int {
 			p := height / 4
 			return []int{p, p, height - 2*p}
 		},
 		Kids: duit.NewKids(
-			&duit.Button{Text: "button1"},
-			&duit.Button{Text: "button2"},
-			&duit.Button{Text: "button3"},
+			&duit.Box{
+				Height: -1,
+				Kids:   duit.NewKids(&duit.Button{Text: "button1"}),
+			},
+			&duit.Box{
+				Height: -1,
+				Kids:   duit.NewKids(&duit.Button{Text: "button2"}),
+			},
+			&duit.Box{
+				Height: -1,
+				Kids:   duit.NewKids(&duit.Button{Text: "button3"}),
+			},
 		),
 	}
 	dui.Render()
