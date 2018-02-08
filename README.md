@@ -1,8 +1,8 @@
-duit - developer ui toolkit
+# duit - developer ui toolkit
 
 WARNING: this library is very unstable. i will break your code with backwards incompatible changes to the api, even  just because i will make seemingly trivial cosmetic changes. it's published now for interested fosdem2018 attendants. lots of code needs cleaning up, and there is virtually no documentation yet.
 
-# details
+## Details
 
 duit is a pure go (*), cross platform, MIT-licensed ui toolkit for developers. the api is small and uncomplicated.
 
@@ -10,7 +10,7 @@ duit works on the bsd's, linux and macos. it should be easy to get running on pl
 
 (*) duit currently needs a helper tool called devdraw, from plan9port (aka plan 9 from user space).
 
-# instructions
+## Instructions
 
 setting this up currently requires some effort:
 
@@ -20,7 +20,22 @@ setting this up currently requires some effort:
 
 you should now be able to run the code in examples/
 
-# todo
+### For Mac OS
 
-- add  todo list here...
-- publish the example applications
+- Required [brew](https://brew.sh/) and [brew cask](https://github.com/caskroom/homebrew-cask)
+- Install [XQuartx](https://www.xquartz.org/):  
+  `brew cask install xquartz`
+- Install [Plan9Port](https://9fans.github.io/plan9port/) with _X11_:  
+  `brew install plan9port --with-x11`
+- Get duit:  
+  `go get -u github.com/mjl-/duit`
+
+## Run the demo
+
+- `cd ${GOPATH}/src/github.com/mjl-/duit/examples/demo`
+- `go run main.go`
+
+## ToDo
+
+- [ ] Add  todo list here...
+- [ ] Publish the example applications
