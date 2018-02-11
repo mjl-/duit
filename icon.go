@@ -4,7 +4,8 @@ import (
 	"9fans.net/go/draw"
 )
 
+// Icon is a single codepoint in the given font. Typically an "icon font" like fontawesome.
 type Icon struct {
-	Rune rune
-	Font *draw.Font `json:"-"`
+	Rune rune       // Codepoint to draw.
+	Font *draw.Font `json:"-"` // Font to draw in. If nil, nothing is typically drawn.
 }

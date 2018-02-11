@@ -77,7 +77,7 @@ func (ui *Field) removeSelection() {
 }
 
 func (ui *Field) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
-	dui.debugLayout("Field", self)
+	dui.debugLayout(self)
 
 	ui.size = image.Point{sizeAvail.X, ui.font(dui).Height + 2*ui.space(dui).Y}
 	self.R = rect(ui.size)
@@ -85,7 +85,7 @@ func (ui *Field) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) 
 }
 
 func (ui *Field) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	dui.debugDraw("Field", self)
+	dui.debugDraw(self)
 
 	if ui.size.X <= 0 || ui.size.Y <= 0 {
 		return

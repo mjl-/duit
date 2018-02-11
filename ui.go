@@ -6,12 +6,12 @@ import (
 	"9fans.net/go/draw"
 )
 
-// UI is a user interface widget.
-// It is implemented by Button, Label, Field, Image and List.
-// And by layout UI's such as Box, Grid,  Split and Scroll.
-// Layout UI's simply contain other UI's, and are in charge of passing layout, draw, mouse, key, etc events on to the right child/children.
+// UI is the interface implemented by a user interface element. For example Button, List, Grid, Scroll.
+// UIs must be able to layout themselves, draw themselves, handle mouse events, key presses, deal with focus requests.
+// UIs also help with propagating UI state and logging.
+// For contain UIs (those that mostly just contain other UIs), many of these functions can be implemented by a single call to the corresponding Kids*-function.
 type UI interface {
-	// Layout asks the UI to layout itself in `availSize`.
+	// Layout asks the UI to layout itself and its children in `availSize`.
 	// Layout must check `self.Layout` and `force`.
 	// If force is set, it must layout itself and its kids, and pass on force.
 	// Else, if self.Layout is DirtyKid, it only needs to call Layout on its kids (common for layout UIs).

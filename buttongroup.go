@@ -6,12 +6,13 @@ import (
 	"9fans.net/go/draw"
 )
 
+// Buttongroup shows multiple joined buttons, with one of them active.
 type Buttongroup struct {
-	Texts    []string
-	Selected int
-	Disabled bool
-	Font     *draw.Font                `json:"-"`
-	Changed  func(index int) (e Event) `json:"-"`
+	Texts    []string                  // Texts to display on the buttons.
+	Selected int                       // Index in Text of the currently selected button.
+	Disabled bool                      // If disabled, the duit.Disabled colors are used and clicks have no effect.
+	Font     *draw.Font                `json:"-"` // Used for drawing Texts.
+	Changed  func(index int) (e Event) `json:"-"` // Called on click on a different button in the group then previously selected.
 
 	m    draw.Mouse
 	size image.Point
@@ -29,7 +30,7 @@ func (ui *Buttongroup) padding(dui *DUI) image.Point {
 }
 
 func (ui *Buttongroup) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
-	dui.debugLayout("Buttongroup", self)
+	dui.debugLayout(self)
 	pad2 := ui.padding(dui).Mul(2)
 	size := image.Pt(2*BorderSize, 2*BorderSize+pad2.Y+ui.font(dui).Height)
 	font := ui.font(dui)
@@ -52,7 +53,7 @@ func (ui *Buttongroup) selected() int {
 }
 
 func (ui *Buttongroup) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	dui.debugDraw("Buttongroup", self)
+	dui.debugDraw(self)
 
 	if len(ui.Texts) == 0 {
 		return

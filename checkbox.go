@@ -33,7 +33,7 @@ func (ui *Checkbox) innerDim(dui *DUI) int {
 }
 
 func (ui *Checkbox) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
-	dui.debugLayout("Checkbox", self)
+	dui.debugLayout(self)
 	hit := image.Point{0, 1}
 	size := ui.size(dui).Add(hit)
 	self.R = rect(size)
@@ -41,7 +41,7 @@ func (ui *Checkbox) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force boo
 }
 
 func (ui *Checkbox) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	dui.debugDraw("Checkbox", self)
+	dui.debugDraw(self)
 
 	r := rect(ui.size(dui))
 	hover := m.In(r)

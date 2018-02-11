@@ -13,7 +13,7 @@ type Image struct {
 var _ UI = &Image{}
 
 func (ui *Image) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
-	dui.debugLayout("Image", self)
+	dui.debugLayout(self)
 	if ui.Image == nil {
 		self.R = image.ZR
 	} else {
@@ -23,7 +23,7 @@ func (ui *Image) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) 
 }
 
 func (ui *Image) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	dui.debugDraw("Image", self)
+	dui.debugDraw(self)
 	if ui.Image == nil {
 		return
 	}

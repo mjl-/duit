@@ -29,7 +29,7 @@ func (ui *Place) ensure() {
 
 func (ui *Place) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	ui.ensure()
-	dui.debugLayout("Place", self)
+	dui.debugLayout(self)
 
 	ui.Place(self, sizeAvail)
 }
@@ -39,7 +39,7 @@ func (ui *Place) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m 
 	if self.Draw == DirtyKid {
 		force = true
 	}
-	KidsDraw("Place", dui, self, ui.Kids, ui.size, ui.Background, img, orig, m, force)
+	KidsDraw(dui, self, ui.Kids, ui.size, ui.Background, img, orig, m, force)
 }
 
 func (ui *Place) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {

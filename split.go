@@ -65,7 +65,7 @@ func (ui *Split) Dimensions(dui *DUI, dims []int) []int {
 }
 
 func (ui *Split) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
-	dui.debugLayout("Split", self)
+	dui.debugLayout(self)
 	if KidsLayout(dui, self, ui.Kids, force) {
 		return
 	}
@@ -158,7 +158,7 @@ func (ui *Split) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) 
 }
 
 func (ui *Split) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	KidsDraw("Split", dui, self, ui.Kids, ui.size, ui.Background, img, orig, m, force)
+	KidsDraw(dui, self, ui.Kids, ui.size, ui.Background, img, orig, m, force)
 }
 
 func (ui *Split) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {

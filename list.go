@@ -35,13 +35,13 @@ func (ui *List) rowHeight(dui *DUI) int {
 }
 
 func (ui *List) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
-	dui.debugLayout("List", self)
+	dui.debugLayout(self)
 	ui.size = image.Pt(sizeAvail.X, len(ui.Values)*ui.rowHeight(dui))
 	self.R = rect(ui.size)
 }
 
 func (ui *List) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	dui.debugDraw("Label", self)
+	dui.debugDraw(self)
 
 	rowHeight := ui.rowHeight(dui)
 	font := ui.font(dui)

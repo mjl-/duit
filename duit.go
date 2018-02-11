@@ -16,53 +16,60 @@ import (
 )
 
 const (
-	BorderSize = 1 // regardless of lowDPI/hiDPI
+	BorderSize = 1 // regardless of lowDPI/hiDPI, won't be scaled
 
-	ScrollbarSize = 10
+	ScrollbarSize = 10 // in lowDPI pixels
 )
 
+// Mouse buttons, see draw.Mouse.Buttons.
 const (
 	Button1 = 1 << iota
 	Button2
 	Button3
-	Button4
-	Button5
+	Button4 // wheel up
+	Button5 // wheel down
 )
 
+// Horizontal align of elements in a Grid.
 type Halign int
 
 const (
-	HalignLeft = Halign(iota)
+	HalignLeft = Halign(iota) // Align to the left by default, for example in a grid.
 	HalignMiddle
 	HalignRight
 )
 
+// Vertical align of elements in a Grid, or in a Box.
 type Valign int
 
 const (
-	ValignMiddle = Valign(iota)
+	ValignMiddle = Valign(iota) // Align vertically in the middle by default, for example in a box (line) or grid.
 	ValignTop
 	ValignBottom
 )
 
+// Event is often returned by handlers, such as click or key handlers.
 type Event struct {
-	Consumed   bool // whether event was consumed, and should not be further handled by upper UI's
-	NeedLayout bool // whether UI now needs a layout
-	NeedDraw   bool // whether UI now needs a draw
+	Consumed   bool // Whether event was consumed, and should not be further handled by upper UI's.  Container UIs can handle some mouse/key events and decide whether they want to pass them on, or first pass them on and only consume them when a child UI hasn't done so yet.
+	NeedLayout bool // Whether UI now needs a layout. Only the UI generating the event will be marked. If you another UI needs to be marked, call MarkLayout.
+	NeedDraw   bool // Like NeedLayout, but for draw.
 }
 
+// Result holds the effects of a mouse/key event, as implement by UIs.
 type Result struct {
 	Hit      UI           // the UI where the event ended up
 	Consumed bool         // whether event was consumed, and should not be further handled by upper UI's
 	Warp     *image.Point // if set, mouse will warp to location
 }
 
+// Colors represents the style in one state of the UI.
 type Colors struct {
 	Text       *draw.Image `json:"-"`
 	Background *draw.Image `json:"-"`
 	Border     *draw.Image `json:"-"`
 }
 
+// Colorset is typically used to style buttons. Duit provides some builtin colorsets like Primary, Danger, Success.
 type Colorset struct {
 	Normal, Hover Colors
 }
@@ -72,9 +79,9 @@ type InputType byte
 const (
 	InputMouse = InputType(iota)
 	InputKey
-	InputFunc
-	InputResize
-	InputError
+	InputFunc   // Call the function.
+	InputResize // window was resized, reattach; does not have/need a field in Input.
+	InputError  // An error occurred that may be recovered from.
 )
 
 type Input struct {
@@ -85,24 +92,25 @@ type Input struct {
 	Error error
 }
 
+// State represents the layout/draw state of the UI of a Kid.
 type State byte
 
 const (
-	Dirty    = State(iota) // UI itself needs layout/draw;  kids will also get a layout/draw call, with force set.
+	Dirty    = State(iota) // UI itself needs layout/draw;  kids will also get a UI.Layout/UI.Draw call, with force set.
 	DirtyKid               // UI itself does not need layout/draw, but one of its children does, so pass the call on.
-	Clean                  // UI does not need layout/draw.
+	Clean                  // UI and its children do not need layout/draw.
 
-	// order is important, Clean is highest and means least amount of work
+	// note: order is important, Dirty is the default, Clean is highest and means least amount of work
 )
 
 type DUI struct {
-	Inputs  chan Input
-	Top     Kid
-	Call    chan func() // functions sent here will go through DUI.Inputs and run by DUI.Input() in the main event loop. for code that changes UI state.
-	Error   chan error  // closed when window is closed, receives errors from UIs
+	Inputs  chan Input  // Duit sends input events on this channel, needs to be read from the main loop.
+	Top     Kid         // Root of the UI hierarchy. Wrapped in a Kid for state management.
+	Call    chan func() // Functions sent here will go through DUI.Inputs and run by DUI.Input() in the main event loop. For code that changes UI state.
+	Error   chan error  // Receives errors from UIs. For example when memory for an image could not be allocated. Closed when window is closed. Needs to be read from the main loop.
 	Display *draw.Display
 
-	// colors
+	// Colors.
 	Disabled,
 	Inverse,
 	Selection,
@@ -110,51 +118,60 @@ type DUI struct {
 	Placeholder,
 	Striped Colors
 
-	// colors including hover-variants
+	// Colors with hover-variants.
 	Regular,
 	Primary,
 	Secondary,
 	Success,
 	Danger Colorset
 
+	// Background color UIs should have.
 	BackgroundColor draw.Color
 	Background      *draw.Image
 
+	// Scrollbar colors.
 	ScrollBGNormal,
 	ScrollBGHover,
 	ScrollVisibleNormal,
 	ScrollVisibleHover *draw.Image
 
+	// Gutter color.
 	Gutter *draw.Image
 
-	Debug       bool // log errors interesting to developers
-	DebugDraw   int  // if 1, UIs print each draw they do, if 2, UIs print all calls to their Draw function. Cycle through 0-2 with F7
-	DebugLayout int  // if 1, UIs print each Layout they do, if 2, UIs print all calls to their Layout function. Cycle through 0-2 with F8
-	DebugKids   bool // whether to print distinct backgrounds in kids* functions
-	debugColors []*draw.Image
+	Debug       bool          // Log errors interesting to developers.
+	DebugDraw   int           // If 1, UIs print each draw they do. If 2, UIs print all calls to their Draw function. Cycle through 0-2 with F7.
+	DebugLayout int           // If 1, UIs print each Layout they do. If 2, UIs print all calls to their Layout function. Cycle through 0-2 with F8.
+	DebugKids   bool          // Whether to print distinct backgrounds in kids* functions.
+	debugColors []*draw.Image // colors used for DebugKids
 
-	// for edit.  we might need a map where other UIs can store images (like colors) for caching purposes in the future...
+	// Border colors for vi modes for Edit.
 	CommandMode,
 	VisualMode *draw.Image
+
+	//  we might need a map where other UIs can store images (like colors) for caching purposes in the future...
 
 	stop                    chan struct{}
 	mousectl                *draw.Mousectl
 	keyctl                  *draw.Keyboardctl
-	mouse                   draw.Mouse
-	origMouse               draw.Mouse
-	lastMouseUI             UI
-	logInputs               bool
-	logTiming               bool
-	dimensionsPath          string
-	dimensionsDelayedWriter *time.Timer
-	name                    string
-	settings                map[string][]byte      // indexed by Kid.ID, holds json
-	settingsWriters         map[string]*time.Timer // delayed writes of settings
+	mouse                   draw.Mouse             // Latest mouse event.
+	origMouse               draw.Mouse             // Mouse that determines where new mouse events are delivered. Unchanged while button is pressed.
+	lastMouseUI             UI                     // Where last mouse was delivered
+	logInputs               bool                   // Print all input events. Toggled with F1.
+	logTiming               bool                   // Print timings for layout and draw.
+	dimensionsPath          string                 // For remembering windows dimensions.
+	dimensionsDelayedWriter *time.Timer            // Delayed writes of dimensions.
+	name                    string                 // Program name, also used for storing dimensions file.
+	settings                map[string][]byte      // Indexed by Kid.ID, holds JSON. Helps store per-UI state, such as Split sizes.
+	settingsWriters         map[string]*time.Timer // Delayed writes of settings.
 }
 
+// DUIOpts exist mostly to make it easier to add changes in the future, and keep the NewDUI function signature sane.
+
+// DUIOpts are options for creating a new DUI.
+// Zero values have sane behaviour.
 type DUIOpts struct {
-	FontName   string // eg /mnt/font/Lato-Regular/15a/font
-	Dimensions string // eg 800x600
+	FontName   string // eg "/mnt/font/Lato-Regular/15a/font"
+	Dimensions string // eg "800x600", duit has a sane default and remembers size per application name after resize.
 }
 
 func configDir() string {
@@ -169,6 +186,8 @@ func configDir() string {
 	return appdata + "/duit"
 }
 
+// NewDUI creates a DUI for an application called name, and optional opts. A DUI is a new window and its UI state.
+// Window dimensions and UI settings are automatically written to $APPDATA/duit/<name>, with $APPDATA being $HOME/lib on unix.
 func NewDUI(name string, opts *DUIOpts) (dui *DUI, err error) {
 	lcheck, handle := errorHandler(func(xerr error) {
 		err = xerr
@@ -364,11 +383,15 @@ func NewDUI(name string, opts *DUIOpts) (dui *DUI, err error) {
 }
 
 // Render calls Layout followed by Draw.
+// This only does a layout/draw for UIs marked as needing it. If you want to force a layout/draw, mark the top UI as requiring a layout/draw.
 func (d *DUI) Render() {
 	d.Layout()
 	d.Draw()
 }
 
+// Layout the entire UI tree, as necessary.
+// Only UIs marked as requiring a layout are actually layed out.
+// UIs that receive a layout are marked as requiring a draw.
 func (d *DUI) Layout() {
 	if d.Top.Layout == Clean {
 		return
@@ -384,6 +407,8 @@ func (d *DUI) Layout() {
 	}
 }
 
+// Draw the entire UI tree, as necessary.
+// Only UIs marked as requiring a draw are actually drawn, and their children.
 func (d *DUI) Draw() {
 	if d.Top.Draw == Clean {
 		return
@@ -407,6 +432,9 @@ func (d *DUI) Draw() {
 	}
 }
 
+// MarkLayout marks ui as requiring a layout.
+// If you have access to the Kid that holds this UI, it is more efficient to change the Kid itself. MarkLayout is more convenient. Using it can cut down on bookkeeping.
+// If ui is nil, the top UI is marked.
 func (d *DUI) MarkLayout(ui UI) {
 	if ui == nil {
 		d.Top.Layout = Dirty
@@ -417,6 +445,7 @@ func (d *DUI) MarkLayout(ui UI) {
 	}
 }
 
+// Markdraw is like MarkLayout, but marks ui as requiring a draw.
 func (d *DUI) MarkDraw(ui UI) {
 	if ui == nil {
 		d.Top.Draw = Dirty
@@ -451,6 +480,8 @@ func (d *DUI) apply(r Result) {
 	d.Render()
 }
 
+// Mouse delivers a mouse event to the UI tree.
+// Mouse is typically called by Input.
 func (d *DUI) Mouse(m draw.Mouse) {
 	if d.logInputs {
 		log.Printf("duit: mouse %v, %b\n", m, m.Buttons)
@@ -463,6 +494,7 @@ func (d *DUI) Mouse(m draw.Mouse) {
 	d.apply(r)
 }
 
+// Resize handles a resize of the window. Resize is called automatically through Input when the user resizes a window.
 func (d *DUI) Resize() {
 	if d.logInputs {
 		log.Printf("duit: resize")
@@ -491,6 +523,8 @@ func (d *DUI) Resize() {
 	}
 }
 
+// Key delivers a key press event to the UI tree.
+// Key is typically called by Input.
 func (d *DUI) Key(k rune) {
 	switch k {
 	case draw.KeyFn + 1:
@@ -554,6 +588,7 @@ func (d *DUI) Key(k rune) {
 	d.apply(r)
 }
 
+// Focus changes the focus on ui, by propagating the focus request through the UI tree. The mouse pointer is warped to the UI. Container UIs ensure the UI is in place, e.g. scrolling if necessary.
 func (d *DUI) Focus(ui UI) {
 	p := d.Top.UI.Focus(d, &d.Top, ui)
 	if p == nil {
@@ -571,15 +606,15 @@ func (d *DUI) Focus(ui UI) {
 	d.apply(r)
 }
 
-func (d *DUI) debugLayout(what string, self *Kid) {
+func (d *DUI) debugLayout(self *Kid) {
 	if d.DebugLayout > 0 {
-		log.Printf("duit: Layout %s %s layout=%d draw=%d\n", what, self.R, self.Layout, self.Draw)
+		log.Printf("duit: Layout %T %s layout=%d draw=%d\n", self.UI, self.R, self.Layout, self.Draw)
 	}
 }
 
-func (d *DUI) debugDraw(what string, self *Kid) {
+func (d *DUI) debugDraw(self *Kid) {
 	if d.DebugDraw > 0 {
-		log.Printf("duit: Draw %s %s layout=%d draw=%d\n", what, self.R, self.Layout, self.Draw)
+		log.Printf("duit: Draw %T %s layout=%d draw=%d\n", self.UI, self.R, self.Layout, self.Draw)
 	}
 }
 
@@ -593,12 +628,17 @@ func (d *DUI) error(err error, msg string) bool {
 	return true
 }
 
+// PrintUI is a helper function UIs can use to implement UI.Print. "s" is typically the ui type, possibly with additional properties. Indent should be increased for each child UI that is printed.
 func PrintUI(s string, self *Kid, indent int) {
 	indentStr := ""
 	if indent > 0 {
 		indentStr = fmt.Sprintf("%*s", indent*2, " ")
 	}
-	log.Printf("duit: %s%s r %v size %s layout=%d draw=%d %p\n", indentStr, s, self.R, self.R.Size(), self.Layout, self.Draw, self.UI)
+	var id string
+	if self.ID != "" {
+		id = " " + self.ID
+	}
+	log.Printf("duit: %s%s r %v size %s layout=%d draw=%d%s %p\n", indentStr, s, self.R, self.R.Size(), self.Layout, self.Draw, id, self.UI)
 }
 
 func scale(d *draw.Display, n int) int {
@@ -609,10 +649,16 @@ func scalePt(d *draw.Display, p image.Point) image.Point {
 	return p.Mul(d.DPI / 100)
 }
 
+//  Scale turns a low DPI pixel size into a size scaled for the current display.
 func (d *DUI) Scale(n int) int {
 	return (d.Display.DPI / 100) * n
 }
 
+// Input propagates the input event through the UI tree.
+// Mouse and key events are delivered the right UIs.
+// Resize is handled by reattaching to devdraw and doing a layout and draw.
+// Func calls the function.
+// Error implies an error from devdraw and terminates the program.
 func (d *DUI) Input(e Input) {
 	switch e.Type {
 	case InputMouse:
@@ -629,11 +675,14 @@ func (d *DUI) Input(e Input) {
 	}
 }
 
+// Close stops mouse/keyboard event reading and closes the window.
+// After closing a DUI you should no longer call functions on it.
 func (d *DUI) Close() {
 	d.stop <- struct{}{}
 	d.Display.Close()
 }
 
+// ScaleSpace is like Scale, but for a Space.
 func (d *DUI) ScaleSpace(s Space) Space {
 	return Space{
 		d.Scale(s.Top),
@@ -643,6 +692,7 @@ func (d *DUI) ScaleSpace(s Space) Space {
 	}
 }
 
+// Font is a helper function for UI implementations. It returns the passed font. Unless font is nil, then it returns the default font.
 func (d *DUI) Font(font *draw.Font) *draw.Font {
 	if font != nil {
 		return font
@@ -650,7 +700,7 @@ func (d *DUI) Font(font *draw.Font) *draw.Font {
 	return d.Display.DefaultFont
 }
 
-// WriteSnarf writes the snarf buffer and prints an error in case of failure.
+// WriteSnarf writes the snarf buffer and logs an error in case of failure.
 func (d *DUI) WriteSnarf(buf []byte) {
 	err := d.Display.WriteSnarf(buf)
 	if err != nil {
@@ -658,7 +708,7 @@ func (d *DUI) WriteSnarf(buf []byte) {
 	}
 }
 
-// ReadSnarf reads the entire snarf buffer and prints an error in case of failure.
+// ReadSnarf reads the entire snarf buffer and logs an error in case of failure.
 func (d *DUI) ReadSnarf() (buf []byte, success bool) {
 	buf = make([]byte, 128)
 	have, total, err := d.Display.ReadSnarf(buf)
@@ -682,6 +732,9 @@ func (d *DUI) settingsPath(self *Kid) string {
 	return fmt.Sprintf("%s/%s/%s.json", configDir(), d.name, self.ID)
 }
 
+// ReadSettings reads the settings for self.ID if any into v.
+// Settings are stored as JSON, (un)marshalled with encoding/json.
+// ReadSettings returns whether reading settings was successful.
 func (d *DUI) ReadSettings(self *Kid, v interface{}) bool {
 	if self.ID == "" {
 		return false
@@ -698,6 +751,8 @@ func (d *DUI) ReadSettings(self *Kid, v interface{}) bool {
 	return json.Unmarshal(buf, v) == nil
 }
 
+// WriteSettings writes settings v for self.ID as JSON.
+// WriteSettings delays a write for an ID for 2 seconds. Delayed writes are canceled by new writes.
 func (d *DUI) WriteSettings(self *Kid, v interface{}) bool {
 	if self.ID == "" {
 		return false

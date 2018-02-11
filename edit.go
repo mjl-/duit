@@ -34,13 +34,15 @@ const (
 	modeVisualLine                  // vi visual line mode, after 'V' in command mode
 )
 
+// EditColors hold all the colors used for rendering an Edit.
 type EditColors struct {
 	Fg, Bg, SelFg, SelBg, ScrollVis, ScrollBg, HoverScrollVis, HoverScrollBg, CommandBorder, VisualBorder *draw.Image
 }
 
+// Cursor represents the current editing location, and optionally text selection.
 type Cursor struct {
-	Cur   int64 // current location/end of selection
-	Start int64 // start of selection, not necessarily larger than Cur!
+	Cur   int64 // Current location/end of selection.
+	Start int64 // Sstart of selection, not necessarily larger than Cur!
 }
 
 type Edit struct {
@@ -84,6 +86,7 @@ type Edit struct {
 	lastCursorPoint image.Point
 }
 
+// Ordered returns the ordered start, end position of the cursor.
 func (c Cursor) Ordered() (int64, int64) {
 	if c.Cur > c.Start {
 		return c.Start, c.Cur
@@ -406,7 +409,7 @@ func (ui *Edit) font() *draw.Font {
 
 func (ui *Edit) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	ui.dui = dui
-	dui.debugLayout("Edit", self)
+	dui.debugLayout(self)
 
 	ui.ensureInit()
 	ui.r = rect(sizeAvail)
@@ -425,7 +428,7 @@ func (ui *Edit) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 
 func (ui *Edit) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
 	ui.dui = dui
-	dui.debugDraw("Edit", self)
+	dui.debugDraw(self)
 
 	ui.ensureInit()
 	if ui.r.Empty() {

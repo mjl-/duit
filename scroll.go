@@ -30,7 +30,7 @@ func NewScroll(ui UI) *Scroll {
 }
 
 func (ui *Scroll) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
-	dui.debugLayout("Scroll", self)
+	dui.debugLayout(self)
 
 	if self.Layout == Clean && !force {
 		return
@@ -65,7 +65,7 @@ func (ui *Scroll) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool)
 }
 
 func (ui *Scroll) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	dui.debugDraw("Scroll", self)
+	dui.debugDraw(self)
 
 	if self.Draw == Clean {
 		return

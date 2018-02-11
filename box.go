@@ -6,6 +6,7 @@ import (
 	"9fans.net/go/draw"
 )
 
+// NewBox returns a box containing all uis in its Kids field.
 func NewBox(uis ...UI) *Box {
 	kids := make([]*Kid, len(uis))
 	for i, ui := range uis {
@@ -14,6 +15,7 @@ func NewBox(uis ...UI) *Box {
 	return &Box{Kids: kids}
 }
 
+// NewReverseBox returns a box containing all uis in original order in its Kids field, with the Reverse field set.
 func NewReverseBox(uis ...UI) *Box {
 	kids := make([]*Kid, len(uis))
 	for i, ui := range uis {
@@ -24,15 +26,15 @@ func NewReverseBox(uis ...UI) *Box {
 
 // Box keeps elements on a line as long as they fit, then moves on to the next line.
 type Box struct {
-	Kids       []*Kid
-	Reverse    bool        // lay out children from bottom to top. first kid will be at the bottom.
-	Margin     image.Point // in pixels, will be adjusted for high dpi screens
-	Padding    Space       // padding inside box, so children don't touch the sides; also adjusted for high dpi screens
-	Valign     Valign      // how to align children on a line
-	Width      int         // 0 means dynamic (as much as needed), -1 means full width, >0 means that exact amount of lowdpi pixels
-	Height     int         // 0 means dynamic (as much as needed), -1 means full height, >0 means that exact amount of lowdpi pixels
-	MaxWidth   int         // if >0, the max number of lowdpi pixels that will be used
-	Background *draw.Image `json:"-"`
+	Kids       []*Kid      // Kids and UIs in this box.
+	Reverse    bool        // Lay out children from bottom to top. First kid will be at the bottom.
+	Margin     image.Point // In lowDPI pixels, will be adjusted for highDPI screens.
+	Padding    Space       // Padding inside box, so children don't touch the sides; in lowDPI pixels, also adjusted for highDPI screens.
+	Valign     Valign      // How to align children on a line.
+	Width      int         // 0 means dynamic (as much as needed), -1 means full width, >0 means that exact amount of lowDPI pixels.
+	Height     int         // 0 means dynamic (as much as needed), -1 means full height, >0 means that exact amount of lowDPI pixels.
+	MaxWidth   int         // if >0, the max number of lowDPI pixels that will be used.
+	Background *draw.Image `json:"-"` // Background for this box, instead of default duit background.
 
 	size image.Point // of entire box, including padding
 }
@@ -40,7 +42,7 @@ type Box struct {
 var _ UI = &Box{}
 
 func (ui *Box) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
-	dui.debugLayout("Box", self)
+	dui.debugLayout(self)
 	if KidsLayout(dui, self, ui.Kids, force) {
 		return
 	}
@@ -134,7 +136,7 @@ func (ui *Box) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 }
 
 func (ui *Box) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	KidsDraw("Box", dui, self, ui.Kids, ui.size, ui.Background, img, orig, m, force)
+	KidsDraw(dui, self, ui.Kids, ui.size, ui.Background, img, orig, m, force)
 }
 
 func (ui *Box) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {

@@ -35,7 +35,7 @@ func (ui *Radiobutton) innerDim(dui *DUI) int {
 }
 
 func (ui *Radiobutton) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
-	dui.debugLayout("Radiobutton", self)
+	dui.debugLayout(self)
 
 	hit := image.Point{0, 1}
 	size := pt(2*BorderSize + 7*dui.Display.DefaultFont.Height/10).Add(hit)
@@ -43,7 +43,7 @@ func (ui *Radiobutton) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force 
 }
 
 func (ui *Radiobutton) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	dui.debugDraw("Radiobutton", self)
+	dui.debugDraw(self)
 
 	r := rect(pt(2*BorderSize + 7*dui.Display.DefaultFont.Height/10))
 	hover := m.In(r)

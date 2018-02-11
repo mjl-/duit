@@ -23,8 +23,8 @@ type Gridrow struct {
 type Gridfit byte
 
 const (
-	FitNormal = Gridfit(iota)
-	FitSlim
+	FitNormal = Gridfit(iota) // FitNormal lays out over full available width.
+	FitSlim                   // FitSlim lays out only as much as needed.
 )
 
 type Gridlist struct {
@@ -299,7 +299,7 @@ func (ui *Gridlist) rowCount() int {
 }
 
 func (ui *Gridlist) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
-	dui.debugLayout("Gridlist", self)
+	dui.debugLayout(self)
 
 	row := ui.exampleRow()
 	if ui.Halign != nil && row != nil && len(ui.Halign) != len(row.Values) {
@@ -313,7 +313,7 @@ func (ui *Gridlist) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force boo
 }
 
 func (ui *Gridlist) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	dui.debugDraw("Gridlist", self)
+	dui.debugDraw(self)
 
 	row := ui.exampleRow()
 	if row == nil || len(row.Values) == 0 {

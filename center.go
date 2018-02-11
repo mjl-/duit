@@ -1,5 +1,6 @@
 package duit
 
+// CenterUI returns a UI that shows ui horizontally centered, with space as padding.
 func CenterUI(space Space, ui UI) UI {
 	return &Grid{
 		Columns: 1,

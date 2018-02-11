@@ -13,7 +13,7 @@ type Pick struct {
 }
 
 func (ui *Pick) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
-	dui.debugLayout("Pick", self)
+	dui.debugLayout(self)
 
 	if self.Layout == Clean && !force {
 		return
@@ -25,7 +25,7 @@ func (ui *Pick) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 }
 
 func (ui *Pick) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	dui.debugDraw("Pick", self)
+	dui.debugDraw(self)
 	ui.ui.Draw(dui, self, img, orig, m, force)
 }
 

@@ -8,8 +8,8 @@ import (
 
 type Label struct {
 	Text  string
-	Font  *draw.Font `json:"-"`
-	Click func() (e Event)
+	Font  *draw.Font       `json:"-"`
+	Click func() (e Event) `json:"-"`
 
 	lines []string
 	size  image.Point
@@ -23,7 +23,7 @@ func (ui *Label) font(dui *DUI) *draw.Font {
 }
 
 func (ui *Label) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
-	dui.debugLayout("Label", self)
+	dui.debugLayout(self)
 
 	font := ui.font(dui)
 	ui.lines = []string{}
@@ -57,7 +57,7 @@ func (ui *Label) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) 
 }
 
 func (ui *Label) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	dui.debugDraw("Label", self)
+	dui.debugDraw(self)
 
 	p := orig
 	font := ui.font(dui)

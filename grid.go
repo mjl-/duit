@@ -24,7 +24,7 @@ type Grid struct {
 var _ UI = &Grid{}
 
 func (ui *Grid) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
-	dui.debugLayout("Grid", self)
+	dui.debugLayout(self)
 	if KidsLayout(dui, self, ui.Kids, force) {
 		return
 	}
@@ -159,7 +159,7 @@ func (ui *Grid) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 }
 
 func (ui *Grid) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	KidsDraw("Grid", dui, self, ui.Kids, ui.size, ui.Background, img, orig, m, force)
+	KidsDraw(dui, self, ui.Kids, ui.size, ui.Background, img, orig, m, force)
 }
 
 func (ui *Grid) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {

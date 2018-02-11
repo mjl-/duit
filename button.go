@@ -6,13 +6,14 @@ import (
 	"9fans.net/go/draw"
 )
 
+// Button with text and optional icon with a click function.
 type Button struct {
-	Text     string
-	Icon     Icon `json:"-"` // drawn before text
-	Disabled bool
-	Colorset *Colorset
-	Font     *draw.Font       `json:"-"`
-	Click    func() (e Event) `json:"-"`
+	Text     string           // Displayed on button.
+	Icon     Icon             `json:"-"` // Displayed before text, if Icon.Font is not nil.
+	Disabled bool             // If disabled, colors used indicate disabledness, clicks don't result in Click being called.
+	Colorset *Colorset        `json:"-"` // Colors used, for example duit.Primary. Defaults to duit.Regular.
+	Font     *draw.Font       `json:"-"` // Used to draw Text, if not nil.
+	Click    func() (e Event) `json:"-"` // Called on click on the button.
 
 	m    draw.Mouse
 	size image.Point
@@ -34,7 +35,7 @@ func (ui *Button) padding(dui *DUI) image.Point {
 }
 
 func (ui *Button) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
-	dui.debugLayout("Button", self)
+	dui.debugLayout(self)
 
 	size := ui.font(dui).StringSize(ui.Text).Add(ui.space(dui).Mul(2))
 	if ui.Icon.Font != nil {
@@ -46,7 +47,7 @@ func (ui *Button) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool)
 }
 
 func (ui *Button) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
-	dui.debugDraw("Button", self)
+	dui.debugDraw(self)
 
 	text := ui.Text
 	iconSize := image.ZP

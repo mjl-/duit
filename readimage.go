@@ -12,6 +12,7 @@ import (
 	"9fans.net/go/draw"
 )
 
+// ReadImage decodes an image from f for use on display. The returned image is ready for use in an Image UI.
 func ReadImage(display *draw.Display, f io.Reader) (*draw.Image, error) {
 	img, _, err := image.Decode(f)
 	if err != nil {
@@ -39,6 +40,7 @@ func ReadImage(display *draw.Display, f io.Reader) (*draw.Image, error) {
 	return ni, nil
 }
 
+// ReadImagePath is a convenience function that opens path and calls ReadImage.
 func ReadImagePath(display *draw.Display, path string) (*draw.Image, error) {
 	f, err := os.Open(path)
 	if err != nil {

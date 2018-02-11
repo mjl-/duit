@@ -71,7 +71,11 @@ duit is still very much work in progress. the api will change. you will run into
 
 #### q: how can i implement my ui own ui widget?
 
-it's surprisingly easy. just implement the UI interface. for container-like UI's, the hard function is Layout, for the others you can probably just use the Kid*-functions. for non-container UI's (like buttons, labels), the layout is often much easier, but you'll put more effort in the Draw, Key and Mouse-functions.
+it's surprisingly easy. just implement the UI interface. btw, they aren't called "widgets", just UI's, after the interface name.
+
+for container-like UI's, the hard function is Layout, for the others you can probably just use the Kid*-functions. for non-container UI's (like buttons, labels), the layout is often much easier, but you'll put more effort in the Draw, Key and Mouse-functions.
+
+one last tip: the function keys toggle various debug modes. like logging all mouse/key events, or printing the current UI hierarchy, or forcing a redraw. look at the code to learn which keys does what.
 
 #### q: how to pronounce duit
 
@@ -80,7 +84,7 @@ DO IT.
 
 #### q: can i contribute?
 
-absolutely. there is a big list of todo's at the bottom of this page. but that's just the start. use duit, create programs, let me know about the bugs and missing features. or even fix them.
+absolutely, there is a big non-exhaustive list of todo's at the bottom of this page. but the easiest way to help is to just use duit, create programs, let me know about the bugs and missing features.
 
 #### q: how to communicate?
 
@@ -97,6 +101,8 @@ a list of applications created with duit:
 ## todo
 
 - duit: write docs
+- change examples to check for closedness of dui.Error, instead of err==nil
+- logInputs: also log resize, call, error.
 - edit: more vi commands
 - edit: do not trash history in Saved(), but adjust the offsets to the new file contents
 - edit: fix ScrollCursor so it knows about linewraps. for forward reading, have to start at ui.offset, then read forward, and keep adjusting ui.offset.

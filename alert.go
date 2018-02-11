@@ -5,7 +5,8 @@ import (
 	"image"
 )
 
-func Alert(s string) (err error) {
+// Alert creates a new window that show text and a button labeled OK that closes the window.
+func Alert(text string) (err error) {
 	stop := make(chan struct{}, 1)
 
 	dui, err := NewDUI("alert", &DUIOpts{Dimensions: "300x200"})
@@ -20,7 +21,7 @@ func Alert(s string) (err error) {
 				&Box{
 					Width: -1,
 					Kids: NewKids(
-						&Label{Text: s},
+						&Label{Text: text},
 					),
 				},
 				CenterUI(Space{},

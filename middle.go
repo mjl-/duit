@@ -35,7 +35,7 @@ func (ui *Middle) ensure() {
 
 func (ui *Middle) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	ui.ensure()
-	dui.debugLayout("Middle", self)
+	dui.debugLayout(self)
 
 	if KidsLayout(dui, self, ui.kids, force) {
 		return
@@ -50,8 +50,8 @@ func (ui *Middle) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool)
 
 func (ui *Middle) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool) {
 	ui.ensure()
-	dui.debugDraw("Middle", self)
-	KidsDraw("Middle", dui, self, ui.kids, ui.size, ui.Background, img, orig, m, force)
+	dui.debugDraw(self)
+	KidsDraw(dui, self, ui.kids, ui.size, ui.Background, img, orig, m, force)
 }
 
 func (ui *Middle) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
