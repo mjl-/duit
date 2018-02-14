@@ -30,25 +30,25 @@ const (
 	Button5 // wheel down
 )
 
-// Horizontal align of elements in a Grid.
-type Halign int
+// Halign represents horizontal align of elements in a Grid.
+type Halign byte
 
 const (
-	HalignLeft = Halign(iota) // Align to the left by default, for example in a grid.
+	HalignLeft Halign = iota // Align to the left by default, for example in a grid.
 	HalignMiddle
 	HalignRight
 )
 
-// Vertical align of elements in a Grid, or in a Box.
-type Valign int
+// Valign represents vertical align of elements in a Grid, or in a Box.
+type Valign byte
 
 const (
-	ValignMiddle = Valign(iota) // Align vertically in the middle by default, for example in a box (line) or grid.
+	ValignMiddle Valign = iota // Align vertically in the middle by default, for example in a box (line) or grid.
 	ValignTop
 	ValignBottom
 )
 
-// Event is often returned by handlers, such as click or key handlers.
+// Event is returned by handlers, such as click or key handlers.
 type Event struct {
 	Consumed   bool // Whether event was consumed, and should not be further handled by upper UI's.  Container UIs can handle some mouse/key events and decide whether they want to pass them on, or first pass them on and only consume them when a child UI hasn't done so yet.
 	NeedLayout bool // Whether UI now needs a layout. Only the UI generating the event will be marked. If you another UI needs to be marked, call MarkLayout.
@@ -74,16 +74,18 @@ type Colorset struct {
 	Normal, Hover Colors
 }
 
+// InputType presents the type of an input event.
 type InputType byte
 
 const (
-	InputMouse = InputType(iota)
-	InputKey
-	InputFunc   // Call the function.
-	InputResize // window was resized, reattach; does not have/need a field in Input.
-	InputError  // An error occurred that may be recovered from.
+	InputMouse  InputType = iota // Mouse movement and/or button changes.
+	InputKey                     // Key typed.
+	InputFunc                    // Call the function.
+	InputResize                  // window was resized, reattach; does not have/need a field in Input.
+	InputError                   // An error occurred that may be recovered from.
 )
 
+// Input is an input event that is typically passed into DUI through Input().
 type Input struct {
 	Type  InputType
 	Mouse draw.Mouse
@@ -103,6 +105,7 @@ const (
 	// note: order is important, Dirty is the default, Clean is highest and means least amount of work
 )
 
+// DUI represents a window and all UI state for that window.
 type DUI struct {
 	Inputs  chan Input  // Duit sends input events on this channel, needs to be read from the main loop.
 	Top     Kid         // Root of the UI hierarchy. Wrapped in a Kid for state management.
@@ -372,9 +375,8 @@ func NewDUI(name string, opts *DUIOpts) (dui *DUI, err error) {
 					// devdraw disappeared, typically because window was closed (either by user, or by duit)
 					close(dui.Error)
 					return
-				} else {
-					dui.Inputs <- Input{Type: InputError, Error: e}
 				}
+				dui.Inputs <- Input{Type: InputError, Error: e}
 			}
 		}
 	}()
@@ -445,7 +447,7 @@ func (d *DUI) MarkLayout(ui UI) {
 	}
 }
 
-// Markdraw is like MarkLayout, but marks ui as requiring a draw.
+// MarkDraw is like MarkLayout, but marks ui as requiring a draw.
 func (d *DUI) MarkDraw(ui UI) {
 	if ui == nil {
 		d.Top.Draw = Dirty
@@ -649,7 +651,7 @@ func scalePt(d *draw.Display, p image.Point) image.Point {
 	return p.Mul(d.DPI / 100)
 }
 
-//  Scale turns a low DPI pixel size into a size scaled for the current display.
+// Scale turns a low DPI pixel size into a size scaled for the current display.
 func (d *DUI) Scale(n int) int {
 	return (d.Display.DPI / 100) * n
 }

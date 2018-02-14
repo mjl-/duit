@@ -21,7 +21,8 @@ type UI interface {
 	// Layout must update self.R with a image.ZP-origin image.Rectangle of the size it allocated.
 	Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool)
 
-	// Draw asks the UI to draw itself on `img`, with `orig` as offset and `m` as the current mouse (for hover states) as self.Kid indicates, and pass further Draw calls on to its children as necessary.
+	// Draw asks the UI to draw itself on `img`, with `orig` as offset and `m` as the current mouse (for hover states)
+	// as self.Kid indicates, and pass further Draw calls on to its children as necessary.
 	// If `force` is set, the UI must draw itself, overriding self.Draw.
 	Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point, m draw.Mouse, force bool)
 
@@ -38,7 +39,8 @@ type UI interface {
 	// Key tells the UI about a key press over it.
 	// Like in Mouse, `self.Layout` and `self.Draw` can be updated.
 	// `k` is the key pressed. There are no key down/up events, only keys typed.
-	// See the Key-constants in the draw library for use special keys like the arrow keys, function keys and combinations with the cmd key.
+	// See the Key-constants in the draw library for use special keys like the arrow keys,
+	// function keys and combinations with the cmd key.
 	// `m` is the mouse location at the time of the key, relative to this UIs zero point.
 	// `orig` is the origin location of this UI. If you want to warp the mouse, add the origin to the UI-relative point.
 	Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point) (r Result)
@@ -49,7 +51,8 @@ type UI interface {
 	// Focus returns the focus-point for `ui`.
 	Focus(dui *DUI, self *Kid, o UI) (warp *image.Point)
 
-	// Mark looks for ui (itself or children), marks it as dirty for layout or draw (forLayout), and propagates whether it marked anything back to the caller.
+	// Mark looks for ui (itself or children), marks it as dirty for layout or draw (forLayout),
+	// and propagates whether it marked anything back to the caller.
 	Mark(self *Kid, o UI, forLayout bool) (marked bool)
 
 	// Print line about ui that includes r and is prefixed with indent spaces, following by a Print on each child.

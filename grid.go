@@ -7,14 +7,15 @@ import (
 	"9fans.net/go/draw"
 )
 
+// Grid lays out other UIs in a table-like grid.
 type Grid struct {
-	Kids       []*Kid
-	Columns    int
-	Valign     []Valign
-	Halign     []Halign
-	Padding    []Space     // in low DPI pixels
-	Width      int         // -1 means full width, 0 means automatic width, >0 means exactly that many lowdpi pixels
-	Background *draw.Image `json:"-"`
+	Kids       []*Kid      // Holds UIs in the grid, per row.
+	Columns    int         // Number of clumns.
+	Valign     []Valign    // Vertical alignment per column.
+	Halign     []Halign    // Horizontal alignment per column.
+	Padding    []Space     // Padding in lowDPI pixels per column.
+	Width      int         // -1 means full width, 0 means automatic width, >0 means exactly that many lowDPI pixels.
+	Background *draw.Image `json:"-"` // Background color.
 
 	widths  []int
 	heights []int
@@ -79,7 +80,7 @@ func (ui *Grid) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	if scaledWidth < 0 && width < sizeAvail.X {
 		leftover := sizeAvail.X - width
 		given := 0
-		for i, _ := range ui.widths {
+		for i := range ui.widths {
 			x[i] += given
 			var dx int
 			if i == len(ui.widths)-1 {

@@ -6,19 +6,27 @@ import (
 	"9fans.net/go/draw"
 )
 
+// ListValue is used for values in a List.
 type ListValue struct {
-	Text     string
-	Value    interface{} `json:"-"`
+	Text     string      // Text shown, as single line.
+	Value    interface{} `json:"-"` // Auxiliary data.
 	Selected bool
 }
 
+// List shows values, allowing for single or multiple selection, with callbacks when the selection changes.
+//
+// Keys:
+//	arrow up, move selection up
+//	arrow down, move selection down
+//	home, move selection to first element
+//	end, move selection to last element
 type List struct {
-	Values   []*ListValue
-	Multiple bool
-	Font     *draw.Font                              `json:"-"`
-	Changed  func(index int) (e Event)               `json:"-"`
-	Click    func(index int, m draw.Mouse) (e Event) `json:"-"`
-	Keys     func(k rune, m draw.Mouse) (e Event)    `json:"-"`
+	Values   []*ListValue                            // Values, each contains whether it is selected.
+	Multiple bool                                    // Whether multiple values can be selected at a time.
+	Font     *draw.Font                              `json:"-"` // For drawing the values.
+	Changed  func(index int) (e Event)               `json:"-"` // Called after the selection changes, index being the new single selected item if >= 0.
+	Click    func(index int, m draw.Mouse) (e Event) `json:"-"` // Called on click at value at index, before handling selection change. If consumed, processing stops.
+	Keys     func(k rune, m draw.Mouse) (e Event)    `json:"-"` // Called on key. If consumed, processing stops.
 
 	m    draw.Mouse
 	size image.Point
@@ -102,11 +110,12 @@ func (ui *List) selectedIndices() (l []int) {
 	return
 }
 
+// Selected returns the indices of the selected values.
 func (ui *List) Selected() (indices []int) {
 	return ui.selectedIndices()
 }
 
-// unselect indices, or if indices is nil, unselect all
+// Unselect indices, or if indices is nil, unselects all.
 func (ui *List) Unselect(indices []int) {
 	if indices == nil {
 		for _, lv := range ui.Values {

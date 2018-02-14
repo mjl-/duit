@@ -6,10 +6,12 @@ import (
 	"9fans.net/go/draw"
 )
 
+// Place contains other UIs it can position absolute, possibly on top of each other.
 type Place struct {
+	// Place is called during layout. It must configure Kids, and set self.R, based on sizeAvail.
 	Place      func(self *Kid, sizeAvail image.Point) `json:"-"`
-	Kids       []*Kid
-	Background *draw.Image `json:"-"`
+	Kids       []*Kid                                 // Kids to draw, set by the Place function.
+	Background *draw.Image                            `json:"-"` // For background color.
 
 	kidsReversed []*Kid
 	size         image.Point

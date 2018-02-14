@@ -9,8 +9,8 @@ import (
 
 // Tabs has a Buttongroup and displays only the active selected UI.
 type Tabs struct {
-	Buttongroup *Buttongroup
-	UIs         []UI
+	Buttongroup *Buttongroup // Shown at top of Tabs.
+	UIs         []UI         // UIs selected by Buttongroup, must have same number of elements as buttons in Buttongroup.
 	Box
 }
 

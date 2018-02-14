@@ -8,13 +8,14 @@ import (
 
 // Middle lays out a single child in the middle of the available space, both vertically and horizontally.
 type Middle struct {
-	Kid        *Kid
-	Background *draw.Image `json:"-"`
+	Kid        *Kid        // Contains the UI displayed in the middle.
+	Background *draw.Image `json:"-"` // For background color.
 
 	kids []*Kid
 	size image.Point
 }
 
+// NewMiddle returns a Middle set up with padding around the sides.
 func NewMiddle(padding Space, ui UI) *Middle {
 	return &Middle{
 		Kid: &Kid{

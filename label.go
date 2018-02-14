@@ -6,10 +6,15 @@ import (
 	"9fans.net/go/draw"
 )
 
+// Label draws multiline text in a single font.:
+//
+// Keys:
+//	cmd-c, copy text
+//	\n, like button1 click, calls the Click function
 type Label struct {
-	Text  string
-	Font  *draw.Font       `json:"-"`
-	Click func() (e Event) `json:"-"`
+	Text  string           // Text to draw, wrapped at glyph boundary.
+	Font  *draw.Font       `json:"-"` // For drawing text.
+	Click func() (e Event) `json:"-"` // Called on button1 click.
 
 	lines []string
 	size  image.Point

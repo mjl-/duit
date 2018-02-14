@@ -6,8 +6,9 @@ import (
 	"9fans.net/go/draw"
 )
 
+// Pick makes it possible to create responsive UI layouts. You must provide the function Pick that is called at layout with the available window space. It must return the current UI to show. You could return different layouts depending on the size of the window.
 type Pick struct {
-	Pick func(sizeAvail image.Point) UI `json:"-"`
+	Pick func(sizeAvail image.Point) UI `json:"-"` // Called during layout, must return a non-nil UI.
 
 	ui UI
 }

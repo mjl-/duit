@@ -14,32 +14,46 @@ const (
 	separatorHeight = 1
 )
 
+// Gridrow is used for each row in a Gridlist.
 type Gridrow struct {
-	Selected bool
-	Values   []string
-	Value    interface{} `json:"-"`
+	Selected bool        // If currently selected.
+	Values   []string    // Values displayed in the row.
+	Value    interface{} `json:"-"` // Auxiliary data.
 }
 
+// Gridfit is the layout strategy for a Gridlist.
 type Gridfit byte
 
 const (
-	FitNormal = Gridfit(iota) // FitNormal lays out over full available width.
-	FitSlim                   // FitSlim lays out only as much as needed.
+	FitNormal Gridfit = iota // FitNormal lays out over full available width.
+	FitSlim                  // FitSlim lays out only as much as needed.
 )
 
+// Gridlist is a table-like list of selectable values.
+// Currently each cell in each row is drawn as a single-line string.
+// Column widths can be adjusted by dragging the separator in the header.
+//
+// Keys:
+// 	arrow up, move selection up
+// 	arrow down, move selection down
+// 	home, move selection to first element
+// 	end, move selection to last element
+// 	cmd-n, clear selection
+// 	cmd-a, select all
+// 	cmd-c, copy selected rows, as tab-separated values
 type Gridlist struct {
-	Header   *Gridrow
-	Rows     []*Gridrow
-	Multiple bool
-	Halign   []Halign
-	Padding  Space // in low DPI pixels
-	Striped  bool
-	Fit      Gridfit
-	Font     *draw.Font `json:"-"`
+	Header   *Gridrow   // Optional header to display at the the top.
+	Rows     []*Gridrow // Rows, each holds whether it is selected.
+	Multiple bool       // Whether multiple rows can be selected at a time.
+	Halign   []Halign   // Horizontal alignment for the values.
+	Padding  Space      // Padding for each cell, in lowDPI pixels.
+	Striped  bool       // If set, odd cells have a slightly contrasting background color.
+	Fit      Gridfit    // Layout strategy, how much space columns receive.
+	Font     *draw.Font `json:"-"` // Used for drawing text.
 
-	Changed func(index int) (e Event)               `json:"-"`
-	Click   func(index int, m draw.Mouse) (e Event) `json:"-"`
-	Keys    func(k rune, m draw.Mouse) (e Event)    `json:"-"`
+	Changed func(index int) (e Event)               `json:"-"` // Called after the selection changed. -1 is multiple may have changed.
+	Click   func(index int, m draw.Mouse) (e Event) `json:"-"` // Called on click at given index. If consumed, processing stops.
+	Keys    func(k rune, m draw.Mouse) (e Event)    `json:"-"` // Called before handling a key event. If consumed, processing stops.
 
 	m                draw.Mouse
 	colWidths        []int // set the first time there are rows
@@ -547,12 +561,18 @@ func (ui *Gridlist) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Po
 		for _, row := range ui.Rows {
 			row.Selected = false
 		}
+		if ui.Changed != nil {
+			ui.Changed(-1)
+		}
 		r.Consumed = true
 		self.Draw = Dirty
 	case draw.KeyCmd + 'a':
 		// select all
 		for _, row := range ui.Rows {
 			row.Selected = true
+		}
+		if ui.Changed != nil {
+			ui.Changed(-1)
 		}
 		r.Consumed = true
 		self.Draw = Dirty

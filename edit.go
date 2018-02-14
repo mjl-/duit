@@ -16,62 +16,94 @@ import (
 	"9fans.net/go/draw"
 )
 
+// SeekReaderAt is used as a source for edits. The seeker is used to determine file size, the readerAt for reading.
 type SeekReaderAt interface {
 	io.Seeker
 	io.ReaderAt
 }
 
 var (
-	EditPadding = Space{0, 3, 0, 3} // lowDPI padding
+	EditPadding = Space{0, 3, 0, 3} // LowDPI padding, drawn with a distinct color when in vi modes.
 )
 
 type editMode int
 
 const (
-	modeInsert     = editMode(iota) // regular editing
-	modeCommand                     // vi commands, after escape without selection
-	modeVisual                      // vi visual mode, after 'v' in command mode, or escape with selection
-	modeVisualLine                  // vi visual line mode, after 'V' in command mode
+	modeInsert     editMode = iota // Regular editing.
+	modeCommand                    // vi commands, after escape without selection.
+	modeVisual                     // vi visual mode, after 'v' in command mode, or escape with selection.
+	modeVisualLine                 // vi visual line mode, after 'V' in command mode.
 )
 
 // EditColors hold all the colors used for rendering an Edit.
 type EditColors struct {
-	Fg, Bg, SelFg, SelBg, ScrollVis, ScrollBg, HoverScrollVis, HoverScrollBg, CommandBorder, VisualBorder *draw.Image
+	Fg, Bg,
+	SelFg, SelBg,
+	ScrollVis, ScrollBg,
+	HoverScrollVis, HoverScrollBg,
+	CommandBorder, VisualBorder *draw.Image
 }
 
 // Cursor represents the current editing location, and optionally text selection.
 type Cursor struct {
 	Cur   int64 // Current location/end of selection.
-	Start int64 // Sstart of selection, not necessarily larger than Cur!
+	Start int64 // Start of selection, not necessarily larger than Cur!
 }
 
+// Edit is a text editor inspired by acme, with vi key bindings. An edit has its own scrollbar, unlimited undo. It can read utf-8 encoded files of arbritary length, only reading data when necessary, to display or search.
+//
+// The usual arrow and pageup/pagedown keys can be used for navigation.
+// Key shortcuts when combined with control:
+//	a, to start of line
+//	e, to end of line
+//	h, remove character before cursor
+//	w, remove word before cursor
+//	u, delete to start of line
+//	k, delete to end of line
+//
+// Key shortcuts when combined with the command key:
+// 	a, select all text
+// 	n, no selection
+// 	c, copy selection
+// 	x, cut selection
+// 	v, paste selection
+// 	z, undo last change
+// 	Z, redo last undone change
+// 	[, unindent selection or line
+// 	], indent selection or line
+// 	m, warp mouse to the cursor
+// 	y, select last modification
+// 	/, repeat last search forward
+// 	?, repeat last search backward
+//
+// Edit has a vi command and visual mode, entered through the familiar escape key. Not all commands have been implemented yet, Edit does not aim to be feature-complete or a clone of any specific existing vi-clone.
 type Edit struct {
-	NoScrollbar  bool
-	LastSearch   string                                     // if starting with slash, the remainder is interpreted as regexp. used by cmd+[/?] and vi [*nN] commands. literal text search should start with a space
-	Error        chan error                                 // if set, errors from Edit (including read errors from underlying files) are sent here. if nil, errors go to dui.Error
-	Colors       *EditColors                                `json:"-"`
-	Font         *draw.Font                                 `json:"-"`
-	Keys         func(k rune, m draw.Mouse) (e Event)       `json:"-"`
-	Click        func(m draw.Mouse, offset int64) (e Event) `json:"-"`
-	DirtyChanged func(dirty bool)                           `json:"-"`
+	NoScrollbar  bool                                       // If set, no scrollbar is shown. Content will still scroll.
+	LastSearch   string                                     // If starting with slash, the remainder is interpreted as regexp. used by cmd+[/?] and vi [*nN] commands. Literal text search should start with a space.
+	Error        chan error                                 // If set, errors from Edit (including read errors from underlying files) are sent here. If nil, errors go to dui.Error.
+	Colors       *EditColors                                `json:"-"` // Colors to use for drawing the Edit UI, allows for creating an acme look.
+	Font         *draw.Font                                 `json:"-"` // Used for drawing all text.
+	Keys         func(k rune, m draw.Mouse) (e Event)       `json:"-"` // Called before handling keys. If you set e.Consumed, the key is not handled further.
+	Click        func(m draw.Mouse, offset int64) (e Event) `json:"-"` // Called for clicks with button 1,2,3. Offset is the file offset that was clicked on.
+	DirtyChanged func(dirty bool)                           `json:"-"` // Called when the dirty-state of the underlying file changes.
 
-	dui *DUI // set at beginning of UI interface functions, for not having to pass dui around all the time
+	dui *DUI // Set at beginning of UI interface functions, for not having to pass dui around all the time.
 
-	text   *text // what we are rendering.  offset & cursors index into this text
-	offset int64 // byte offset of first line we draw
-	cursor Cursor
+	text   *text  // Wat we are rendering.  Offset & cursors index into this text.
+	offset int64  // Byte offset of first line we draw.
+	cursor Cursor // Current cursor.
 
-	lastSearchRegexpString string // string used to create lastSearchRegexp
+	lastSearchRegexpString string // String used to create lastSearchRegexp.
 	lastSearchRegexp       *regexp.Regexp
 
 	mode    editMode
-	command string // vi command so far
-	visual  string // vi visual command so far
+	command string // vi command so far.
+	visual  string // vi visual command so far.
 
-	// for repeat
+	// For repeat.
 	lastCommand         string
 	needLastCommandText bool
-	lastCommandText     []byte // text inserted as part of last command.  used by vi repeat, filled by ui.text.
+	lastCommandText     []byte // Text inserted as part of last command.  Used by vi repeat, filled by ui.text.
 
 	dirty bool
 
@@ -133,6 +165,7 @@ func (ui *Edit) colors() EditColors {
 	}
 }
 
+// NewEdit returns an Edit initialized with f.
 func NewEdit(f SeekReaderAt) (ui *Edit, err error) {
 	size, err := f.Seek(0, io.SeekEnd)
 	if err != nil {
@@ -278,28 +311,6 @@ func (r *reader) Line(includeNewline bool) (runes int, s string, eof bool) {
 	return
 }
 
-func (r *reader) RevLine() (s string, eof bool) {
-	var c rune
-	c, eof = r.Peek()
-	if eof {
-		return
-	}
-	r.Get()
-	for {
-		c, eof = r.Peek()
-		if eof {
-			eof = false
-			break
-		}
-		if c == '\n' {
-			break
-		}
-		r.Get()
-		s += string(c)
-	}
-	return
-}
-
 func (r *reader) gather(keep func(c rune) bool) (s string, eof bool) {
 	var c rune
 	for {
@@ -354,18 +365,20 @@ func (ui *Edit) ensureInit() {
 	}
 }
 
+// EditReader provides a reader to the current contents of an Edit.
+// It is used by navigation commands and keyboard shortcuts.
+// Both Edit.EditReader and Edit.ReverseEditReader return an EditReader. ReverseEditReader reads utf-8 characters in reverse, towards the start of the file.
 type EditReader interface {
-	Peek() (rune, bool)
-	Get() rune
-	TryGet() (rune, error)
-	Offset() int64
-	Whitespace(newline bool) (s string, eof bool)
-	Nonwhitespace() (s string, eof bool)
-	Whitespacepunct(newline bool) (s string, eof bool)
-	Nonwhitespacepunct() (s string, eof bool)
-	Punctuation() (s string, eof bool)
-	Line(includeNewline bool) (runes int, s string, eof bool)
-	RevLine() (s string, eof bool)
+	Peek() (r rune, eof bool)                                 // Return next character without consuming.
+	TryGet() (r rune, err error)                              // Returns and consume next character.
+	Get() (r rune)                                            // Return and consume next character. On error, returns -1 and sends on Edit.Error.
+	Offset() (offset int64)                                   // Current offset.
+	Whitespace(newline bool) (s string, eof bool)             // Consume and return whitespace, possibly including newlines.
+	Nonwhitespace() (s string, eof bool)                      // Consume all except whitespace.
+	Whitespacepunct(newline bool) (s string, eof bool)        // Consume whitespace and punctation.
+	Nonwhitespacepunct() (s string, eof bool)                 // Consume non-whitespace and punctutation.
+	Punctuation() (s string, eof bool)                        // Consume punctuation.
+	Line(includeNewline bool) (runes int, s string, eof bool) // Reads to end of newline, possibly including the newline itself.
 }
 
 type ReaderReaderAt interface {
@@ -373,6 +386,7 @@ type ReaderReaderAt interface {
 	io.ReaderAt
 }
 
+// Text returns the entire contents.
 func (ui *Edit) Text() ([]byte, error) {
 	return ioutil.ReadAll(ui.Reader())
 }
@@ -383,13 +397,13 @@ func (ui *Edit) Reader() ReaderReaderAt {
 	return io.NewSectionReader(ui.text, 0, ui.text.Size()-0)
 }
 
-// Reader from which contents of edit can be read, starting at offset.
+// EditReader from which contents of edit can be read, starting at offset.
 func (ui *Edit) EditReader(offset int64) EditReader {
 	// xxx should make copy of ui.text
 	return ui.reader(offset, ui.text.Size())
 }
 
-// Reader from which contents of edit can be read in reverse (whole utf-8 characters), starting at offset, to 0.
+// ReverseEditReader from which contents of edit can be read in reverse (whole utf-8 characters), starting at offset, to 0.
 func (ui *Edit) ReverseEditReader(offset int64) EditReader {
 	// xxx should make copy of ui.text
 	return ui.revReader(offset)
@@ -618,7 +632,8 @@ func (ui *Edit) scroll(lines int, self *Kid) {
 		rd := ui.revReader(ui.offset)
 		eof := false
 		for ; lines < 0 && !eof; lines++ {
-			_, eof = rd.RevLine()
+			rd.TryGet()
+			_, _, eof = rd.Line(false)
 		}
 		offset = rd.Offset()
 	}
@@ -894,16 +909,18 @@ func (ui *Edit) selectionText() ([]byte, error) {
 	return ioutil.ReadAll(r)
 }
 
+// Selection returns the buffer of the current selection.
 func (ui *Edit) Selection() ([]byte, error) {
 	return ui.selectionText()
 }
 
+// Cursor returns the current cursor position, including text selection.
 func (ui *Edit) Cursor() Cursor {
 	return ui.cursor
 }
 
 // SetCursor sets the new cursor or selection.
-// Current is the new cursor. start is the start of the selection.
+// Current is the new cursor. Start is the start of the selection.
 // If start < 0, it is set to current.
 func (ui *Edit) SetCursor(c Cursor) {
 	if c.Start < 0 {
@@ -912,6 +929,7 @@ func (ui *Edit) SetCursor(c Cursor) {
 	ui.cursor = c
 }
 
+// Append adds buf to the edit contents.
 func (ui *Edit) Append(buf []byte) {
 	defer ui.checkDirty(ui.dirty)
 	size := ui.text.Size()
@@ -920,6 +938,7 @@ func (ui *Edit) Append(buf []byte) {
 	ui.cursor.Start = ui.cursor.Cur
 }
 
+// Replace replaces the selection from c with buf.
 func (ui *Edit) Replace(c Cursor, buf []byte) {
 	defer ui.checkDirty(ui.dirty)
 	ui.text.Replace(ui, &ui.dirty, c, buf, false)
@@ -1027,6 +1046,8 @@ func (ui *Edit) searchText(t string, reverse bool) (match bool) {
 	return
 }
 
+// Search finds the next occurrence of LastSearch and selects it and scrolls to it.
+// The first character determines the kind of search. If slash, the remainder is interpreted as regular expression. If space (and currently anything else), the remainder is interpreted as a literal string.
 func (ui *Edit) Search(dui *DUI, reverse bool) (match bool) {
 	ui.dui = dui
 	if ui.LastSearch == "" {

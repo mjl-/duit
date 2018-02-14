@@ -6,12 +6,18 @@ import (
 	"9fans.net/go/draw"
 )
 
+// Split is a horizontal or vertical split of the available space, with 1 or more UIs.
 type Split struct {
-	Gutter     int         // in lowDPI pixels
-	Background *draw.Image `json:"-"`
+	// Space between the UIs, in lowDPI pixels.
+	// If >0, users can drag the gutter. Manual changes are automatically stored and restored on next load, if you set ID in the containing Kid.
+	Gutter int
+
+	// Optional, must return the division of available space. Sum of dims must be dim.
+	Split func(dim int) (dims []int) `json:"-"`
+
 	Vertical   bool
-	Split      func(dim int) (dims []int) `json:"-"`
-	Kids       []*Kid
+	Kids       []*Kid      // Hold UIs shown in split.
+	Background *draw.Image `json:"-"` // For background color.
 
 	size   image.Point
 	dims   []int
@@ -198,9 +204,8 @@ func (ui *Split) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig
 			}
 			ui.m = m
 			return
-		} else {
-			ui.dragging = false
 		}
+		ui.dragging = false
 	}
 	r = KidsMouse(dui, self, ui.Kids, m, origM, orig)
 	ui.m = m

@@ -6,13 +6,17 @@ import (
 	"9fans.net/go/draw"
 )
 
+// Radiobutton is typically part of a group of radiobuttons, with exactly one of them selected. Labels are not part of the radiobutton itself.
 type Radiobutton struct {
 	Selected bool
-	Value    interface{} `json:"-"`
-	Disabled bool
-	Group    []*Radiobutton
-	Font     *draw.Font                    `json:"-"`
-	Changed  func(v interface{}) (e Event) `json:"-"` // only the change function of the newly selected radiobutton in the group will be called
+	Disabled bool           // If set, cannot be selected.
+	Group    []*Radiobutton // Other radiobuttons as part of this group. If a radiobutton is selected, others in the group are unselected.
+	Font     *draw.Font     `json:"-"` // Used only to determine size of radiobutton to draw.
+	Value    interface{}    `json:"-"` // Auxiliary data.
+
+	// Called for the radiobutton in the group that is newly selected, not for the other radiobuttons in the group.
+	// Not called if selected with Select().
+	Changed func(v interface{}) (e Event) `json:"-"`
 
 	m draw.Mouse
 }
@@ -77,7 +81,12 @@ func (ui *Radiobutton) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Poi
 	}
 }
 
+// Select this radiobutton from the group, unselecting the previously selected radiobutton.
+// Select does not call Changed.
 func (ui *Radiobutton) Select(dui *DUI) {
+	if ui.Disabled {
+		return
+	}
 	ui.Selected = true
 	for _, o := range ui.Group {
 		if o != ui {

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"image"
 	imagedraw "image/draw"
-	_ "image/jpeg"
-	_ "image/png"
 	"io"
 	"os"
 

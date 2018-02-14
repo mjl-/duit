@@ -6,6 +6,7 @@ import (
 	"9fans.net/go/draw"
 )
 
+// Image shows an image. Currently always in its original size.
 type Image struct {
 	Image *draw.Image `json:"-"`
 }

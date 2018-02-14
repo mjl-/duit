@@ -10,16 +10,17 @@ import (
 
 // Cursor and SelectionStart start at 1 for sane behaviour of an empty Field struct.
 
+// Field is a single line text field. The cursor is always visible, and determines which part of the text is shown.
 type Field struct {
-	Text            string
-	Placeholder     string // text displayed in lighter color as example
-	Disabled        bool
-	Cursor1         int                                  // index in string of cursor in bytes, start at 1. 0 means end of string.
-	SelectionStart1 int                                  // if > 0, 1 beyond the start of the selection in bytes, with Cursor being the end.
-	Font            *draw.Font                           `json:"-"`
-	Password        bool                                 // if true, text is rendered as bullet items to hide the password (but not the length of the password)
-	Changed         func(text string) (e Event)          `json:"-"` // called after contents of field have changed
-	Keys            func(k rune, m draw.Mouse) (e Event) `json:"-"` // called before handling key. if you consume the event, Changed will not be called
+	Text            string                               // Current text.
+	Placeholder     string                               // Text displayed in lighter color as example.
+	Disabled        bool                                 // If disabled, mouse and key input have no effect.
+	Cursor1         int                                  // Index in string of cursor in bytes, start at 1, 0 means end of string.
+	SelectionStart1 int                                  // If > 0, 1 beyond the start of the selection in bytes, with Cursor being the end.
+	Password        bool                                 // Render text as bullet items to hide the password (but not length).
+	Font            *draw.Font                           `json:"-"` // Font to use for drawing text.
+	Changed         func(text string) (e Event)          `json:"-"` // Called after contents of field have changed.
+	Keys            func(k rune, m draw.Mouse) (e Event) `json:"-"` // Called before handling key. If you consume the event, Changed will not be called.
 
 	size            image.Point // including space
 	m               draw.Mouse

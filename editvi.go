@@ -8,10 +8,10 @@ import (
 )
 
 var (
-	cmdBadNumber  = errors.New("bad number")
-	cmdUnfinished = errors.New("command not completed")
-	cmdNoNumber   = errors.New("no number allowed")
-	cmdBadMove    = errors.New("bad move")
+	errCmdBadNumber  = errors.New("bad number")
+	errCmdUnfinished = errors.New("command not completed")
+	errCmdNoNumber   = errors.New("no number allowed")
+	errCmdBadMove    = errors.New("bad move")
 )
 
 type cmd struct {
@@ -47,10 +47,10 @@ func (c *cmd) Number() {
 	}
 	v, err := strconv.ParseInt(c.numberStr, 10, 32)
 	if err != nil {
-		panic(cmdBadNumber)
+		panic(errCmdBadNumber)
 	}
 	if v == 0 {
-		panic(cmdBadNumber)
+		panic(errCmdBadNumber)
 	}
 	c.number = int(v)
 }
@@ -58,14 +58,14 @@ func (c *cmd) Number() {
 func (c *cmd) Get() rune {
 	r, eof := c.get(false)
 	if eof {
-		panic(cmdUnfinished)
+		panic(errCmdUnfinished)
 	}
 	return r
 }
 
 func (c *cmd) NoNumber() {
 	if c.number != 1 {
-		panic(cmdNoNumber)
+		panic(errCmdNoNumber)
 	}
 }
 
@@ -224,7 +224,7 @@ func (ui *Edit) commandMove(dui *DUI, cmd *cmd, br, fr *reader, endLineChar rune
 			return fr.Offset()
 		}
 	}
-	panic(cmdBadMove)
+	panic(errCmdBadMove)
 }
 
 func (ui *Edit) visualKey(dui *DUI, line bool, result *Result) {
@@ -234,9 +234,9 @@ func (ui *Edit) visualKey(dui *DUI, line bool, result *Result) {
 			return
 		}
 		switch err {
-		case cmdUnfinished:
+		case errCmdUnfinished:
 			return
-		case cmdBadNumber, cmdBadMove, cmdNoNumber:
+		case errCmdBadNumber, errCmdBadMove, errCmdNoNumber:
 			ui.visual = ""
 			return
 		default:
@@ -340,9 +340,9 @@ func (ui *Edit) commandKey(dui *DUI, result *Result) (modified bool) {
 			return
 		}
 		switch err {
-		case cmdUnfinished:
+		case errCmdUnfinished:
 			return
-		case cmdBadNumber, cmdBadMove, cmdNoNumber:
+		case errCmdBadNumber, errCmdBadMove, errCmdNoNumber:
 			ui.command = ""
 			return
 		default:

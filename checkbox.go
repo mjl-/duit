@@ -6,11 +6,13 @@ import (
 	"9fans.net/go/draw"
 )
 
+// Checkbox holds a true/false value.
+// A label is not part of the checkbox, you should create it explicitly and add a click handler to toggle the checkbox.
 type Checkbox struct {
-	Checked  bool
-	Disabled bool
-	Font     *draw.Font       `json:"-"`
-	Changed  func() (e Event) `json:"-"`
+	Checked  bool             // Whether checked or not.
+	Disabled bool             // Whether clicks have any effect.
+	Font     *draw.Font       `json:"-"` // Only used to determine height of the checkbox. Specify same font as for label.
+	Changed  func() (e Event) `json:"-"` // Called after the value changed.
 
 	m draw.Mouse
 }
