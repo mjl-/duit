@@ -178,7 +178,9 @@ type DUIOpts struct {
 	Dimensions string // eg "800x600", duit has a sane default and remembers size per application name after resize.
 }
 
-func configDir() string {
+// AppdataDir returns the directory where the application can store its files, like configuration.
+// On unix this is $HOME/lib/<app>. On Windows it is $APPDATA/<app>.
+func AppDataDir(app string) string {
 	appdata := os.Getenv("APPDATA") // windows, but more helpful than just homedir
 	if appdata == "" {
 		home := os.Getenv("HOME") // unix
@@ -187,7 +189,11 @@ func configDir() string {
 		}
 		appdata = home + "/lib"
 	}
-	return appdata + "/duit"
+	return appdata + "/" + app
+}
+
+func configDir() string {
+	return AppDataDir("duit")
 }
 
 // NewDUI creates a DUI for an application called name, and optional opts. A DUI is a new window and its UI state.
