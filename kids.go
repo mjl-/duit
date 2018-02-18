@@ -162,7 +162,7 @@ func KidsMouse(dui *DUI, self *Kid, kids []*Kid, m draw.Mouse, origM draw.Mouse,
 		}
 		origM.Point = origM.Point.Sub(k.R.Min)
 		m.Point = m.Point.Sub(k.R.Min)
-		r = k.UI.Mouse(dui, k, m, origM, orig)
+		r = k.UI.Mouse(dui, k, m, origM, orig.Add(k.R.Min))
 		if r.Hit == nil {
 			r.Hit = k.UI
 		}
