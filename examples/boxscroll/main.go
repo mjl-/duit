@@ -37,9 +37,11 @@ Est an partiendo prodesset, qui ea incorrupte efficiendi. Ei eam suavitate conse
 		case e := <-dui.Inputs:
 			dui.Input(e)
 
-		case err := <-dui.Error:
-			check(err, "dui")
-			return
+		case err, ok := <-dui.Error:
+			if !ok {
+				return
+			}
+			log.Printf("duit: %s\n", err)
 		}
 	}
 }

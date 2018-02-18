@@ -99,9 +99,11 @@ a b c d e f g h i j k l m n o p q r s t u v w x y z`))
 		case e := <-dui.Inputs:
 			dui.Input(e)
 
-		case err := <-dui.Error:
-			check(err, "dui")
-			return
+		case err, ok := <-dui.Error:
+			if !ok {
+				return
+			}
+			log.Printf("duit: %s\n", err)
 		}
 	}
 }

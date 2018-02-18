@@ -44,11 +44,12 @@ func Alert(text string) (err error) {
 		case e := <-dui.Inputs:
 			dui.Input(e)
 
-		case err := <-dui.Error:
-			if err != nil {
-				dui.Close()
+		case xerr, ok := <-dui.Error:
+			if !ok {
+				return
 			}
-			return err
+			dui.Close()
+			return xerr
 
 		case <-stop:
 			dui.Close()

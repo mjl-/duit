@@ -100,8 +100,6 @@ a list of applications created with duit:
 
 ## todo
 
-- duit: write docs
-- change examples to check for closedness of dui.Error, instead of err==nil
 - logInputs: also log resize, call, error.
 - edit: more vi commands
 - edit: do not trash history in Saved(), but adjust the offsets to the new file contents
