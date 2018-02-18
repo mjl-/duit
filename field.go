@@ -512,6 +512,9 @@ func (ui *Field) Key(dui *DUI, self *Kid, k rune, m draw.Mouse, orig image.Point
 
 func (ui *Field) FirstFocus(dui *DUI, self *Kid) *image.Point {
 	p := ui.lastCursorPoint
+	if p == image.ZP {
+		p = ui.space(dui)
+	}
 	return &p
 }
 
