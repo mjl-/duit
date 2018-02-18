@@ -468,7 +468,8 @@ func (d *DUI) apply(r Result) {
 			log.Printf("duit: warp to %v: %s\n", r.Warp, err)
 		} else {
 			d.mouse.Point = *r.Warp
-			d.origMouse.Point = *r.Warp
+			d.mouse.Buttons = 0
+			d.origMouse = d.mouse
 			r = d.Top.UI.Mouse(d, &d.Top, d.mouse, d.origMouse, image.ZP)
 		}
 	}
@@ -606,7 +607,8 @@ func (d *DUI) Focus(ui UI) {
 		return
 	}
 	d.mouse.Point = *p
-	d.origMouse.Point = *p
+	d.mouse.Buttons = 0
+	d.origMouse = d.mouse
 	r := d.Top.UI.Mouse(d, &d.Top, d.mouse, d.origMouse, image.ZP)
 	d.apply(r)
 }
