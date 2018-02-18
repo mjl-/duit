@@ -110,7 +110,6 @@ a list of applications created with duit:
 - edit: render tab with configurable width
 - lots of code cleanup
 - files: make usable as a UI on its own, with a callback for selected file(s)
-- files: filterable by glob pattern
 - kids* drawing: should allocate image for kid to draw on if it is larger than available size.  can put child size & image in Kid.
 - figure out which keyboard shortcuts can be safely used across all the system
 - place: should draw overlapping children on their own image, so it doesn't have to redraw children all the time. initially, we'll just keep images for all the children.
