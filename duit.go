@@ -161,6 +161,7 @@ type DUI struct {
 	lastMouseUI             UI                     // Where last mouse was delivered
 	logInputs               bool                   // Print all input events. Toggled with F1.
 	logTiming               bool                   // Print timings for layout and draw.
+	drawDebug               bool                   // For draw.Display.SetDebug.
 	dimensionsPath          string                 // For remembering windows dimensions.
 	dimensionsDelayedWriter *time.Timer            // Delayed writes of dimensions.
 	name                    string                 // Program name, also used for storing dimensions file.
@@ -535,18 +536,19 @@ func (d *DUI) Key(k rune) {
 	switch k {
 	case draw.KeyFn + 1:
 		d.logInputs = !d.logInputs
-		log.Printf("duit: logInputs now %v\n", d.logInputs)
+		log.Println("duit: logInputs now", d.logInputs)
 		return
 	case draw.KeyFn + 2:
 		d.logTiming = !d.logTiming
-		log.Printf("duit: logTiming now %v\n", d.logTiming)
+		log.Println("duit: logTiming now", d.logTiming)
 		return
 	case draw.KeyFn + 3:
 		d.Top.UI.Print(&d.Top, 0)
 		return
 	case draw.KeyFn + 4:
-		d.Display.SetDebug(true)
-		log.Println("duit: drawdebug now on")
+		d.drawDebug = !d.drawDebug
+		d.Display.SetDebug(d.drawDebug)
+		log.Println("duit: drawDebug now", d.drawDebug)
 		return
 	case draw.KeyFn + 5:
 		d.DebugKids = !d.DebugKids
@@ -560,11 +562,11 @@ func (d *DUI) Key(k rune) {
 		return
 	case draw.KeyFn + 7:
 		d.DebugDraw = (d.DebugDraw + 1) % 3
-		log.Printf("duit: DebugDraw now %d", d.DebugDraw)
+		log.Println("duit: DebugDraw now", d.DebugDraw)
 		return
 	case draw.KeyFn + 8:
 		d.DebugLayout = (d.DebugLayout + 1) % 3
-		log.Printf("duit: DebugLayout now %d", d.DebugLayout)
+		log.Println("duit: DebugLayout now", d.DebugLayout)
 		return
 	case draw.KeyFn + 9:
 		err := json.NewEncoder(os.Stderr).Encode(&d.Top)
