@@ -11,7 +11,7 @@ type Button struct {
 	Text     string           // Displayed on button.
 	Icon     Icon             `json:"-"` // Displayed before text, if Icon.Font is not nil.
 	Disabled bool             // If disabled, colors used indicate disabledness, clicks don't result in Click being called.
-	Colorset *Colorset        `json:"-"` // Colors used, for example duit.Primary. Defaults to duit.Regular.
+	Colorset *Colorset        `json:"-"` // Colors used, for example DUI.Primary. Defaults to DUI.Regular.
 	Font     *draw.Font       `json:"-"` // Used to draw Text, if not nil.
 	Click    func() (e Event) `json:"-"` // Called on click on the button.
 
