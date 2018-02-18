@@ -357,6 +357,9 @@ func NewDUI(name string, opts *DUIOpts) (dui *DUI, err error) {
 		Debug: true,
 	}
 
+	// mousectl sends initial mouse position
+	dui.mouse = <-dui.mousectl.C
+
 	go func() {
 		for {
 			select {
