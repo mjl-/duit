@@ -90,7 +90,7 @@ func (ui *Box) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 		k.UI.Layout(dui, k, sizeAvail.Sub(image.Pt(0, cur.Y+lineY)), true)
 		childSize := k.R.Size()
 		var kr image.Rectangle
-		if nx == 0 || cur.X+childSize.X < sizeAvail.X {
+		if nx == 0 || cur.X+childSize.X <= sizeAvail.X {
 			kr = rect(childSize).Add(cur).Add(padding.Topleft())
 			cur.X += childSize.X + margin.X
 			if childSize.Y > lineY {
