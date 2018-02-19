@@ -158,9 +158,7 @@ func (ui *Gridlist) columnWidths(dui *DUI, width int) []int {
 		for _, row := range rows {
 			for col, v := range row.Values {
 				dx := font.StringWidth(v)
-				if dx > max[col] {
-					max[col] = dx
-				}
+				max[col] = maximum(max[col], dx)
 				avg[col] += dx // divided by rows later
 			}
 		}
@@ -215,9 +213,7 @@ func (ui *Gridlist) columnWidths(dui *DUI, width int) []int {
 				continue
 			}
 			dx := max[i] - widths[i]
-			if dx > give {
-				dx = give
-			}
+			dx = minimum(dx, give)
 			widths[i] += dx
 			give -= dx
 			if give <= 0 {
@@ -242,9 +238,7 @@ func (ui *Gridlist) columnWidths(dui *DUI, width int) []int {
 					continue
 				}
 				dx := oremain * avg[i] / avgTotal
-				if dx > max[i]-widths[i] {
-					dx = max[i] - widths[i]
-				}
+				dx = minimum(dx, max[i]-widths[i])
 				widths[i] += dx
 				remain -= dx
 			}
@@ -356,9 +350,7 @@ func (ui *Gridlist) Draw(dui *DUI, self *Kid, img *draw.Image, orig image.Point,
 		}
 		maxDx := 0
 		for _, dx := range widths {
-			if dx > maxDx {
-				maxDx = dx
-			}
+			maxDx = maximum(maxDx, dx)
 		}
 		var err error
 		ui.cellImage, err = dui.Display.AllocImage(rect(image.Pt(maxDx, size.Y)), draw.ARGB32, false, draw.Transparent)

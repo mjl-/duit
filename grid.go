@@ -70,9 +70,7 @@ func (ui *Grid) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 		for i := col; i < len(ui.Kids); i += ui.Columns {
 			k := ui.Kids[i]
 			k.UI.Layout(dui, k, image.Pt(sizeAvail.X-width-space.Dx(), sizeAvail.Y-space.Dy()), true)
-			if k.R.Dx()+space.Dx() > newDx {
-				newDx = k.R.Dx() + space.Dx()
-			}
+			newDx = maximum(newDx, k.R.Dx()+space.Dx())
 		}
 		ui.widths[col] = newDx
 		width += ui.widths[col]
@@ -110,9 +108,7 @@ func (ui *Grid) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 			k.UI.Layout(dui, k, image.Pt(ui.widths[col]-space.Dx(), sizeAvail.Y-y[row]-space.Dy()), true)
 			offset := image.Pt(x[col], y[row]).Add(space.Topleft())
 			k.R = k.R.Add(offset) // aligned in top left, fixed for halign/valign later on
-			if k.R.Dy()+space.Dy() > rowDy {
-				rowDy = k.R.Dy() + space.Dy()
-			}
+			rowDy = maximum(rowDy, k.R.Dy()+space.Dy())
 		}
 		ui.heights[row] = rowDy
 		height += ui.heights[row]

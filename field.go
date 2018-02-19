@@ -352,9 +352,7 @@ func (ui *Field) fixCursor() {
 	if ui.Cursor1 < 0 {
 		ui.Cursor1 = 1
 	}
-	if ui.Cursor1 > 1+len(ui.Text) {
-		ui.Cursor1 = 1 + len(ui.Text)
-	}
+	ui.Cursor1 = minimum(ui.Cursor1, 1+len(ui.Text))
 	if ui.SelectionStart1 < 0 {
 		ui.SelectionStart1 = 0
 	}

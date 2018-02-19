@@ -209,9 +209,7 @@ func readAtFull(src io.ReaderAt, buf []byte, offset int64) (read int, err error)
 func (r *reverseReader) Read(buf []byte) (int, error) {
 	// log.Printf("reverseReader.Read, len buf %d, offset %d\n", len(buf), r.offset)
 	want := int64(len(buf))
-	if want > r.offset {
-		want = r.offset
-	}
+	want = minimum64(want, r.offset)
 	if want == 0 {
 		return 0, io.EOF
 	}

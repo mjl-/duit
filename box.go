@@ -93,9 +93,7 @@ func (ui *Box) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 		if nx == 0 || cur.X+childSize.X <= sizeAvail.X {
 			kr = rect(childSize).Add(cur).Add(padding.Topleft())
 			cur.X += childSize.X + margin.X
-			if childSize.Y > lineY {
-				lineY = childSize.Y
-			}
+			lineY = maximum(lineY, childSize.Y)
 			nx += 1
 		} else {
 			if nx > 0 {
