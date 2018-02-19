@@ -496,9 +496,6 @@ func (d *DUI) apply(r Result) {
 // Mouse delivers a mouse event to the UI tree.
 // Mouse is typically called by Input.
 func (d *DUI) Mouse(m draw.Mouse) {
-	if d.logInputs {
-		log.Printf("duit: mouse %v, %b\n", m, m.Buttons)
-	}
 	if m.Buttons == 0 || d.origMouse.Buttons == 0 {
 		d.origMouse = m
 	}
@@ -509,9 +506,6 @@ func (d *DUI) Mouse(m draw.Mouse) {
 
 // Resize handles a resize of the window. Resize is called automatically through Input when the user resizes a window.
 func (d *DUI) Resize() {
-	if d.logInputs {
-		log.Printf("duit: resize")
-	}
 	err := d.Display.Attach(draw.Refmesg)
 	if d.error(err, "attach after resize") {
 		return
@@ -580,9 +574,6 @@ func (d *DUI) Key(k rune) {
 			log.Printf("encoding d.Top: %s\n", err)
 		}
 		return
-	}
-	if d.logInputs {
-		log.Printf("duit: key %c, %x\n", k, k)
 	}
 	r := d.Top.UI.Key(d, &d.Top, k, d.mouse, image.ZP)
 	if !r.Consumed {
@@ -677,15 +668,30 @@ func (d *DUI) Scale(n int) int {
 func (d *DUI) Input(e Input) {
 	switch e.Type {
 	case InputMouse:
+		if d.logInputs {
+			log.Printf("duit: mouse %v, %b\n", e.Mouse, e.Mouse.Buttons)
+		}
 		d.Mouse(e.Mouse)
 	case InputKey:
+		if d.logInputs {
+			log.Printf("duit: key %c, %x\n", e.Key, e.Key)
+		}
 		d.Key(e.Key)
 	case InputResize:
+		if d.logInputs {
+			log.Printf("duit: resize")
+		}
 		d.Resize()
 	case InputFunc:
+		if d.logInputs {
+			log.Printf("duit: func")
+		}
 		e.Func()
 		d.Render()
 	case InputError:
+		if d.logInputs {
+			log.Printf("duit: error: %s", e.Error)
+		}
 		log.Fatalf("error from devdraw: %s\n", e.Error)
 	}
 }

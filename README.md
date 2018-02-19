@@ -100,7 +100,6 @@ a list of applications created with duit:
 
 ## todo
 
-- logInputs: also log resize, call, error.
 - edit: more vi commands
 - edit: do not trash history in Saved(), but adjust the offsets to the new file contents
 - edit: fix ScrollCursor so it knows about linewraps. for forward reading, have to start at ui.offset, then read forward, and keep adjusting ui.offset.
