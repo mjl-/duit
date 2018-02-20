@@ -9,10 +9,10 @@ import (
 // Radiobutton is typically part of a group of radiobuttons, with exactly one of them selected. Labels are not part of the radiobutton itself.
 type Radiobutton struct {
 	Selected bool
-	Disabled bool           // If set, cannot be selected.
-	Group    []*Radiobutton // Other radiobuttons as part of this group. If a radiobutton is selected, others in the group are unselected.
-	Font     *draw.Font     `json:"-"` // Used only to determine size of radiobutton to draw.
-	Value    interface{}    `json:"-"` // Auxiliary data.
+	Disabled bool             // If set, cannot be selected.
+	Group    RadiobuttonGroup // Other radiobuttons as part of this group. If a radiobutton is selected, others in the group are unselected.
+	Font     *draw.Font       `json:"-"` // Used only to determine size of radiobutton to draw.
+	Value    interface{}      `json:"-"` // Auxiliary data.
 
 	// Called for the radiobutton in the group that is newly selected, not for the other radiobuttons in the group.
 	// Not called if selected with Select().
@@ -22,6 +22,19 @@ type Radiobutton struct {
 }
 
 var _ UI = &Radiobutton{}
+
+// RadiobuttonGroup is the group of all possible radiobuttons of which only one can be selected.
+type RadiobuttonGroup []*Radiobutton
+
+// Selected returns the currently selected radiobutton in the group.
+func (g RadiobuttonGroup) Selected() *Radiobutton {
+	for _, r := range g {
+		if r.Selected {
+			return r
+		}
+	}
+	return nil
+}
 
 func (ui *Radiobutton) font(dui *DUI) *draw.Font {
 	if ui.Font != nil {
