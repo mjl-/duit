@@ -593,8 +593,10 @@ func (d *DUI) Key(k rune) {
 	d.apply(r)
 }
 
-// Focus changes the focus on ui, by propagating the focus request through the UI tree. The mouse pointer is warped to the UI. Container UIs ensure the UI is in place, e.g. scrolling if necessary.
+// Focus renders the UI, then changes focus to ui by warping the mouse pointer to it.
+// Container UIs ensure the UI is in place, e.g. scrolling if necessary.
 func (d *DUI) Focus(ui UI) {
+	d.Render()
 	p := d.Top.UI.Focus(d, &d.Top, ui)
 	if p == nil {
 		log.Printf("duit: focus: no ui found for %T %p\n", ui, ui)
