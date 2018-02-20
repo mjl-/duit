@@ -201,7 +201,8 @@ func (ui *List) firstSelected() int {
 }
 
 func (ui *List) FirstFocus(dui *DUI, self *Kid) *image.Point {
-	p := image.Pt(0, maximum(0, ui.firstSelected())*ui.rowHeight(dui))
+	rowHeight := ui.rowHeight(dui)
+	p := image.Pt(self.R.Dx()/2, maximum(0, ui.firstSelected())*rowHeight+rowHeight/2)
 	return &p
 }
 
