@@ -1,9 +1,9 @@
 language: go
 
 go:
-    - 1.9
-    - 1.10
-   - tip
+  - 1.9
+  - 1.10
+  - master
 
 env:
   - DEP_VERSION="0.4.1"
@@ -14,3 +14,6 @@ before_install:
 
 install:
   - dep ensure
+
+script:
+  - make build test
