@@ -271,13 +271,19 @@ func (ui *Scroll) warpScroll(dui *DUI, self *Kid, warp *image.Point, orig image.
 	warp.Y += orig.Y
 }
 
-func (ui *Scroll) FirstFocus(dui *DUI, self *Kid) *image.Point {
-	p := ui.Kid.UI.FirstFocus(dui, &ui.Kid)
+func (ui *Scroll) _focus(dui *DUI, p *image.Point) *image.Point {
 	if p == nil {
 		return nil
 	}
+	pp := p.Add(ui.childR.Min)
+	p = &pp
 	ui.warpScroll(dui, nil, p, image.ZP)
 	return p
+}
+
+func (ui *Scroll) FirstFocus(dui *DUI, self *Kid) *image.Point {
+	p := ui.Kid.UI.FirstFocus(dui, &ui.Kid)
+	return ui._focus(dui, p)
 }
 
 func (ui *Scroll) Focus(dui *DUI, self *Kid, o UI) *image.Point {
@@ -285,7 +291,8 @@ func (ui *Scroll) Focus(dui *DUI, self *Kid, o UI) *image.Point {
 		p := image.Pt(minimum(ui.scrollbarSize/2, ui.r.Dx()), minimum(ui.scrollbarSize/2, ui.r.Dy()))
 		return &p
 	}
-	return ui.Kid.UI.Focus(dui, &ui.Kid, o)
+	p := ui.Kid.UI.Focus(dui, &ui.Kid, o)
+	return ui._focus(dui, p)
 }
 
 func (ui *Scroll) Mark(self *Kid, o UI, forLayout bool) (marked bool) {
