@@ -1,4 +1,7 @@
+[![GoDoc](https://godoc.org/github.com/mjl-/duit?status.svg)](https://godoc.org/github.com/mjl-/duit)
+
 # duit - developer ui toolkit
+
 
 WARNING: this library is unstable. i will break your code with backwards incompatible changes to the api, even for seemingly trivial cosmetic api changes. it's published now for interested fosdem2018 attendants. lots of code needs cleaning up, and there is virtually no documentation yet.
 
@@ -100,6 +103,7 @@ a list of applications created with duit:
 
 ## todo
 
+- edit: scrollbar remains drawn with hover after moving mouse out of scrollbar
 - edit: more vi commands
 - edit: do not trash history in Saved(), but adjust the offsets to the new file contents
 - edit: fix ScrollCursor so it knows about linewraps. for forward reading, have to start at ui.offset, then read forward, and keep adjusting ui.offset.
@@ -116,6 +120,7 @@ a list of applications created with duit:
 - gridlist: draw own scrollbar, draw header fixed at the top
 - gridlist: change to take a dynamic source of rows, so we can read on demand
 - gridlist: implement rows where a cell has multiple lines
+- warp: a mechanism to suppress warp on click. having a key pressed would be good (not currently possible with devdraw).
 - label: text selection with mouse, with cmd+a/n, cmd+c for copying selection.
 - need to find a solution for having field take up only as much as is available, not entire width.
 - scroll: do not draw entire child UI if it is big, but perhaps only 2x scroll size so some scroll can be done, but ask child to redraw at some point. saves image memory.
