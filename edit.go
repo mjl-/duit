@@ -736,6 +736,7 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 		return n
 	}
 	if origM.In(ui.barR) {
+		o := ui.offset
 		switch m.Buttons {
 		case Button1:
 			ui.scroll(-scrollLines(origM.Y), self)
@@ -760,6 +761,7 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 		case Button5:
 			ui.scroll(scrollLines(origM.Y/4), self)
 		}
+		r.Consumed = o != ui.offset
 		return
 	}
 	if !origM.In(dui.ScaleSpace(EditPadding).Mul(-1).Inset(ui.textR)) {
@@ -772,124 +774,131 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 	m.Point.X = maximum(0, m.Point.X)
 	om := ui.textM
 	ui.textM = m
+
 	switch m.Buttons {
-	case Button4:
-		ui.scroll(-scrollLines(m.Y/4), self)
-	case Button5:
-		ui.scroll(scrollLines(m.Y/4), self)
-	default:
-		mouseOffset := func() int64 {
-			line := m.Y / ui.font().Height
-			xmax := ui.textR.Dx()
-			if line < 0 {
-				rd := ui.revReader(ui.offset)
-				var s []rune // in reverse
-				x := 0
-				finishLine := func() (offset int64, done bool) {
-					if line < 0 {
-						line++
-						s = nil
-						x = 0
-						return rd.Offset(), false
-					}
-					x := 0
-					o := 0
-					for i := len(s) - 1; i >= 0; i-- {
-						dx := font.StringWidth(string(s[i]))
-						if x+2*dx/3 > xmax {
-							break
-						}
-						o += len(string(s[i]))
-					}
-					return rd.Offset() + int64(o), true
-				}
-				for {
-					c, eof := rd.Peek()
-					if eof {
-						r, _ := finishLine()
-						return r
-					}
-					if c == '\n' {
-						if r, done := finishLine(); done {
-							return r
-						}
-						rd.Get()
-						continue
-					}
-					dx := font.StringWidth(string(c))
-					if x+dx > xmax {
-						if r, done := finishLine(); done {
-							return r
-						}
-					}
-					rd.Get()
-					s = append(s, c)
-					x += dx
-				}
-			}
-			rd := ui.reader(ui.offset, ui.text.Size())
+	case Button4, Button5:
+		o := ui.offset
+		switch m.Buttons {
+		case Button4:
+			ui.scroll(-scrollLines(m.Y/4), self)
+		case Button5:
+			ui.scroll(scrollLines(m.Y/4), self)
+		}
+		r.Consumed = ui.offset != o
+		return
+	}
+
+	mouseOffset := func() int64 {
+		line := m.Y / ui.font().Height
+		xmax := ui.textR.Dx()
+		if line < 0 {
+			rd := ui.revReader(ui.offset)
+			var s []rune // in reverse
 			x := 0
-			mX := m.X
+			finishLine := func() (offset int64, done bool) {
+				if line < 0 {
+					line++
+					s = nil
+					x = 0
+					return rd.Offset(), false
+				}
+				x := 0
+				o := 0
+				for i := len(s) - 1; i >= 0; i-- {
+					dx := font.StringWidth(string(s[i]))
+					if x+2*dx/3 > xmax {
+						break
+					}
+					o += len(string(s[i]))
+				}
+				return rd.Offset() + int64(o), true
+			}
 			for {
 				c, eof := rd.Peek()
 				if eof {
-					break
+					r, _ := finishLine()
+					return r
 				}
 				if c == '\n' {
-					if line == 0 {
-						break
+					if r, done := finishLine(); done {
+						return r
 					}
 					rd.Get()
-					line--
-					x = 0
 					continue
 				}
 				dx := font.StringWidth(string(c))
-				if line == 0 && (x+2*dx/3 > mX || x+dx > xmax) {
+				if x+dx > xmax {
+					if r, done := finishLine(); done {
+						return r
+					}
+				}
+				rd.Get()
+				s = append(s, c)
+				x += dx
+			}
+		}
+		rd := ui.reader(ui.offset, ui.text.Size())
+		x := 0
+		mX := m.X
+		for {
+			c, eof := rd.Peek()
+			if eof {
+				break
+			}
+			if c == '\n' {
+				if line == 0 {
 					break
 				}
-				x += dx
-				if x > xmax {
-					line--
-					x = 0
-				} else {
-					rd.Get()
-				}
+				rd.Get()
+				line--
+				x = 0
+				continue
 			}
-			return rd.Offset()
-		}
-		if m.Buttons^om.Buttons != 0 && ui.mode != modeInsert {
-			ui.mode = modeInsert
-			ui.command = ""
-			ui.visual = ""
-		}
-		if m.Buttons == Button1 {
-			ui.cursor.Cur = mouseOffset()
-			ui.ScrollCursor(dui)
-			if om.Buttons == 0 {
-				if m.Msec-ui.prevTextB1.Msec < 350 {
-					ui.cursor = ui.expand(ui.cursor.Cur, ui.reader(ui.cursor.Cur, ui.text.Size()), ui.revReader(ui.cursor.Cur))
-				} else {
-					ui.cursor.Start = ui.cursor.Cur
-				}
-				ui.prevTextB1 = m
+			dx := font.StringWidth(string(c))
+			if line == 0 && (x+2*dx/3 > mX || x+dx > xmax) {
+				break
 			}
-			self.Draw = Dirty
-			r.Consumed = true
-			return
+			x += dx
+			if x > xmax {
+				line--
+				x = 0
+			} else {
+				rd.Get()
+			}
 		}
-		if m.Buttons == 0 && om.Buttons&(Button1|Button2|Button3) != 0 && ui.Click != nil {
-			e := ui.Click(om, mouseOffset())
-			propagateEvent(self, &r, e)
+		return rd.Offset()
+	}
+	if m.Buttons^om.Buttons != 0 && ui.mode != modeInsert {
+		ui.mode = modeInsert
+		ui.command = ""
+		ui.visual = ""
+	}
+	if m.Buttons == Button1 {
+		ui.cursor.Cur = mouseOffset()
+		ui.ScrollCursor(dui)
+		if om.Buttons == 0 {
+			if m.Msec-ui.prevTextB1.Msec < 350 {
+				ui.cursor = ui.expand(ui.cursor.Cur, ui.reader(ui.cursor.Cur, ui.text.Size()), ui.revReader(ui.cursor.Cur))
+			} else {
+				ui.cursor.Start = ui.cursor.Cur
+			}
+			ui.prevTextB1 = m
 		}
-		if m.Buttons^om.Buttons != 0 {
-			ui.text.closeHist(ui)
-			// log.Printf("in text, mouse buttons changed %v ->  %v\n", om, m)
-		} else if m.Buttons != 0 && m.Buttons == om.Buttons {
-			// log.Printf("in text, mouse drag %v\n", m)
-		} else if om.Buttons != 0 && m.Buttons == 0 {
-			// log.Printf("in text, button release %v -> %v\n", om, m)
-		}
+		self.Draw = Dirty
+		r.Consumed = true
+		return
+	}
+	if m.Buttons == 0 && om.Buttons&(Button1|Button2|Button3) != 0 && ui.Click != nil {
+		e := ui.Click(om, mouseOffset())
+		propagateEvent(self, &r, e)
+	}
+	if m.Buttons^om.Buttons != 0 {
+		ui.text.closeHist(ui)
+		// log.Printf("in text, mouse buttons changed %v ->  %v\n", om, m)
+	} else if m.Buttons != 0 && m.Buttons == om.Buttons {
+		// log.Printf("in text, mouse drag %v\n", m)
+	} else if om.Buttons != 0 && m.Buttons == 0 {
+		// log.Printf("in text, button release %v -> %v\n", om, m)
 	}
 	r.Consumed = true
 	return
