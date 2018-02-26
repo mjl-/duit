@@ -391,18 +391,21 @@ func (ui *Edit) Text() ([]byte, error) {
 
 // Reader from which contents of edit can be read.
 func (ui *Edit) Reader() ReaderReaderAt {
+	ui.ensureInit()
 	// xxx should make copy of ui.text
 	return io.NewSectionReader(ui.text, 0, ui.text.Size()-0)
 }
 
 // EditReader from which contents of edit can be read, starting at offset.
 func (ui *Edit) EditReader(offset int64) EditReader {
+	ui.ensureInit()
 	// xxx should make copy of ui.text
 	return ui.reader(offset, ui.text.Size())
 }
 
 // ReverseEditReader from which contents of edit can be read in reverse (whole utf-8 characters), starting at offset, to 0.
 func (ui *Edit) ReverseEditReader(offset int64) EditReader {
+	ui.ensureInit()
 	// xxx should make copy of ui.text
 	return ui.revReader(offset)
 }
@@ -663,6 +666,7 @@ func (ui *Edit) expandNested(r *reader, up, down rune) int64 {
 
 // todo: maybe not have this here?
 func (ui *Edit) ExpandedText() ([]byte, error) {
+	ui.ensureInit()
 	br := ui.revReader(ui.cursor.Cur)
 	br.Nonwhitespace()
 	fr := ui.reader(ui.cursor.Cur, ui.text.Size())
@@ -918,6 +922,7 @@ func (ui *Edit) selectionText() ([]byte, error) {
 
 // Selection returns the buffer of the current selection.
 func (ui *Edit) Selection() ([]byte, error) {
+	ui.ensureInit()
 	return ui.selectionText()
 }
 
@@ -938,6 +943,7 @@ func (ui *Edit) SetCursor(c Cursor) {
 
 // Append adds buf to the edit contents.
 func (ui *Edit) Append(buf []byte) {
+	ui.ensureInit()
 	defer ui.checkDirty(ui.dirty)
 	size := ui.text.Size()
 	ui.text.Replace(ui, &ui.dirty, Cursor{size, size}, buf, false)
@@ -947,12 +953,14 @@ func (ui *Edit) Append(buf []byte) {
 
 // Replace replaces the selection from c with buf.
 func (ui *Edit) Replace(c Cursor, buf []byte) {
+	ui.ensureInit()
 	defer ui.checkDirty(ui.dirty)
 	ui.text.Replace(ui, &ui.dirty, c, buf, false)
 }
 
 // Saved marks content as saved, calling the DirtyChanged callback if set, and updating the history state.
 func (ui *Edit) Saved() {
+	ui.ensureInit()
 	defer ui.checkDirty(ui.dirty)
 	ui.dirty = false
 	ui.text.saved(ui)
@@ -960,6 +968,7 @@ func (ui *Edit) Saved() {
 
 // ScrollCursor ensure cursor is visible, scrolling if necessary.
 func (ui *Edit) ScrollCursor(dui *DUI) {
+	ui.ensureInit()
 	ui.dui = dui
 	nbr := ui.revReader(ui.cursor.Cur)
 	if ui.cursor.Cur < ui.offset {
@@ -1056,6 +1065,7 @@ func (ui *Edit) searchText(t string, reverse bool) (match bool) {
 // Search finds the next occurrence of LastSearch and selects it and scrolls to it.
 // The first character determines the kind of search. If slash, the remainder is interpreted as regular expression. If space (and currently anything else), the remainder is interpreted as a literal string.
 func (ui *Edit) Search(dui *DUI, reverse bool) (match bool) {
+	ui.ensureInit()
 	ui.dui = dui
 	if ui.LastSearch == "" {
 		return
