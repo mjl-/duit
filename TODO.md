@@ -1,0 +1,40 @@
+## todo
+
+- edit: scrollbar remains drawn with hover after moving mouse out of scrollbar
+- edit: more vi commands
+- edit: do not trash history in Saved(), but adjust the offsets to the new file contents
+- edit: fix ScrollCursor so it knows about linewraps. for forward reading, have to start at ui.offset, then read forward, and keep adjusting ui.offset.
+- edit: don't do disk i/o in main thread
+- edit: provide function to save to same file as one already open.  should we write new file, then replace old one?
+- edit: plumbing? look
+- edit: render tab with configurable width
+- lots of code cleanup
+- kids* drawing: should allocate image for kid to draw on if it is larger than available size.  can put child size & image in Kid.
+- figure out which keyboard shortcuts can be safely used across all the system
+- place: should draw overlapping children on their own image, so it doesn't have to redraw children all the time. initially, we'll just keep images for all the children.
+- try draw lib for plan9, https://github.com/mortdeus/draw9 or https://bitbucket.org/mischief/draw9; probably needs some modification
+- option for devdraw for windows: https://bitbucket.org/mtrS/pf9; the binaries don't seem to work. code may be old.
+- gridlist: draw own scrollbar, draw header fixed at the top
+- gridlist: change to take a dynamic source of rows, so we can read on demand
+- gridlist: implement rows where a cell has multiple lines
+- warp: a mechanism to suppress warp on click. having a key pressed would be good (not currently possible with devdraw).
+- label: text selection with mouse, with cmd+a/n, cmd+c for copying selection.
+- need to find a solution for having field take up only as much as is available, not entire width.
+- scroll: do not draw entire child UI if it is big, but perhaps only 2x scroll size so some scroll can be done, but ask child to redraw at some point. saves image memory.
+- field: more like edit. perhaps even merge them. or make a field a special case of edit. would give it the same vi key editing, mouse selection, etc. major difference is rendering: field renders different part of content based on cursor.
+- attempt to write a json encoder for entire ui. would need a marshal/unmarshal on kid, for the type of the UI. requires changes to UIs that require functions to layout: what do to for place? horizontal/vertical can just get a default split function.
+- horizontal scrolling. or should uis implement that themselves when they think it is necessary?
+- more ui elements?
+- maybe: separate scrollbar from other uis, where they interact with function calls. so we can have a scroll bar that scrolls two other ui's. tk has this.
+- learn from other UI toolkits
+- make duitmap a UI on its own?
+- devdraw for windows. should start with plan9port code base. use windows UI support from inferno-os, perhaps also a drawterm. inferno-os's build system works and is clean, but might as well go for some glue code in go, probably easier and with fewer dependencies.
+- future: replace dependencies on devdraw. eg with x11 library on unix. some sort of low-level code for macos and windows? find libraries, they might already exist. easiest if it is just a drop-in replacement for 9fans.net/go/draw.
+- tooltips?  requires overlays, on top of other UIs. requires deeper modifications, to redraw the appropriate UIs.
+- overlays?
+- think about how to show animations, eg animated gifs. a UI needs to tell it wants to redraw? or perhaps it can just redraw? (no, because of scrolling with an image copy). should probably just have a timer, and call markdraw.
+- figure out how to do proper font selection. eg bigger/smaller, bold/italic, styles (monowidth, serif, sans-serif). currently outside of duit. you need to configure fonts manually at the moment.
+- tab-focus: handle shift-tab to go backwards. also requires a LastFocus. devdraw does not support this though...
+- text selection with shift-arrows. devdraw doesn't tell us about separate shift events, or shift+arrow keys, so not possible currently.
+- shortcut for "focus next" in edit?  tab is just inserted as tab. the edit doesn't know where to warp the pointer to, and cannot tell its caller currently. probably needs change to duit.Result.
+- tip: test live resizing with label="page". devdraw treats those windows differently. should change devdraw to make this runtime configurable.
