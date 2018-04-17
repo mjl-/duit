@@ -45,6 +45,7 @@ applications created with duit by other developers:
 
 ## more
 
+- for context, see the [announcement blog post](https://www.ueber.net/who/mjl/blog/p/duit-developer-ui-toolkit/).
 - for questions, first see FAQ.md.
 - file an issue on this github repo if you found a bug.
 - submit a PR if you wrote code (and see TODO.md).
