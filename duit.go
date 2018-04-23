@@ -659,6 +659,9 @@ func scalePt(d *draw.Display, p image.Point) image.Point {
 
 // Scale turns a low DPI pixel size into a size scaled for the current display.
 func (d *DUI) Scale(n int) int {
+	if d.Display.DPI <= draw.DefaultDPI {
+		return n
+	}
 	return (d.Display.DPI / 100) * n
 }
 
