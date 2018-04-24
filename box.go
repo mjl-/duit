@@ -52,14 +52,14 @@ func (ui *Box) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool) {
 	}
 
 	osize := sizeAvail
-	if ui.Width > 0 && scale(dui.Display, ui.Width) < sizeAvail.X {
-		sizeAvail.X = scale(dui.Display, ui.Width)
-	} else if ui.MaxWidth > 0 && scale(dui.Display, ui.MaxWidth) < sizeAvail.X {
+	if ui.Width > 0 && dui.Scale(ui.Width) < sizeAvail.X {
+		sizeAvail.X = dui.Scale(ui.Width)
+	} else if ui.MaxWidth > 0 && dui.Scale(ui.MaxWidth) < sizeAvail.X {
 		// note: ui.Width is currently the same as MaxWidth, but that might change when we don't mind extending beyong given X, eg with horizontal scroll
-		sizeAvail.X = scale(dui.Display, ui.MaxWidth)
+		sizeAvail.X = dui.Scale(ui.MaxWidth)
 	}
 	if ui.Height > 0 {
-		sizeAvail.Y = scale(dui.Display, ui.Height)
+		sizeAvail.Y = dui.Scale(ui.Height)
 	}
 	padding := dui.ScaleSpace(ui.Padding)
 	margin := scalePt(dui.Display, ui.Margin)

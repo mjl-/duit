@@ -649,12 +649,12 @@ func PrintUI(s string, self *Kid, indent int) {
 	log.Printf("duit: %s%s r %v size %s layout=%d draw=%d%s %p\n", indentStr, s, self.R, self.R.Size(), self.Layout, self.Draw, id, self.UI)
 }
 
-func scale(d *draw.Display, n int) int {
-	return (d.DPI / 100) * n
-}
-
 func scalePt(d *draw.Display, p image.Point) image.Point {
-	return p.Mul(d.DPI / 100)
+	f := d.DPI / 100
+	if f <= 1 {
+		f = 1
+	}
+	return p.Mul(f)
 }
 
 // Scale turns a low DPI pixel size into a size scaled for the current display.

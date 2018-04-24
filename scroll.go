@@ -39,8 +39,8 @@ func (ui *Scroll) Layout(dui *DUI, self *Kid, sizeAvail image.Point, force bool)
 	self.Draw = Dirty
 	// todo: be smarter about DirtyKid
 
-	ui.scrollbarSize = scale(dui.Display, ScrollbarSize)
-	scaledHeight := scale(dui.Display, ui.Height)
+	ui.scrollbarSize = dui.Scale(ScrollbarSize)
+	scaledHeight := dui.Scale(ui.Height)
 	if scaledHeight > 0 && scaledHeight < sizeAvail.Y {
 		sizeAvail.Y = scaledHeight
 	}
