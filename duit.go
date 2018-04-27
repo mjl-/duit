@@ -585,8 +585,8 @@ func (d *DUI) Key(k rune) {
 				r.Consumed = true
 			}
 		case draw.KeyCmd + 'w':
+			close(d.Error)
 			d.Close()
-			d.Error <- nil
 			return
 		}
 	}
