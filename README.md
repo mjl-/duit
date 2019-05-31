@@ -26,13 +26,12 @@ you should just try duit. using it and interacting with it gives a more complete
 
 setting this up currently requires some effort:
 
-- run `dep ensure`, to clone github.com/mjl-/go as 9fans.net/go.
 - install plan9port, see https://9fans.github.io/plan9port/ (use their install instructions)
 - install a nice font. i use & recommend lato for a modern look. duit will automatically pick it up through $font (through plan9port's fontsrv), e.g.: export font=/mnt/font/Lato-Regular/15a/font
 
 you should now be able to run the code in examples/
 
-devdraw is not yet available as a native  binary for windows. for now, use the windows subsystem for linux (ubuntu) on windows along with Xming. see https://github.com/elrzn/acme-wsl for instructions.
+devdraw is not yet available as a native binary for windows. for now, use the windows subsystem for linux (ubuntu) on windows along with Xming. see https://github.com/elrzn/acme-wsl for instructions.
 
 
 ## created with duit

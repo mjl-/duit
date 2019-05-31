@@ -1,9 +1,13 @@
+export CGO_ENABLED=0
+export GOFLAGS=-mod=vendor
+export GOPROXY=off
+
 build:
 	go build ./...
 	go vet ./...
 
 fmt:
-	gofmt -w .
+	go fmt ./...
 
 test:
 	go test -cover  ./...
