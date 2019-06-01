@@ -1,5 +1,4 @@
 [![GoDoc](https://godoc.org/github.com/mjl-/duit?status.svg)](https://godoc.org/github.com/mjl-/duit)
-[![Build Status](https://travis-ci.org/mjl-/duit.svg?branch=master)](https://travis-ci.org/mjl-/duit)
 
 # duit - developer ui toolkit
 
