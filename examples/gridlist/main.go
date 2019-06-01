@@ -32,7 +32,7 @@ func main() {
 		}
 		rows = append(rows, row)
 	}
-	rows = append([]*duit.Gridrow{&duit.Gridrow{
+	rows = append([]*duit.Gridrow{{
 		Values: []string{
 			"and this is the longest of them all! and this is the longest of them all! and this is the longest of them all!",
 			"this is quite a long line",
