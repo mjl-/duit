@@ -83,7 +83,11 @@ func (ui *List) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 	}
 	if !r.Consumed && prevM.Buttons == 0 && m.Buttons == Button1 {
 		v := ui.Values[index]
-		v.Selected = !v.Selected
+		if ui.Multiple {
+			v.Selected = !v.Selected
+		} else {
+			v.Selected = true
+		}
 		if v.Selected && !ui.Multiple {
 			for _, vv := range ui.Values {
 				if vv != v {
