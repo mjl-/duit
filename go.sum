@@ -1,2 +1,4 @@
+github.com/knusbaum/go v0.0.0-20200413212707-848f58a0ec6e h1:sMC7OcZa45aGaUJlCN2gK6l5IQD9WXTLXtFWIzZaeJQ=
+github.com/knusbaum/go v0.0.0-20200413212707-848f58a0ec6e/go.mod h1:VCPNE8vAcDWdtdY1piEGVOtcdrgFfQ3xV6q4XUwdAm8=
 github.com/mjl-/go v0.0.0-20180429123528-fafada5f286e h1:M6KcUwCT34dkXLeYORteGPNguMsAaYkE/IBGKRGXFUI=
 github.com/mjl-/go v0.0.0-20180429123528-fafada5f286e/go.mod h1:G+1evjukGD/lUyIfAq/sr0YX5EcukfBUeA+tFPF5JUA=
