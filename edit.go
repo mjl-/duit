@@ -118,6 +118,11 @@ type Edit struct {
 	lastCursorPoint image.Point
 }
 
+// Size returns the size in bytes of the edit text.
+func (ui *Edit) Size() int64 {
+	return ui.text.Size()
+}
+
 // Ordered returns the ordered start, end position of the cursor.
 func (c Cursor) Ordered() (int64, int64) {
 	if c.Cur > c.Start {
