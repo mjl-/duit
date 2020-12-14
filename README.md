@@ -48,4 +48,3 @@ applications created with duit by other developers:
 - file an issue on this github repo if you found a bug.
 - submit a PR if you wrote code (and see TODO.md).
 - mailing list at https://lists.sr.ht/~mjl/duit.
-- join #duit on freenode (irc).
