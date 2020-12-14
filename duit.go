@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -178,22 +179,17 @@ type DUIOpts struct {
 	Dimensions string // eg "800x600", duit has a sane default and remembers size per application name after resize.
 }
 
-// AppdataDir returns the directory where the application can store its files, like configuration.
-// On unix this is $HOME/lib/<app>. On Windows it is $APPDATA/<app>.
+// AppdataDir returns the directory where the application can store its files, like configuration, inside os.UserConfigDir.
+// Deprecated: Use os.UserConfigDir or os.UserHomeDir.
+// This used to be $HOME/lib/<app> on unix and $APPDATA/<app> on windows.
 func AppDataDir(app string) string {
-	appdata := os.Getenv("APPDATA") // windows, but more helpful than just homedir
-	if appdata == "" {
-		home := os.Getenv("HOME") // unix
-		if home == "" {
-			home = os.Getenv("home") // plan 9
-		}
-		appdata = home + "/lib"
-	}
-	return appdata + "/" + app
+	dir, _ := os.UserConfigDir()
+	return filepath.Join(dir, app)
 }
 
 func configDir() string {
-	return AppDataDir("duit")
+	dir, _ := os.UserConfigDir()
+	return filepath.Join(dir, "duit")
 }
 
 // NewDUI creates a DUI for an application called name, and optional opts. A DUI is a new window and its UI state.
