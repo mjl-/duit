@@ -114,6 +114,7 @@ type Edit struct {
 
 	textM,
 	prevTextB1 draw.Mouse
+	selecting bool
 
 	lastCursorPoint image.Point
 }
@@ -882,7 +883,10 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 		ui.command = ""
 		ui.visual = ""
 	}
-	if m.Buttons == Button1 {
+	if om.Buttons&Button1 == 0 && m.Buttons&Button1 == 1 {
+		ui.selecting=true
+	}
+	if m.Buttons == Button1 && ui.selecting {
 		ui.cursor.Cur = mouseOffset()
 		ui.ScrollCursor(dui)
 		if om.Buttons == 0 {
@@ -904,10 +908,44 @@ func (ui *Edit) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig 
 	if m.Buttons^om.Buttons != 0 {
 		ui.text.closeHist(ui)
 		// log.Printf("in text, mouse buttons changed %v ->  %v\n", om, m)
+		if (om.Buttons&Button1 == 1 || m.Buttons&Button1 == 1) && om.Buttons&Button2 == 0 && m.Buttons&Button2 == Button2 {
+			sel, err := ui.Selection()
+			if err != nil {
+				log.Printf("duit: Selection: %s", err)
+				return
+			}
+			err = dui.Display.WriteSnarf([]byte(sel))
+			if err != nil {
+				log.Printf("duit: WriteSnarf: %s", err)
+				return
+			}
+			ui.Replace(ui.cursor, []byte(""))
+			s, e := ui.cursor.Start, ui.cursor.Cur
+			if s>e {
+				s,e = e,s
+			}
+			ui.cursor.Start=s
+			ui.cursor.Cur=s
+			ui.selecting = false
+			self.Draw = Dirty
+			ui.ScrollCursor(dui)
+		}
+		if (om.Buttons&Button1 == 1 || m.Buttons&Button1 == 1) && om.Buttons&Button3 == 0 && m.Buttons&Button3 == Button3 {
+			b, ok := dui.ReadSnarf()
+			if !ok {
+				// Just return, ReadSnarf doesn't return an error.
+				return
+			}
+			ui.Replace(ui.cursor, b)
+			ui.cursor.Cur = ui.cursor.Cur + int64(len(b))
+			self.Draw = Dirty
+			ui.ScrollCursor(dui)
+			ui.selecting = false
+		}
 	} else if m.Buttons != 0 && m.Buttons == om.Buttons {
-		// log.Printf("in text, mouse drag %v\n", m)
+		//log.Printf("in text, mouse drag %v\n", m)
 	} else if om.Buttons != 0 && m.Buttons == 0 {
-		// log.Printf("in text, button release %v -> %v\n", om, m)
+		//log.Printf("in text, button release %v -> %v\n", om, m)
 	}
 	r.Consumed = true
 	return

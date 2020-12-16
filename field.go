@@ -2,6 +2,7 @@ package duit
 
 import (
 	"image"
+	"log"
 	"strings"
 	"unicode/utf8"
 
@@ -301,6 +302,7 @@ func expandSelection(t string, i int) (s, e int) {
 }
 
 func (ui *Field) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig image.Point) (r Result) {
+	defer func() { ui.m = m }()
 	if ui.Disabled {
 		return
 	}
@@ -330,21 +332,54 @@ func (ui *Field) Mouse(dui *DUI, self *Kid, m draw.Mouse, origM draw.Mouse, orig
 		ui.SelectionStart1 = ui.Cursor1
 		r.Consumed = true
 		self.Draw = Dirty
+		if m.Msec-ui.prevB1Release.Msec < 400 {
+			s, e := expandSelection(ui.Text, ui.cursor0())
+			ui.Cursor1 = 1 + s
+			ui.SelectionStart1 = 1 + e
+		}
 	} else if ui.m.Buttons&1 == 1 || m.Buttons&1 == 1 {
-		// continue selection
-		ui.Cursor1 = 1 + locateCursor()
 		r.Consumed = true
 		self.Draw = Dirty
-		if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 {
-			if m.Msec-ui.prevB1Release.Msec < 400 {
-				s, e := expandSelection(ui.Text, ui.cursor0())
-				ui.Cursor1 = 1 + s
-				ui.SelectionStart1 = 1 + e
+		if ui.m.Buttons&4 == 0 && m.Buttons&4 == 4 {
+			// b1 + b3 chord (Paste)
+			b, ok := dui.ReadSnarf()
+			if !ok {
+				// ReadSnarf does not return an error.
+				return
 			}
-			ui.prevB1Release = m
+			s, e, _ := ui.selection0()
+			if s != e {
+				ui.Text = ui.Text[:s] + string(b) + ui.Text[e:]
+				ui.Cursor1 = s + len(b) + 1
+			} else {
+				c := ui.cursor0()
+				ui.Text = ui.Text[:c] + string(b) + ui.Text[c:]
+				ui.Cursor1 = c + len(b) + 1
+			}
+			ui.SelectionStart1 = 0
+		} else if ui.m.Buttons&2 == 0 && m.Buttons&2 == 2 {
+			// b1 + b2 chord (Cut)
+			_, _, sel := ui.selection0()
+			err := dui.Display.WriteSnarf([]byte(sel))
+			if err != nil {
+				log.Printf("duit: writesnarf: %s\n", err)
+				return
+			}
+			ui.removeSelection()
+		} else if ui.SelectionStart1 > 0 {
+			// continue selection
+			ui.Cursor1 = 1 + locateCursor()
+			if ui.m.Buttons&1 == 1 && m.Buttons&1 == 0 {
+				if m.Msec-ui.prevB1Release.Msec < 400 {
+					s, e := expandSelection(ui.Text, ui.cursor0())
+					ui.Cursor1 = 1 + s
+					ui.SelectionStart1 = 1 + e
+				}
+				ui.prevB1Release = m
+			}
 		}
 	}
-	ui.m = m
+	
 	return
 }
 
